@@ -1,0 +1,10 @@
+{
+  "name": "swpp-backends",
+  "version": "1.0.0",
+  "main": "out/dist/index.js",
+  "typings": "out/types/index.d.ts",
+  "devDependencies": {
+    "@types/node": "^20.4.5",
+    "typescript": "^5.1.6"
+  }
+}
