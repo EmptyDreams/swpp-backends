@@ -108,10 +108,10 @@ export interface SwppConfig {
         /**
          * 生成注册 ServiceWorker 的 HTML 代码片段
          * @param root 网页根目录的 URL
-         * @param hexoConfig Hexo 配置项
+         * @param hexoConfig 博客配置项
          * @param pluginConfig swpp 插件配置项
          */
-        builder: (root: string, hexoConfig: any, pluginConfig: SwppConfig) => string
+        builder: (root: string, blogConfig: any, pluginConfig: SwppConfig) => string
     },
     /** 与 DOM 端有关的配置 */
     dom: boolean | {
@@ -171,7 +171,7 @@ export interface SwppConfigTemplate {
          * @param hexoConfig Hexo 配置项
          * @param pluginConfig swpp 插件配置项
          */
-        builder?: ((root: string, hexoConfig: any, pluginConfig: SwppConfig) => string) | undefined
+        builder?: ((root: string, blogConfig: any, pluginConfig: SwppConfig) => string) | undefined
     },
     /** 与 DOM 端有关的配置 */
     dom?: boolean | {

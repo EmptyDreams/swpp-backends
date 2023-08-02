@@ -5,13 +5,13 @@ const logger = require('hexo-log').default({
 
 /**
  * 获取 eject values
- * @param hexo Hexo 对象
+ * @param blogFramework 框架 对象
  * @param rules swpp rules 对象
  */
-export function getEjectValues(hexo: any, rules: any): { eject: string, nodeEject: any } | undefined {
+export function getEjectValues(blogFramework: any, rules: any): { eject: string, nodeEject: any } | undefined {
     if (!('ejectValues' in rules)) return undefined
     // noinspection JSUnresolvedReference
-    const eject = rules.ejectValues(hexo, rules)
+    const eject = rules.ejectValues(blogFramework, rules)
     const nodeEject: any = {}
     let ejectStr = ''
     for (let key in eject) {
