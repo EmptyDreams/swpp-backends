@@ -3,12 +3,17 @@ const logger = require('hexo-log').default({
     silent: false
 })
 
+export interface EjectData {
+    strValue: string,
+    nodeEject: any
+}
+
 /**
  * 获取 eject values
  * @param framework 框架对象
  * @param rules swpp rules 对象
  */
-export function getEjectValues(framework: any, rules: any): { eject: string, nodeEject: any } | undefined {
+export function getEjectValues(framework: any, rules: any): EjectData | undefined {
     if (!('ejectValues' in rules)) return undefined
     // noinspection JSUnresolvedReference
     const eject = rules.ejectValues(framework, rules)
@@ -30,7 +35,7 @@ export function getEjectValues(framework: any, rules: any): { eject: string, nod
         nodeEject[key] = data.value
     }
     return {
-        eject: ejectStr,
+        strValue: ejectStr,
         nodeEject
     }
 }
