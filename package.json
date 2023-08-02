@@ -8,9 +8,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.4.5",
+    "gulp": "^4.0.2",
     "typescript": "^5.1.6"
-  },
-  "dependencies": {
-    "gulp": "^4.0.2"
   }
 }
