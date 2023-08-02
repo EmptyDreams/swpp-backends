@@ -8,6 +8,7 @@ const defConfig: SwppConfigTemplate = {
         debug: false
     },
     register: {
+        onerror: () => console.error('Service Worker 注册失败！可能是由于您的浏览器不支持该功能！'),
         builder: (root: string, _: any, pluginConfig: SwppConfig) => {
             const registerConfig = pluginConfig.register as any
             const {onerror, onsuccess} = registerConfig
