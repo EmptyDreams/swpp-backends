@@ -7,11 +7,16 @@
     "build": "tsc"
   },
   "devDependencies": {
+    "@types/css": "^0.0.33",
+    "@types/fast-html-parser": "^1.0.2",
     "@types/node": "^20.4.5",
     "gulp": "^4.0.2",
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "crypto": "^1.0.1",
+    "css": "^3.0.0",
+    "fast-html-parser": "^1.0.1",
     "hexo-log": "^4.1.0",
     "node-fetch": "^3.3.2"
   }

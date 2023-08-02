@@ -136,7 +136,7 @@ export interface SwppConfig {
         /** 拉取网络文件的超时时间 */
         timeout: number,
         /** 匹配 JS 代码中的 URL */
-        js: ({ head: string, tail: string } | ((jsCode: string) => string))[],
+        js: ({ head: string, tail: string } | ((jsCode: string) => string[]))[],
         /** URL 监控跳过项目 */
         skip: RegExp[],
         /** 构建过程中将原始 URL 映射为新的 URL */
@@ -196,7 +196,7 @@ export interface SwppConfigTemplate {
         /** 拉取网络文件的超时时间 */
         timeout?: number,
         /** 匹配 JS 代码中的 URL */
-        js?: ({ head: string, tail: string } | ((jsCode: string) => string))[],
+        js?: ({ head: string, tail: string } | ((jsCode: string) => string[]))[],
         /** URL 监控跳过项目 */
         skip?: RegExp[],
         /** 构建过程中将原始 URL 映射为新的 URL */

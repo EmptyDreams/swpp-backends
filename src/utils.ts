@@ -11,13 +11,15 @@ export interface EjectData {
     nodeEject: any
 }
 
+let ejectData: EjectData | undefined = undefined
+
 /**
  * 获取 eject values
  * @param framework 框架对象
  * @param rules swpp rules 对象
  */
-export function getEjectValues(framework: any, rules: any): EjectData | undefined {
-    if (!('ejectValues' in rules)) return undefined
+export function calcEjectValues(framework: any, rules: any) {
+    if (!('ejectValues' in rules)) return
     // noinspection JSUnresolvedReference
     const eject = rules.ejectValues(framework, rules)
     const nodeEject: any = {}
@@ -37,10 +39,16 @@ export function getEjectValues(framework: any, rules: any): EjectData | undefine
         ejectStr += `    ${data.prefix} ${key} = ${str}\n`
         nodeEject[key] = data.value
     }
-    return {
+    ejectData = {
         strValue: ejectStr,
         nodeEject
     }
+}
+
+/** 读取最近的已计算的 eject 数据 */
+export function readEjectData(): EjectData {
+    if (!ejectData) throw 'eject data 尚未初始化'
+    return ejectData
 }
 
 /**
