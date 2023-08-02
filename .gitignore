@@ -1,5 +1,7 @@
 # 项目排除路径
 /node_modules/
-/out/
 /.idea/
 /swpp-backends.iml
+
+/dist/
+/types/
