@@ -1,3 +1,6 @@
+import {SwppConfig} from "./swppRules";
+import fetch, {Response} from "node-fetch";
+
 const logger = require('hexo-log').default({
     debug: false,
     silent: false
@@ -100,4 +103,52 @@ export function getSource(
             logger.error("[SWPP ServiceWorkerBuilder] 不支持写入 symbol 类型，请从 sw-rules.js 中移除相关内容！")
             throw '不支持写入 symbol 类型'
     }
+}
+
+/** 拉取文件 */
+export async function fetchFile(config: SwppConfig, link: string) {
+    const url = replaceDevRequest(config, link)
+    const opts = {
+        headers: {
+            referer: 'kmar-swpp',
+            'User-Agent': 'kmar-swpp'
+        },
+        timeout: (config.external as any).timeout
+    }
+    try {
+        if (typeof url === 'string') {
+            return await fetch(url, opts)
+        } else {
+            return await fetchSpeed(url)
+        }
+    } catch (err) {
+        // @ts-ignore
+        if (err.type === 'request-timeout') {
+            logger.error(
+                `[SWPP FetchFile] 拉取文件 [${link}] 时出现了超时错误，如果您构建所在的位置无法访问该资源，` +
+                "请尝试通过 DevReplace（https://kmar.top/posts/73014407/#4ea71e00）功能解决该问题。"
+            )
+            throw 'timeout'
+        }
+        throw err
+    }
+}
+
+export function replaceDevRequest(config: SwppConfig, link: string): string[] | string {
+    if (typeof config.external === 'boolean') return link
+    return config.external.replacer(link)
+}
+
+async function fetchSpeed(list: string[]) {
+    const controllers: AbortController[] = new Array(list.length)
+    const result = await Promise.any(
+        list.map((it, index) => fetch(it, {
+                signal: (controllers[index] = new AbortController()).signal
+            }).then(response => [200, 301, 302, 307, 308].includes(response.status) ? {index, response} : Promise.reject())
+        )
+    )
+    for (let i = 0; i < controllers.length; i++) {
+        if (i !== result.index) controllers[i].abort()
+    }
+    return result.response
 }
