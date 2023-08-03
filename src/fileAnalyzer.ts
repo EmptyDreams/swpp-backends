@@ -10,7 +10,12 @@ import {readEjectData} from './utils'
 import {readRules} from './swppRules'
 
 export interface CacheJson {
-    version: number
+    version: number,
+    list: CacheMap
+}
+
+export interface CacheMap {
+    [propName: string]: any
 }
 
 /**
@@ -65,8 +70,10 @@ export function readCacheJson(): CacheJson {
  * @param webRoot 网站根路径（不包括网络协议）
  * @param root 根目录
  */
-export async function buildCacheJson(protocol: ('https://' | 'http://'), webRoot: string, root: string): Promise<CacheJson> {
-    const result: any = {}
+export async function buildCacheJson(
+    protocol: ('https://' | 'http://'), webRoot: string, root: string
+): Promise<CacheJson> {
+    const list: CacheMap = {}
     eachAllFile(root, async path => {
         const endIndex = path.length - (path.endsWith('/index.html') ? 10 : 0)
         const url = new URL(protocol + nodePath.join(webRoot, path.substring(root.length, endIndex)))
@@ -76,27 +83,28 @@ export async function buildCacheJson(protocol: ('https://' | 'http://'), webRoot
         if (findCache(url)) {
             content = fs.readFileSync(path, 'utf-8')
             const key = decodeURIComponent(url.pathname)
-            result[key] = crypto.createHash('md5').update(content).digest('hex')
-        }
-        const cacheJson: any = {
-            version: 3
+            list[key] = crypto.createHash('md5').update(content).digest('hex')
         }
         if (pathname.endsWith('/') || pathname.endsWith('.html')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInHtml(webRoot, content, result)
+            await eachAllLinkInHtml(webRoot, content, list)
         } else if (pathname.endsWith('.css')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInCss(webRoot, content, result)
+            await eachAllLinkInCss(webRoot, content, list)
         } else if (pathname.endsWith('.js')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInJavaScript(webRoot, content, result)
+            await eachAllLinkInJavaScript(webRoot, content, list)
         }
     })
-    return result
+    return {
+        version: 3, list
+    }
 }
 
 /** 遍历一个 URL 指向地文件中所有地外部链接 */
-export async function eachAllLinkInUrl(webRoot: string, url: string, result: any, event?: (url: string) => void) {
+export async function eachAllLinkInUrl(
+    webRoot: string, url: string, result: CacheMap, event?: (url: string) => void
+) {
     if (url.startsWith('//')) url = 'http' + url
     if (url in result) return event?.(url)
     if (!url.startsWith('http') || isExclude(webRoot, url)) return
@@ -104,7 +112,7 @@ export async function eachAllLinkInUrl(webRoot: string, url: string, result: any
     event?.(url)
     const stable = isStable(url)
     if (stable) {
-        const old = readCacheJson() as any
+        const old = readCacheJson().list
         if (url in old) {
             const copyTree = (key: string) => {
                 const value = old[key]
@@ -165,7 +173,9 @@ export async function eachAllLinkInUrl(webRoot: string, url: string, result: any
 }
 
 /** 遍历 HTML 文件中的所有外部链接 */
-export async function eachAllLinkInHtml(webRoot: string, content: string, result: any, event?: (url: string) => void) {
+export async function eachAllLinkInHtml(
+    webRoot: string, content: string, result: CacheMap, event?: (url: string) => void
+) {
     const each = async (node: HTMLParser.HTMLElement) => {
         let url: string | undefined = undefined
         switch (node.tagName) {
@@ -194,7 +204,9 @@ export async function eachAllLinkInHtml(webRoot: string, content: string, result
 }
 
 /** 遍历 CSS 文件中的所有外部链接 */
-export async function eachAllLinkInCss(webRoot: string, content: string, result: any, event?: (url: string) => void) {
+export async function eachAllLinkInCss(
+    webRoot: string, content: string, result: CacheMap, event?: (url: string) => void
+) {
     const each = async (any: Array<any> | undefined) => {
         if (!any) return
         for (let rule of any) {
@@ -223,7 +235,9 @@ export async function eachAllLinkInCss(webRoot: string, content: string, result:
 }
 
 /** 遍历 JS 文件中地所有外部链接 */
-export async function eachAllLinkInJavaScript(webRoot: string, content: string, result: any, event?: (url: string) => void) {
+export async function eachAllLinkInJavaScript(
+    webRoot: string, content: string, result: CacheMap, event?: (url: string) => void
+) {
     const ruleList = readRules().config.external.js
     for (let value of ruleList) {
         if (typeof value === 'function') {
