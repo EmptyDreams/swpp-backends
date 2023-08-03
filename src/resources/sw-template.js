@@ -246,7 +246,6 @@
                 break
             case 'page':
                 this.match = url => forEachValues(
-                    // \/xxx(\/|\.html)$
                     value => url.match(new RegExp(`\\/${value}(\\/|\\.html)\$`))
                 )
                 break
