@@ -6,6 +6,14 @@ const logger = require('hexo-log').default({
     silent: false
 })
 
+export function error(type: string, message: string) {
+    logger.error(`[SWPP ${type}] ${message}`)
+}
+
+export function warn(type: string, message: string) {
+    logger.warn(`[SWPP ${type}] ${message}`)
+}
+
 export interface EjectCache {
     strValue: string,
     nodeEject: any
