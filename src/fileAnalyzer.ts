@@ -209,9 +209,9 @@ export async function eachAllLinkInHtml(webRoot: string, content: string, rules:
 /** 遍历 CSS 文件中的所有外部链接 */
 export async function eachAllLinkInCss(webRoot: string, content: string, rules: any): Promise<FileMd5[]> {
     const result: FileMd5[] = []
-    const each = async (rules: Array<any> | undefined) => {
-        if (!rules) return
-        for (let rule of rules) {
+    const each = async (any: Array<any> | undefined) => {
+        if (!any) return
+        for (let rule of any) {
             switch (rule.type) {
                 case 'rule':
                     await each(rule.declarations)
