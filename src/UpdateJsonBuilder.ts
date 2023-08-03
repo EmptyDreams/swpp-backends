@@ -37,8 +37,8 @@ export function readUpdateJson(): UpdateJson | null {
  * @param dif 网站文件变化
  */
 function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
-    const rules = readRules().config
-    if (!rules.json) throw '功能未开启'
+    const config = readRules().config.json
+    if (!config) throw '功能未开启'
     const old = readUpdateJson()
     let global = old?.global ?? 0
     if (dif.force) return {
@@ -60,7 +60,7 @@ function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
     for (let url of list) {
         if (url.startsWith('/')) {
             // 本地链接
-            const merge = rules.json.merge.find(it => url.startsWith(`/${it}/`))
+            const merge = config.merge.find(it => url.startsWith(`/${it}/`))
             if (merge) {
                 records.merge.add(merge)
                 continue
@@ -73,6 +73,16 @@ function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
             change.push({
                 flag: 'end',
                 value: getShorthand(url)
+            })
+        }
+    }
+    if (records.html.size !== 0) {
+        if (records.html.size > config.maxHtml) {
+            change.push({flag: 'html'})
+        } else {
+            change.push({
+                flag: 'end',
+                value: Array.from(records.html)
             })
         }
     }
@@ -133,5 +143,5 @@ export interface VersionInfo {
 
 export interface ChangeExpression {
     flag: 'html' | 'page' | 'end' | 'begin' | 'str' | 'reg',
-    value: string | string[]
+    value?: string | string[]
 }
