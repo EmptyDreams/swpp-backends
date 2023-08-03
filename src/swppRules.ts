@@ -45,16 +45,25 @@ const defConfig: SwppConfigTemplate = {
     }
 }
 
-const eventList: ((rules: any) => any)[] = []
+const eventList: ((rules: any) => void)[] = []
 let _rules: any
 
+/**
+ * 读取最后一次构建的 rules
+ *
+ * **执行该函数前必须调用过 [loadRules]**
+ */
 export function readRules(): any {
     if (!_rules) throw 'rules 尚未初始化'
     return _rules
 }
 
-/** 添加一个 rules 映射事件 */
-export function addRulesMapEvent(mapper: (rules: any) => any) {
+/**
+ * 添加一个 rules 映射事件，这个事件允许用户修改 rules 的内容
+ *
+ * 执行时按照注册的顺序执行
+ */
+export function addRulesMapEvent(mapper: (rules: any) => void) {
     eventList.push(mapper)
 }
 
@@ -83,11 +92,10 @@ export function loadRules(root: string, fileName: string, selects: string[]): an
     mergeConfig(config, defConfig)
     Object.assign(rootRules, selectRules)
     rootRules.config = config
-    let result = rootRules
     for (let event of eventList) {
-        result = event(result)
+        event(rootRules)
     }
-    return _rules = result
+    return _rules = rootRules
 }
 
 /** 合并配置项 */

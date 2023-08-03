@@ -9,19 +9,30 @@ import CSSParser from 'css'
 import {readEjectData} from './utils'
 import {readRules} from './swppRules'
 
-export interface CacheJson {
+/**
+ * 版本信息（可以用 JSON 序列化）
+ * @see VersionMap
+ */
+export interface VersionJson {
     version: number,
-    list: CacheMap
+    list: VersionMap
 }
 
-export interface CacheMap {
+/**
+ * 版本列表
+ *
+ * + key 为文件的 URL
+ * + value {string} 为 URL 对应文件的 md5 值
+ * + value {string[]} 为 stable 文件其中包含的 URL
+ */
+export interface VersionMap {
     [propName: string]: any
 }
 
 /**
- * 遍历指定目录下的所有文件
+ * 遍历指定目录及其子目录中包含的所有文件（不遍历文件夹）
  * @param root 根目录
- * @param cb 回调函数
+ * @param cb 回调函数（接收的参数是文件的相对路径）
  */
 function eachAllFile(root: string, cb: (path: string) => void) {
     const stats = fs.statSync(root)
@@ -32,7 +43,11 @@ function eachAllFile(root: string, cb: (path: string) => void) {
     }
 }
 
-/** 判断指定文件是否排除 */
+/**
+ * 判断指定 URL 是否排除
+ * @param webRoot 网站域名
+ * @param url 要判断的 URL
+ */
 export function isExclude(webRoot: string, url: string): boolean {
     const exclude = readRules().config.json.exclude
     const list = isExternalLink(webRoot, url) ? exclude.other : exclude.localhost
@@ -51,29 +66,37 @@ export function isStable(url: string): boolean {
     return false
 }
 
-let _oldCacheJson: CacheJson
+let _oldCacheJson: VersionJson
 
 /** 从指定 URL 加载 cache json */
-export async function loadCacheJson(url: string): Promise<CacheJson> {
+export async function loadCacheJson(url: string): Promise<VersionJson> {
     const response = await fetchFile(url)
-    return _oldCacheJson = (await response.json()) as CacheJson
+    return _oldCacheJson = (await response.json()) as VersionJson
 }
 
-/** 读取最后一次加载的 cache json */
-export function readCacheJson(): CacheJson {
+/**
+ * 读取最后一次加载的 cache json
+ *
+ * **调用该函数前必须调用过 [loadCacheJson]**
+ */
+export function readCacheJson(): VersionJson {
     return _oldCacheJson
 }
 
 /**
  * 构建一个 cache json
- * @param protocol 网站地网络协议
- * @param webRoot 网站根路径（不包括网络协议）
- * @param root 根目录
+ *
+ * **执行该函数前必须调用过 [loadRules]**
+ * **调用该函数前必须调用过 [loadCacheJson]**
+ *
+ * @param protocol 网站的网络协议
+ * @param webRoot 网站域名（包括二级域名）
+ * @param root 网页根目录（首页 index.html 所在目录）
  */
 export async function buildCacheJson(
     protocol: ('https://' | 'http://'), webRoot: string, root: string
-): Promise<CacheJson> {
-    const list: CacheMap = {}
+): Promise<VersionJson> {
+    const list: VersionMap = {}
     eachAllFile(root, async path => {
         const endIndex = path.length - (path.endsWith('/index.html') ? 10 : 0)
         const url = new URL(protocol + nodePath.join(webRoot, path.substring(root.length, endIndex)))
@@ -101,9 +124,21 @@ export async function buildCacheJson(
     }
 }
 
-/** 遍历一个 URL 指向地文件中所有地外部链接 */
+/**
+ * 检索一个 URL 指向的文件中所有地外部链接
+ *
+ * 该函数会处理该 URL 指向的文件和文件中直接或间接包含的所有 URL
+ *
+ * **执行该函数前必须调用过 [loadRules]**
+ * **调用该函数前必须调用过 [loadCacheJson]**
+ *
+ * @param webRoot 网站域名
+ * @param url 要检索的 URL
+ * @param result 存放结果的对象
+ * @param event 检索到一个 URL 时触发的事件
+ */
 export async function eachAllLinkInUrl(
-    webRoot: string, url: string, result: CacheMap, event?: (url: string) => void
+    webRoot: string, url: string, result: VersionMap, event?: (url: string) => void
 ) {
     if (url.startsWith('//')) url = 'http' + url
     if (url in result) return event?.(url)
@@ -172,9 +207,21 @@ export async function eachAllLinkInUrl(
     }
 }
 
-/** 遍历 HTML 文件中的所有外部链接 */
+/**
+ * 检索 HTML 文件中的所有外部链接
+ *
+ * 该函数仅处理 HTML 当中直接或间接包含的 URL，不处理文件本身
+ *
+ * **执行该函数前必须调用过 [loadRules]**
+ * **调用该函数前必须调用过 [loadCacheJson]**
+ *
+ * @param webRoot 网站域名
+ * @param content HTML 文件内容
+ * @param result 存放结果的对象
+ * @param event 检索到 URL 时触发的事件
+ */
 export async function eachAllLinkInHtml(
-    webRoot: string, content: string, result: CacheMap, event?: (url: string) => void
+    webRoot: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const each = async (node: HTMLParser.HTMLElement) => {
         let url: string | undefined = undefined
@@ -203,9 +250,21 @@ export async function eachAllLinkInHtml(
     await each(HTMLParser.parse(content, { style: true, script: true }))
 }
 
-/** 遍历 CSS 文件中的所有外部链接 */
+/**
+ * 检索 CSS 文件中的所有外部链
+ *
+ * 该函数仅处理 CSS 当中直接或间接包含的 URL，不处理文件本身
+ *
+ * **执行该函数前必须调用过 [loadRules]**
+ * **调用该函数前必须调用过 [loadCacheJson]**
+ *
+ * @param webRoot 网站域名
+ * @param content CSS 文件内容
+ * @param result 存放结果的对象
+ * @param event 当检索到一个 URL 后触发的事件
+ */
 export async function eachAllLinkInCss(
-    webRoot: string, content: string, result: CacheMap, event?: (url: string) => void
+    webRoot: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const each = async (any: Array<any> | undefined) => {
         if (!any) return
@@ -234,9 +293,21 @@ export async function eachAllLinkInCss(
     await each(CSSParser.parse(content).stylesheet?.rules)
 }
 
-/** 遍历 JS 文件中地所有外部链接 */
+/**
+ * 遍历 JS 文件中地所有外部链接
+ *
+ * 该函数仅处理 JS 当中直接或间接包含的 URL，不处理文件本身
+ *
+ * **执行该函数前必须调用过 [loadRules]**
+ * **调用该函数前必须调用过 [loadCacheJson]**
+ *
+ * @param webRoot 网站域名
+ * @param content JS 文件内容
+ * @param result 存放结果的对象
+ * @param event 当检索到一个 URL 后触发的事件
+ */
 export async function eachAllLinkInJavaScript(
-    webRoot: string, content: string, result: CacheMap, event?: (url: string) => void
+    webRoot: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const ruleList = readRules().config.external.js
     for (let value of ruleList) {
@@ -265,12 +336,16 @@ function isExternalLink(webRoot: string, url: string): boolean {
     return new RegExp(`^(https?:)?\\/\\/${webRoot}`).test(url)
 }
 
-/** 查询缓存规则 */
-export function findCache(url: URL): string | null {
-    const rules = readRules()
-    const {cacheList} = rules
+/**
+ * 查询指定 URL 对应的缓存规则
+ *
+ * **执行该函数前必须调用过 [loadRules]**
+ */
+export function findCache(url: URL | string): any | null {
+    const {cacheList} = readRules()
     const eject = readEjectData()
-    url = new URL(replaceRequest(url.href, rules))
+    if (typeof url === 'string') url = new URL(url)
+    url = new URL(replaceRequest(url.href))
     for (let key in cacheList) {
         const value = cacheList[key]
         if (value.match(url, eject.nodeEject)) return value
@@ -278,8 +353,13 @@ export function findCache(url: URL): string | null {
     return null
 }
 
-/** 替换请求 */
-export function replaceRequest(url: string, rules: any): string {
+/**
+ * 替换请求
+ *
+ * **执行该函数前必须调用过 [loadRules]**
+ */
+export function replaceRequest(url: string): string {
+    const rules = readRules()
     if (!('modifyRequest' in rules)) return url
     const {modifyRequest} = rules
     const request = new Request(url)
