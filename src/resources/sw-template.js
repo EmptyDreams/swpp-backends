@@ -241,10 +241,6 @@
             switch (json['flag']) {
                 case 'html':
                     return url => url.match(/(\/|\.html)$/)
-                case 'page':
-                    return url => forEachValues(
-                        value => url.match(new RegExp(`\\/${value}(\\/|\\.html)\$`))
-                    )
                 case 'end':
                     return url => forEachValues(value => url.endsWith(value))
                 case 'begin':

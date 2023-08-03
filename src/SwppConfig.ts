@@ -44,10 +44,8 @@ export interface VersionJsonConfig {
     maxHtml: number,
     /** update.json 文件的字符数量限制 */
     charLimit: number,
-    /** 文件缓存匹配采用精确模式 */
-    precisionMode: any,
     /** 是否合并指定项目 */
-    merge: RegExp[],
+    merge: string[],
     /** 生成 cacheList.json 时忽略的文件 */
     exclude: {
         localhost: RegExp[],
@@ -103,10 +101,8 @@ export interface SwppConfigTemplate {
         maxHtml?: number,
         /** update.json 文件的字符数量限制 */
         charLimit?: number,
-        /** 文件缓存匹配采用精确模式 */
-        precisionMode?: any,
         /** 是否合并指定项目 */
-        merge?: RegExp[],
+        merge?: string[],
         /** 生成 cacheList.json 时忽略的文件 */
         exclude?: {
             /** 当前网站的 URL */

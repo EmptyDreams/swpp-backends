@@ -67,14 +67,15 @@ export function isStable(url: string): boolean {
     return false
 }
 
-let _oldVersionJson: VersionJson
-let _newVersionJson: VersionJson
-
 /** 从指定 URL 加载 cache json */
 export async function loadVersionJson(url: string): Promise<VersionJson> {
     const response = await fetchFile(url)
     return _oldVersionJson = (await response.json()) as VersionJson
 }
+
+let _oldVersionJson: VersionJson
+let _newVersionJson: VersionJson
+let _mergeVersionMap: VersionMap
 
 /**
  * 读取最后一次加载的 version json
@@ -82,7 +83,28 @@ export async function loadVersionJson(url: string): Promise<VersionJson> {
  * + **调用该函数前必须调用过 [loadCacheJson]**
  */
 export function readOldVersionJson(): VersionJson {
+    if (!_oldVersionJson) throw 'cache json 尚未初始化'
     return _oldVersionJson
+}
+
+/**
+ * 读取最后一次构建的 VersionJson
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
+ */
+export function readNewVersionJson(): VersionJson {
+    if (!_newVersionJson) throw 'cache json 尚未初始化'
+    return _newVersionJson
+}
+
+/** 读取新旧版本文件合并后的版本地图 */
+export function readMergeVersionMap(): VersionMap {
+    if (_mergeVersionMap) return _mergeVersionMap
+    const map: VersionMap = {}
+    Object.assign(map, readOldVersionJson().list)
+    Object.assign(map, readNewVersionJson().list)
+    return _mergeVersionMap = map
 }
 
 /**
@@ -124,17 +146,6 @@ export async function buildVersionJson(
     return _newVersionJson = {
         version: 3, list
     }
-}
-
-/**
- * 读取最后一次构建的 VersionJson
- *
- * + **执行该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadCacheJson]**
- */
-export function readNewVersionJson(): VersionJson {
-    if (!_newVersionJson) throw 'cache json 尚未初始化'
-    return _newVersionJson
 }
 
 /**

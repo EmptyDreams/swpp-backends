@@ -1,4 +1,4 @@
-import {readVersionJson, VersionJson} from './FileAnalyzer'
+import {readOldVersionJson, VersionJson} from './FileAnalyzer'
 
 const extraUrl = new Set<string>()
 
@@ -10,7 +10,7 @@ const extraUrl = new Set<string>()
  * @param version 新的版本信息
  */
 export function analyzer(version: VersionJson): AnalyzerResult {
-    const oldVersion = readVersionJson()
+    const oldVersion = readOldVersionJson()
     const result: AnalyzerResult = {
         force: false,
         deleted: [],

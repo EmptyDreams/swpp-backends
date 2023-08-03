@@ -30,9 +30,6 @@ const defConfig: SwppConfigTemplate = {
     json: {
         maxHtml: 15,
         charLimit: 1024,
-        precisionMode: {
-            'default': false
-        },
         merge: [],
         exclude: {
             localhost: [/^\/sw\.js$/],
