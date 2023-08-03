@@ -1,4 +1,4 @@
-import {SwppConfig} from "./swppRules";
+import {readRules} from "./swppRules";
 import fetch from "node-fetch";
 
 const logger = require('hexo-log').default({
@@ -18,7 +18,8 @@ let ejectData: EjectData | undefined = undefined
  * @param framework 框架对象
  * @param rules swpp rules 对象
  */
-export function calcEjectValues(framework: any, rules: any) {
+export function calcEjectValues(framework: any) {
+    const rules = readRules()
     if (!('ejectValues' in rules)) return
     // noinspection JSUnresolvedReference
     const eject = rules.ejectValues(framework, rules)
@@ -114,8 +115,9 @@ export function getSource(
 }
 
 /** 拉取文件 */
-export async function fetchFile(config: SwppConfig, link: string) {
-    const url = replaceDevRequest(config, link)
+export async function fetchFile(link: string) {
+    const config = readRules().config
+    const url = replaceDevRequest(link)
     const opts = {
         headers: {
             referer: 'kmar-swpp',
@@ -142,7 +144,8 @@ export async function fetchFile(config: SwppConfig, link: string) {
     }
 }
 
-export function replaceDevRequest(config: SwppConfig, link: string): string[] | string {
+export function replaceDevRequest(link: string): string[] | string {
+    const config = readRules().config
     if (typeof config.external === 'boolean') return link
     return config.external.replacer(link)
 }

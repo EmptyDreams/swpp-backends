@@ -1,9 +1,12 @@
-import {EjectData, getSource} from "./utils"
+import {getSource, readEjectData} from "./utils"
 import fs from "fs"
 import nodePath from "path";
+import {readRules} from "./swppRules";
 
 /** 构建 sw */
-export function buildServiceWorker(rules: any, eject: EjectData): string {
+export function buildServiceWorker(): string {
+    const rules = readRules()
+    const eject = readEjectData()
     const {
         modifyRequest,
         fetchNoCache,

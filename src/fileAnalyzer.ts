@@ -7,7 +7,7 @@ import {Buffer} from "buffer";
 import HTMLParser from 'fast-html-parser';
 import CSSParser from 'css'
 import {readEjectData} from "./utils";
-import {SwppConfig} from "./swppRules";
+import {readRules} from "./swppRules";
 
 export interface CacheJson {
     version: number
@@ -28,8 +28,8 @@ function eachAllFile(root: string, cb: (path: string) => void) {
 }
 
 /** 判断指定文件是否排除 */
-export function isExclude(webRoot: string, url: string, rules: any): boolean {
-    const exclude = rules.config.json.exclude
+export function isExclude(webRoot: string, url: string): boolean {
+    const exclude = readRules().config.json.exclude
     const list = isExternalLink(webRoot, url) ? exclude.other : exclude.localhost
     for (let reg of list) {
         if (url.match(reg)) return true
@@ -38,8 +38,8 @@ export function isExclude(webRoot: string, url: string, rules: any): boolean {
 }
 
 /** 判断指定 URL 是否是 stable 的 */
-export function isStable(url: string, rules: any): boolean {
-    const stable = rules.config.external.stable
+export function isStable(url: string): boolean {
+    const stable = readRules().config.external.stable
     for (let reg of stable) {
         if (url.match(reg)) return true
     }
@@ -49,8 +49,8 @@ export function isStable(url: string, rules: any): boolean {
 let _oldCacheJson: CacheJson
 
 /** 从指定 URL 加载 cache json */
-export async function loadCacheJson(url: string, config: SwppConfig): Promise<CacheJson> {
-    const response = await fetchFile(config, url)
+export async function loadCacheJson(url: string): Promise<CacheJson> {
+    const response = await fetchFile(url)
     return _oldCacheJson = (await response.json()) as CacheJson
 }
 
@@ -64,17 +64,16 @@ export function readCacheJson(): CacheJson {
  * @param protocol 网站地网络协议
  * @param webRoot 网站根路径（不包括网络协议）
  * @param root 根目录
- * @param rules swpp 规则文件
  */
-export async function buildCacheJson(protocol: ('https://' | 'http://'), webRoot: string, root: string, rules: any): Promise<any> {
+export async function buildCacheJson(protocol: ('https://' | 'http://'), webRoot: string, root: string): Promise<any> {
     const result: FileMd5[] = []
     eachAllFile(root, async path => {
         const endIndex = path.length - (path.endsWith('/index.html') ? 10 : 0)
         const url = new URL(protocol + nodePath.join(webRoot, path.substring(root.length, endIndex)))
         const pathname = url.pathname
-        if (isExclude(webRoot, pathname, rules)) return
+        if (isExclude(webRoot, pathname)) return
         let content = null
-        if (findCache(url, rules)) {
+        if (findCache(url)) {
             content = fs.readFileSync(path, 'utf-8')
             const key = decodeURIComponent(url.pathname)
             result.push({
@@ -84,13 +83,13 @@ export async function buildCacheJson(protocol: ('https://' | 'http://'), webRoot
         }
         if (pathname.endsWith('/') || pathname.endsWith('.html')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            result.push(...await eachAllLinkInHtml(webRoot, content, rules))
+            result.push(...await eachAllLinkInHtml(webRoot, content))
         } else if (pathname.endsWith('.css')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            result.push(...await eachAllLinkInCss(webRoot, content, rules))
+            result.push(...await eachAllLinkInCss(webRoot, content))
         } else if (pathname.endsWith('.js')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            result.push(...await eachAllLinkInJavaScript(webRoot, content, rules))
+            result.push(...await eachAllLinkInJavaScript(webRoot, content))
         }
     })
     const obj: any = {}
@@ -103,12 +102,12 @@ export async function buildCacheJson(protocol: ('https://' | 'http://'), webRoot
 const successStatus = [200, 301, 302, 307, 308]
 
 /** 遍历一个 URL 指向地文件中所有地外部链接 */
-export async function eachAllLinkInUrl(webRoot: string, url: string, rules: any): Promise<FileMd5[]> {
+export async function eachAllLinkInUrl(webRoot: string, url: string): Promise<FileMd5[]> {
     if (url.startsWith('//')) url = 'http' + url
-    if (!url.startsWith('http') || isExclude(webRoot, url, rules)) return []
-    if (!(isExternalLink(webRoot, url) && findCache(new URL(url), rules))) return []
+    if (!url.startsWith('http') || isExclude(webRoot, url)) return []
+    if (!(isExternalLink(webRoot, url) && findCache(new URL(url)))) return []
     const result: FileMd5[] = []
-    const stable = isStable(url, rules)
+    const stable = isStable(url)
     if (stable) {
         const old = readCacheJson() as any
         if (url in old) {
@@ -128,7 +127,7 @@ export async function eachAllLinkInUrl(webRoot: string, url: string, rules: any)
             return result
         }
     }
-    const response = await fetchFile(rules.config, url)
+    const response = await fetchFile(url)
     if (!successStatus.includes(response.status))
         throw response
     const pathname = new URL(url).pathname
@@ -137,15 +136,15 @@ export async function eachAllLinkInUrl(webRoot: string, url: string, rules: any)
     switch (true) {
         case pathname.endsWith('.html'): case pathname.endsWith('/'):
             content = await response.text()
-            relay = await eachAllLinkInHtml(webRoot, content, rules)
+            relay = await eachAllLinkInHtml(webRoot, content)
             break
         case pathname.endsWith('.css'):
             content = await response.text()
-            relay = await eachAllLinkInCss(webRoot, content, rules)
+            relay = await eachAllLinkInCss(webRoot, content)
             break
         case pathname.endsWith('.js'):
             content = await response.text()
-            relay = await eachAllLinkInJavaScript(webRoot, content, rules)
+            relay = await eachAllLinkInJavaScript(webRoot, content)
             break
         default:
             if (stable) {
@@ -176,7 +175,7 @@ export async function eachAllLinkInUrl(webRoot: string, url: string, rules: any)
 }
 
 /** 遍历 HTML 文件中的所有外部链接 */
-export async function eachAllLinkInHtml(webRoot: string, content: string, rules: any): Promise<FileMd5[]> {
+export async function eachAllLinkInHtml(webRoot: string, content: string): Promise<FileMd5[]> {
     const result: FileMd5[] = []
     const each = async (node: HTMLParser.HTMLElement) => {
         let url: string | undefined = undefined
@@ -192,11 +191,11 @@ export async function eachAllLinkInHtml(webRoot: string, content: string, rules:
                 break
         }
         if (url) {
-            result.push(...await eachAllLinkInUrl(webRoot, url, rules))
+            result.push(...await eachAllLinkInUrl(webRoot, url))
         } else if (node.tagName === 'script') {
-            result.push(...await eachAllLinkInJavaScript(webRoot, node.rawText, rules))
+            result.push(...await eachAllLinkInJavaScript(webRoot, node.rawText))
         } else if (node.tagName === 'style') {
-            result.push(...await eachAllLinkInCss(webRoot, node.rawText, rules))
+            result.push(...await eachAllLinkInCss(webRoot, node.rawText))
         }
         for (let childNode of node.childNodes) {
             await each(childNode)
@@ -207,7 +206,7 @@ export async function eachAllLinkInHtml(webRoot: string, content: string, rules:
 }
 
 /** 遍历 CSS 文件中的所有外部链接 */
-export async function eachAllLinkInCss(webRoot: string, content: string, rules: any): Promise<FileMd5[]> {
+export async function eachAllLinkInCss(webRoot: string, content: string): Promise<FileMd5[]> {
     const result: FileMd5[] = []
     const each = async (any: Array<any> | undefined) => {
         if (!any) return
@@ -222,13 +221,13 @@ export async function eachAllLinkInCss(webRoot: string, content: string, rules: 
                         ?.map(it => it.replace(/(^url\(['"])|(['"]\)$)/g, ''))
                     if (list) {
                         for (let url of list) {
-                            result.push(...await eachAllLinkInUrl(webRoot, url, rules))
+                            result.push(...await eachAllLinkInUrl(webRoot, url))
                         }
                     }
                     break
                 case 'import':
                     const url = rule.import.trim().replace(/^["']|["']$/g, '')
-                    result.push(...await eachAllLinkInUrl(webRoot, url, rules))
+                    result.push(...await eachAllLinkInUrl(webRoot, url))
                     break
             }
         }
@@ -238,14 +237,14 @@ export async function eachAllLinkInCss(webRoot: string, content: string, rules: 
 }
 
 /** 遍历 JS 文件中地所有外部链接 */
-export async function eachAllLinkInJavaScript(webRoot: string, content: string, rules: any): Promise<FileMd5[]> {
+export async function eachAllLinkInJavaScript(webRoot: string, content: string): Promise<FileMd5[]> {
     const result: FileMd5[] = []
-    const ruleList = rules.config.external.js
+    const ruleList = readRules().config.external.js
     for (let value of ruleList) {
         if (typeof value === 'function') {
             const urls: string[] = value(content)
             for (let url of urls) {
-                result.push(...await eachAllLinkInUrl(webRoot, url, rules))
+                result.push(...await eachAllLinkInUrl(webRoot, url))
             }
         } else {
             const {head, tail} = value
@@ -255,7 +254,7 @@ export async function eachAllLinkInJavaScript(webRoot: string, content: string, 
                 ?.map(it => it.replace(/^['"`]|['"`]$/g, ''))
             if (list) {
                 for (let url of list) {
-                    result.push(...await eachAllLinkInUrl(webRoot, url, rules))
+                    result.push(...await eachAllLinkInUrl(webRoot, url))
                 }
             }
         }
@@ -265,11 +264,12 @@ export async function eachAllLinkInJavaScript(webRoot: string, content: string, 
 
 /** 判断一个 URL 是否是外部链接 */
 function isExternalLink(webRoot: string, url: string): boolean {
-    return new RegExp(`^(https?:)?\\/\\/${webRoot}`).test(webRoot)
+    return new RegExp(`^(https?:)?\\/\\/${webRoot}`).test(url)
 }
 
 /** 查询缓存规则 */
-export function findCache(url: URL, rules: any): string | null {
+export function findCache(url: URL): string | null {
+    const rules = readRules()
     const {cacheList} = rules
     const eject = readEjectData()
     url = new URL(replaceRequest(url.href, rules))
