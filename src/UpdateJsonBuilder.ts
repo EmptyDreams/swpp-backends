@@ -4,6 +4,12 @@ import {fetchFile, warn} from './Utils'
 import {AnalyzerResult} from './VersionAnalyzer'
 
 let _oldJson: UpdateJson | undefined | null = undefined
+const externalChange: ChangeExpression[] = []
+
+/** 提交修改 */
+export function submitChange(...change: ChangeExpression[]) {
+    externalChange.push(...change)
+}
 
 /**
  * 加载版本文件
@@ -92,6 +98,7 @@ function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
             value: Array.from(records.merge).map(it => `/${it}/`)
         })
     }
+    change.push(...externalChange)
     return {
         global,
         info: [info, ...(old?.info ?? [])]
