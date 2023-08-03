@@ -1,13 +1,12 @@
 import fs from 'fs'
 import nodePath from 'path'
 import {Request} from 'node-fetch'
-import {fetchFile} from './utils'
+import {readRules} from './SwppRules'
 import * as crypto from 'crypto'
 import {Buffer} from 'buffer'
 import HTMLParser from 'fast-html-parser'
 import CSSParser from 'css'
-import {readEjectData} from './utils'
-import {readRules} from './swppRules'
+import {fetchFile, readEjectData} from './Utils'
 
 /**
  * 版本信息（可以用 JSON 序列化）
@@ -49,7 +48,8 @@ function eachAllFile(root: string, cb: (path: string) => void) {
  * @param url 要判断的 URL
  */
 export function isExclude(webRoot: string, url: string): boolean {
-    const exclude = readRules().config.json.exclude
+    const exclude = readRules().config?.json?.exclude
+    if (!exclude) throw 'exclude 为空'
     const list = isExternalLink(webRoot, url) ? exclude.other : exclude.localhost
     for (let reg of list) {
         if (url.match(reg)) return true
@@ -59,7 +59,8 @@ export function isExclude(webRoot: string, url: string): boolean {
 
 /** 判断指定 URL 是否是 stable 的 */
 export function isStable(url: string): boolean {
-    const stable = readRules().config.external.stable
+    const stable = readRules().config?.external?.stable
+    if (!stable) throw 'stable 为空'
     for (let reg of stable) {
         if (url.match(reg)) return true
     }
@@ -309,7 +310,8 @@ export async function eachAllLinkInCss(
 export async function eachAllLinkInJavaScript(
     webRoot: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
-    const ruleList = readRules().config.external.js
+    const ruleList = readRules().config?.external?.js
+    if (!ruleList) throw 'ruleList 为空'
     for (let value of ruleList) {
         if (typeof value === 'function') {
             const urls: string[] = value(content)
@@ -342,12 +344,12 @@ function isExternalLink(webRoot: string, url: string): boolean {
  * **执行该函数前必须调用过 [loadRules]**
  */
 export function findCache(url: URL | string): any | null {
-    const {cacheList} = readRules()
+    const {cacheRules} = readRules()
     const eject = readEjectData()
     if (typeof url === 'string') url = new URL(url)
     url = new URL(replaceRequest(url.href))
-    for (let key in cacheList) {
-        const value = cacheList[key]
+    for (let key in cacheRules) {
+        const value = cacheRules[key]
         if (value.match(url, eject.nodeEject)) return value
     }
     return null
@@ -363,5 +365,5 @@ export function replaceRequest(url: string): string {
     if (!('modifyRequest' in rules)) return url
     const {modifyRequest} = rules
     const request = new Request(url)
-    return modifyRequest(request, readEjectData().nodeEject)?.url ?? url
+    return modifyRequest?.(request, readEjectData().nodeEject)?.url ?? url
 }

@@ -1,17 +1,17 @@
-import {readRules} from './swppRules'
 import fetch from 'node-fetch'
+import {readRules} from './SwppRules'
 
 const logger = require('hexo-log').default({
     debug: false,
     silent: false
 })
 
-export interface EjectData {
+export interface EjectCache {
     strValue: string,
     nodeEject: any
 }
 
-let ejectData: EjectData | undefined = undefined
+let ejectData: EjectCache | undefined = undefined
 
 /**
  * 获取 eject values
@@ -22,7 +22,7 @@ export function calcEjectValues(framework: any) {
     const rules = readRules()
     if (!('ejectValues' in rules)) return
     // noinspection JSUnresolvedReference
-    const eject = rules.ejectValues(framework, rules)
+    const eject = rules.ejectValues?.(framework, rules)
     const nodeEject: any = {}
     let ejectStr = ''
     for (let key in eject) {
@@ -47,7 +47,7 @@ export function calcEjectValues(framework: any) {
 }
 
 /** 读取最近的已计算的 eject 数据 */
-export function readEjectData(): EjectData {
+export function readEjectData(): EjectCache {
     if (!ejectData) throw 'eject data 尚未初始化'
     return ejectData
 }
@@ -146,8 +146,7 @@ export async function fetchFile(link: string) {
 
 export function replaceDevRequest(link: string): string[] | string {
     const config = readRules().config
-    if (typeof config.external === 'boolean') return link
-    return config.external.replacer(link)
+    return config.external?.replacer(link) ?? link
 }
 
 async function fetchSpeed(list: string[]) {

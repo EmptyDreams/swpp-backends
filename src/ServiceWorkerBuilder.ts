@@ -1,7 +1,8 @@
+import {ServiceWorkerConfig} from './SwppConfig'
+import {readRules} from './SwppRules'
 import {getSource, readEjectData} from './utils'
 import fs from 'fs'
 import nodePath from 'path'
-import {readRules} from './swppRules'
 
 /** 构建 sw */
 export function buildServiceWorker(): string {
@@ -9,21 +10,21 @@ export function buildServiceWorker(): string {
     const eject = readEjectData()
     const {
         modifyRequest,
-        fetchNoCache,
-        getCdnList,
+        fetchFile,
+        getRaceUrls,
         getSpareUrls,
         blockRequest,
         config
     } = rules
-    const serviceWorkerConfig = config.serviceWorker
+    const serviceWorkerConfig = config.serviceWorker as ServiceWorkerConfig
     const templatePath = nodePath.resolve('./', module.path, 'sw-template.js')
     // 获取拓展文件
     let cache = getSource(rules, undefined, [
-        'cacheList', 'modifyRequest', 'getCdnList', 'getSpareUrls', 'blockRequest',
+        'cacheList', 'modifyRequest', 'getCdnList', 'getSpareUrls', 'blockRequest', 'fetchFile',
         ...('external' in rules && Array.isArray(rules.external) ? rules.external : [])
     ], true) + '\n'
-    if (!fetchNoCache) {
-        if (getCdnList)
+    if (!fetchFile) {
+        if (getRaceUrls)
             cache += JS_CODE_GET_CDN_LIST
         else if (getSpareUrls)
             cache += JS_CODE_GET_SPARE_URLS
