@@ -67,12 +67,12 @@ export function isStable(url: string): boolean {
     return false
 }
 
-let _oldCacheJson: VersionJson
+let _oldVersionJson: VersionJson
 
 /** 从指定 URL 加载 cache json */
-export async function loadCacheJson(url: string): Promise<VersionJson> {
+export async function loadVersionJson(url: string): Promise<VersionJson> {
     const response = await fetchFile(url)
-    return _oldCacheJson = (await response.json()) as VersionJson
+    return _oldVersionJson = (await response.json()) as VersionJson
 }
 
 /**
@@ -80,8 +80,8 @@ export async function loadCacheJson(url: string): Promise<VersionJson> {
  *
  * **调用该函数前必须调用过 [loadCacheJson]**
  */
-export function readCacheJson(): VersionJson {
-    return _oldCacheJson
+export function readVersionJson(): VersionJson {
+    return _oldVersionJson
 }
 
 /**
@@ -94,7 +94,7 @@ export function readCacheJson(): VersionJson {
  * @param webRoot 网站域名（包括二级域名）
  * @param root 网页根目录（首页 index.html 所在目录）
  */
-export async function buildCacheJson(
+export async function buildVersionJson(
     protocol: ('https://' | 'http://'), webRoot: string, root: string
 ): Promise<VersionJson> {
     const list: VersionMap = {}
@@ -148,7 +148,7 @@ export async function eachAllLinkInUrl(
     event?.(url)
     const stable = isStable(url)
     if (stable) {
-        const old = readCacheJson().list
+        const old = readVersionJson().list
         if (url in old) {
             const copyTree = (key: string) => {
                 const value = old[key]
