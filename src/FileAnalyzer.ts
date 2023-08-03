@@ -68,6 +68,7 @@ export function isStable(url: string): boolean {
 }
 
 let _oldVersionJson: VersionJson
+let _newVersionJson: VersionJson
 
 /** 从指定 URL 加载 cache json */
 export async function loadVersionJson(url: string): Promise<VersionJson> {
@@ -76,19 +77,19 @@ export async function loadVersionJson(url: string): Promise<VersionJson> {
 }
 
 /**
- * 读取最后一次加载的 cache json
+ * 读取最后一次加载的 version json
  *
- * **调用该函数前必须调用过 [loadCacheJson]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
  */
-export function readVersionJson(): VersionJson {
+export function readOldVersionJson(): VersionJson {
     return _oldVersionJson
 }
 
 /**
  * 构建一个 cache json
  *
- * **执行该函数前必须调用过 [loadRules]**
- * **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
  *
  * @param protocol 网站的网络协议
  * @param webRoot 网站域名（包括二级域名）
@@ -120,9 +121,20 @@ export async function buildVersionJson(
             await eachAllLinkInJavaScript(webRoot, content, list)
         }
     })
-    return {
+    return _newVersionJson = {
         version: 3, list
     }
+}
+
+/**
+ * 读取最后一次构建的 VersionJson
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
+ */
+export function readNewVersionJson(): VersionJson {
+    if (!_newVersionJson) throw 'cache json 尚未初始化'
+    return _newVersionJson
 }
 
 /**
@@ -148,7 +160,7 @@ export async function eachAllLinkInUrl(
     event?.(url)
     const stable = isStable(url)
     if (stable) {
-        const old = readVersionJson().list
+        const old = readOldVersionJson().list
         if (url in old) {
             const copyTree = (key: string) => {
                 const value = old[key]
