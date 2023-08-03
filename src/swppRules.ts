@@ -32,7 +32,10 @@ const defConfig: SwppConfigTemplate = {
             'default': false
         },
         merge: [],
-        exclude: [/^\/sw\.js$/]
+        exclude: {
+            localhost: [/^\/sw\.js$/],
+            other: []
+        }
     },
     external: {
         timeout: 5000,
@@ -59,7 +62,7 @@ export function loadRules(root: string, fileName: string, selects: string[]): an
         value => extensions.map(it => nodePath.resolve(value, `${fileName}.${it}`))
     ).find(it => fs.existsSync(it))
     if (!(rootPath || selectPath))
-        throw new SwppRulesLoadError('未查询到 rules 文件')
+        throw '未查询到 rules 文件'
     const rootRules = rootPath ? { ...require(rootPath) } : {}
     const selectRules = selectPath ? require(selectPath) : {}
     const config = rootRules.config ?? {}
@@ -129,7 +132,10 @@ export interface SwppConfig {
         /** 是否合并指定项目 */
         merge: RegExp[],
         /** 生成 cacheList.json 时忽略的文件 */
-        exclude: RegExp[]
+        exclude: {
+            localhost: RegExp[],
+            other: RegExp[]
+        }
     },
     /** 外部文件更新监听 */
     external: boolean | {
@@ -189,7 +195,12 @@ export interface SwppConfigTemplate {
         /** 是否合并指定项目 */
         merge?: RegExp[],
         /** 生成 cacheList.json 时忽略的文件 */
-        exclude?: RegExp[]
+        exclude?: {
+            /** 当前网站的 URL */
+            localhost?: RegExp[],
+            /** 其它网站的 URL */
+            other?: RegExp[]
+        }
     },
     /** 外部文件更新监听 */
     external?: boolean | {
@@ -201,11 +212,5 @@ export interface SwppConfigTemplate {
         skip?: RegExp[],
         /** 构建过程中将原始 URL 映射为新的 URL */
         replacer?: (srcUrl: string) => string[] | string
-    }
-}
-
-/** rules 加载异常 */
-export class SwppRulesLoadError {
-    constructor(public message: string) {
     }
 }

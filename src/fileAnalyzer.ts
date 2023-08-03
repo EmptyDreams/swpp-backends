@@ -23,10 +23,11 @@ function eachAllFile(root: string, cb: (path: string) => void) {
 }
 
 /** 判断指定文件是否排除 */
-function isExclude(pathname: string, rules: any): boolean {
+export function isExclude(webRoot: string, url: string, rules: any): boolean {
     const exclude = rules.config.json.exclude
-    for (let reg of exclude) {
-        if (pathname.match(reg)) return true
+    const list = isExternalLink(webRoot, url) ? exclude.other : exclude.localhost
+    for (let reg of list) {
+        if (url.match(reg)) return true
     }
     return false
 }
@@ -43,7 +44,7 @@ export function buildCacheJson(protocol: ('https://' | 'http://'), webRoot: stri
     eachAllFile(root, path => {
         const endIndex = path.length - (path.endsWith('/index.html') ? 10 : 0)
         const url = new URL(protocol + nodePath.join(webRoot, path.substring(root.length, endIndex)))
-        if (isExclude(url.pathname, rules)) return
+        if (isExclude(webRoot, url.pathname, rules)) return
         let content = null
         if (findCache(url, rules)) {
             content = fs.readFileSync(path, 'utf-8')
@@ -62,7 +63,7 @@ const successStatus = [200, 301, 302, 307, 308]
 /** 遍历一个 URL 指向地文件中所有地外部链接 */
 export async function eachAllLinkInUrl(webRoot: string, url: string, rules: any): Promise<FileMd5[]> {
     if (url.startsWith('//')) url = 'http' + url
-    if (!url.startsWith('http')) return []
+    if (!url.startsWith('http') || isExclude(webRoot, url, rules)) return []
     if (!(isExternalLink(webRoot, url) && findCache(new URL(url), rules))) return []
     const response = await fetchFile(rules.config, url)
     if (!successStatus.includes(response.status))
@@ -187,7 +188,7 @@ export async function eachAllLinkInJavaScript(webRoot: string, content: string, 
 
 /** 判断一个 URL 是否是外部链接 */
 function isExternalLink(webRoot: string, url: string): boolean {
-    return url.startsWith(`https://${webRoot}`)
+    return new RegExp(`^(https?:)?\\/\\/${webRoot}`).test(webRoot)
 }
 
 /** 查询缓存规则 */
