@@ -87,8 +87,14 @@ export function getSource(
                         let str = getSource(value, typeChecker)
                         if (str.length === 0) return ''
                         if (isTop && whiteList && ['cacheList', 'modifyRequest'].includes(key)) {
-                            str = str.replace(/\(\s*(.*?)\s*,\s*\$eject\s*\)/g, "$1")
-                                .replaceAll(/\$eject\.(\w+)/g, (_, match) => `eject${match[0].toUpperCase()}${match.substring(1)}`)
+                            str = str
+                                .replace(
+                                    /\(\s*(.*?)\s*,\s*\$eject\s*\)/g, "$1"
+                                )    // 去掉箭头函数参数表中的 $eject
+                                .replaceAll(
+                                    /\$eject\.(\w+)/g,
+                                    (_, match) => `eject${match[0].toUpperCase()}${match.substring(1)}`
+                                )   // 将函数体中的 $eject.xxx 替换为 ejectXxx
                         }
                         return isTop ? `let ${key} = ${str}` : `${key}: ${str}`
                     })
@@ -144,11 +150,13 @@ export async function fetchFile(link: string) {
     }
 }
 
+/** 替换编译期的 URL（CDN 竞速） */
 export function replaceDevRequest(link: string): string[] | string {
     const config = readRules().config
     return config.external?.replacer(link) ?? link
 }
 
+/** 通过 CDN 竞速的方式拉取文件 */
 async function fetchSpeed(list: string[]) {
     const controllers: AbortController[] = new Array(list.length)
     const result = await Promise.any(
