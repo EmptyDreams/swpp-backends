@@ -45,6 +45,19 @@ const defConfig: SwppConfigTemplate = {
     }
 }
 
+const eventList: ((rules: any) => any)[] = []
+let _rules: any
+
+export function readRules(): any {
+    if (!_rules) throw 'rules 尚未初始化'
+    return _rules
+}
+
+/** 添加一个 rules 映射事件 */
+export function addRulesMapEvent(mapper: (rules: any) => any) {
+    eventList.push(mapper)
+}
+
 /**
  * 加载 rules 文件
  * @param root 项目根目录
@@ -70,7 +83,11 @@ export function loadRules(root: string, fileName: string, selects: string[]): an
     mergeConfig(config, defConfig)
     Object.assign(rootRules, selectRules)
     rootRules.config = config
-    return rootRules
+    let result = rootRules
+    for (let event of eventList) {
+        result = event(result)
+    }
+    return _rules = result
 }
 
 /** 合并配置项 */
