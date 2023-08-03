@@ -7,6 +7,11 @@ import {Buffer} from "buffer";
 import HTMLParser from 'fast-html-parser';
 import CSSParser, {AtRule, Rule} from 'css'
 import {readEjectData} from "./utils";
+import {SwppConfig} from "./swppRules";
+
+export interface CacheJson {
+    version: number
+}
 
 /**
  * 遍历指定目录下的所有文件
@@ -30,6 +35,28 @@ export function isExclude(webRoot: string, url: string, rules: any): boolean {
         if (url.match(reg)) return true
     }
     return false
+}
+
+/** 判断指定 URL 是否是 stable 的 */
+export function isStable(url: string, rules: any): boolean {
+    const stable = rules.config.external.stable
+    for (let reg of stable) {
+        if (url.match(reg)) return true
+    }
+    return false
+}
+
+let _oldCacheJson: CacheJson
+
+/** 从指定 URL 加载 cache json */
+export async function loadCacheJson(url: string, config: SwppConfig): Promise<CacheJson> {
+    const response = await fetchFile(config, url)
+    return _oldCacheJson = (await response.json()) as CacheJson
+}
+
+/** 读取最后一次加载的 cache json */
+export function readCacheJson(): CacheJson {
+    return _oldCacheJson
 }
 
 /**
@@ -65,36 +92,71 @@ export async function eachAllLinkInUrl(webRoot: string, url: string, rules: any)
     if (url.startsWith('//')) url = 'http' + url
     if (!url.startsWith('http') || isExclude(webRoot, url, rules)) return []
     if (!(isExternalLink(webRoot, url) && findCache(new URL(url), rules))) return []
+    const result: FileMd5[] = []
+    const stable = isStable(url, rules)
+    if (stable) {
+        const old = readCacheJson() as any
+        if (url in old) {
+            const copyTree = (key: string) => {
+                const value = old[key]
+                if (!value) return
+                if (typeof value === 'string') {
+                    result.push({url: key, md5: value})
+                } else {
+                    result.push({url: key, child: value})
+                    for (let url of value) {
+                        copyTree(url)
+                    }
+                }
+            }
+            copyTree(url)
+            return result
+        }
+    }
     const response = await fetchFile(rules.config, url)
     if (!successStatus.includes(response.status))
         throw response
-    const result: FileMd5[] = []
     const pathname = new URL(url).pathname
-    let content: any = null
+    let content: string | undefined
+    let relay: FileMd5[] | undefined
     switch (true) {
         case pathname.endsWith('.html'): case pathname.endsWith('/'):
             content = await response.text()
-            result.push(...await eachAllLinkInHtml(webRoot, content, rules))
+            relay = await eachAllLinkInHtml(webRoot, content, rules)
             break
         case pathname.endsWith('.css'):
             content = await response.text()
-            result.push(...await eachAllLinkInCss(webRoot, content, rules))
+            relay = await eachAllLinkInCss(webRoot, content, rules)
             break
         case pathname.endsWith('.js'):
             content = await response.text()
-            result.push(...await eachAllLinkInJavaScript(webRoot, content, rules))
+            relay = await eachAllLinkInJavaScript(webRoot, content, rules)
             break
         default:
-            const buffer = Buffer.from(await response.arrayBuffer())
-            result.push({
-                url, md5: crypto.createHash('md5').update(buffer).digest('hex')
-            })
+            if (stable) {
+                result.push({
+                    url, child: []
+                })
+            } else {
+                const buffer = Buffer.from(await response.arrayBuffer())
+                result.push({
+                    url, md5: crypto.createHash('md5').update(buffer).digest('hex')
+                })
+            }
             break
     }
-    if (content)
-        result.push({
-            url, md5: crypto.createHash('md5').update(content).digest('hex')
-        })
+    if (relay && content) {
+        if (stable) {
+            result.push({
+                url, child: relay.map(it => it.url)
+            })
+        } else {
+            result.push({
+                url, md5: crypto.createHash('md5').update(content).digest('hex')
+            })
+        }
+        result.push(...relay)
+    }
     return result
 }
 
@@ -214,5 +276,5 @@ export function replaceRequest(url: string, rules: any): string {
 export interface FileMd5 {
     url: string,
     md5?: string,
-    child?: FileMd5[]
+    child?: string[]
 }
