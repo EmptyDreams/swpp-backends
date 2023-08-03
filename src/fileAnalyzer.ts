@@ -66,12 +66,13 @@ export function readCacheJson(): CacheJson {
  * @param root 根目录
  * @param rules swpp 规则文件
  */
-export function buildCacheJson(protocol: ('https://' | 'http://'), webRoot: string, root: string, rules: any): any {
+export async function buildCacheJson(protocol: ('https://' | 'http://'), webRoot: string, root: string, rules: any): Promise<any> {
     const result: FileMd5[] = []
-    eachAllFile(root, path => {
+    eachAllFile(root, async path => {
         const endIndex = path.length - (path.endsWith('/index.html') ? 10 : 0)
         const url = new URL(protocol + nodePath.join(webRoot, path.substring(root.length, endIndex)))
-        if (isExclude(webRoot, url.pathname, rules)) return
+        const pathname = url.pathname
+        if (isExclude(webRoot, pathname, rules)) return
         let content = null
         if (findCache(url, rules)) {
             content = fs.readFileSync(path, 'utf-8')
@@ -81,8 +82,22 @@ export function buildCacheJson(protocol: ('https://' | 'http://'), webRoot: stri
                 md5: crypto.createHash('md5').update(content).digest('hex')
             })
         }
-
+        if (pathname.endsWith('/') || pathname.endsWith('.html')) {
+            if (!content) content = fs.readFileSync(path, 'utf-8')
+            result.push(...await eachAllLinkInHtml(webRoot, content, rules))
+        } else if (pathname.endsWith('.css')) {
+            if (!content) content = fs.readFileSync(path, 'utf-8')
+            result.push(...await eachAllLinkInCss(webRoot, content, rules))
+        } else if (pathname.endsWith('.js')) {
+            if (!content) content = fs.readFileSync(path, 'utf-8')
+            result.push(...await eachAllLinkInJavaScript(webRoot, content, rules))
+        }
     })
+    const obj: any = {}
+    for (let file of result) {
+        obj[file.url] = file.md5 ?? file.child
+    }
+    return obj
 }
 
 const successStatus = [200, 301, 302, 307, 308]
