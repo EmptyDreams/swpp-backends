@@ -213,5 +213,6 @@ export function replaceRequest(url: string, rules: any): string {
 
 export interface FileMd5 {
     url: string,
-    md5: string
+    md5?: string,
+    child?: FileMd5[]
 }

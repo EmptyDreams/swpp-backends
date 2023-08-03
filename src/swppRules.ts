@@ -40,7 +40,7 @@ const defConfig: SwppConfigTemplate = {
     external: {
         timeout: 5000,
         js: [],
-        skip: [],
+        stable: [],
         replacer: it => it
     }
 }
@@ -143,8 +143,8 @@ export interface SwppConfig {
         timeout: number,
         /** 匹配 JS 代码中的 URL */
         js: ({ head: string, tail: string } | ((jsCode: string) => string[]))[],
-        /** URL 监控跳过项目 */
-        skip: RegExp[],
+        /** 链接不变内容就不变的 URL */
+        stable: RegExp[],
         /** 构建过程中将原始 URL 映射为新的 URL */
         replacer: (srcUrl: string) => string[] | string
     }
@@ -208,8 +208,8 @@ export interface SwppConfigTemplate {
         timeout?: number,
         /** 匹配 JS 代码中的 URL */
         js?: ({ head: string, tail: string } | ((jsCode: string) => string[]))[],
-        /** URL 监控跳过项目 */
-        skip?: RegExp[],
+        /** 链接不变内容就不变的 URL */
+        stable?: RegExp[],
         /** 构建过程中将原始 URL 映射为新的 URL */
         replacer?: (srcUrl: string) => string[] | string
     }
