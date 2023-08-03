@@ -237,28 +237,25 @@
                 return false
             } else return action(value)
         }
-        switch (json['flag']) {
-            case 'all':
-                this.match = checkCache
-                break
-            case 'html':
-                this.match = url => url.match(/(\/|\.html)$/)
-                break
-            case 'page':
-                this.match = url => forEachValues(
-                    value => url.match(new RegExp(`\\/${value}(\\/|\\.html)\$`))
-                )
-                break
-            case 'file':
-                this.match = url => forEachValues(value => url.endsWith(value))
-                break
-            case 'str':
-                this.match = url => forEachValues(value => url.includes(value))
-                break
-            case 'reg':
-                this.match = url => forEachValues(value => url.match(new RegExp(value, 'i')))
-                break
-            default: throw `未知表达式：${JSON.stringify(json)}`
+        const getMatch = () => {
+            switch (json['flag']) {
+                case 'html':
+                    return url => url.match(/(\/|\.html)$/)
+                case 'page':
+                    return url => forEachValues(
+                        value => url.match(new RegExp(`\\/${value}(\\/|\\.html)\$`))
+                    )
+                case 'end':
+                    return url => forEachValues(value => url.endsWith(value))
+                case 'begin':
+                    return url => forEachValues(value => url.startsWith(value))
+                case 'str':
+                    return url => forEachValues(value => url.includes(value))
+                case 'reg':
+                    return url => forEachValues(value => url.match(new RegExp(value, 'i')))
+                default: throw `未知表达式：${JSON.stringify(json)}`
+            }
         }
+        this.match = getMatch()
     }
 })()
