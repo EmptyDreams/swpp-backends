@@ -1,7 +1,7 @@
-import {getSource, readEjectData} from "./utils"
-import fs from "fs"
-import nodePath from "path";
-import {readRules} from "./swppRules";
+import {getSource, readEjectData} from './utils'
+import fs from 'fs'
+import nodePath from 'path'
+import {readRules} from './swppRules'
 
 /** 构建 sw */
 export function buildServiceWorker(): string {

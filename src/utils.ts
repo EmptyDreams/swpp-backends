@@ -1,5 +1,5 @@
-import {readRules} from "./swppRules";
-import fetch from "node-fetch";
+import {readRules} from './swppRules'
+import fetch from 'node-fetch'
 
 const logger = require('hexo-log').default({
     debug: false,

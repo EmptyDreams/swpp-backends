@@ -1,13 +1,13 @@
-import fs from "fs";
-import nodePath from "path";
-import {Request} from "node-fetch";
-import {fetchFile} from "./utils";
-import * as crypto from "crypto";
-import {Buffer} from "buffer";
-import HTMLParser from 'fast-html-parser';
+import fs from 'fs'
+import nodePath from 'path'
+import {Request} from 'node-fetch'
+import {fetchFile} from './utils'
+import * as crypto from 'crypto'
+import {Buffer} from 'buffer'
+import HTMLParser from 'fast-html-parser'
 import CSSParser from 'css'
-import {readEjectData} from "./utils";
-import {readRules} from "./swppRules";
+import {readEjectData} from './utils'
+import {readRules} from './swppRules'
 
 export interface CacheJson {
     version: number
