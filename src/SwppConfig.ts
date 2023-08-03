@@ -66,6 +66,7 @@ export interface ExternalMonitorConfig {
     /** 构建过程中将原始 URL 映射为新的 URL */
     replacer: (srcUrl: string) => string[] | string
 }
+
 /** Service Worker Plus Plus 的配置项模板 */
 export interface SwppConfigTemplate {
     /** 有关 ServiceWorker 的配置 */
