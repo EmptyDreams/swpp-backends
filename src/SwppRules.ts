@@ -77,7 +77,7 @@ export function addRulesMapEvent(mapper: (rules: any) => void) {
  */
 export function loadRules(root: string, fileName: string, selects: string[]): SwppRules {
     // 支持的拓展名
-    const extensions = ['ts', 'cjs', 'js']
+    const extensions = ['cjs', 'js']
     // 根目录下的 rules 文件
     const rootPath = extensions.map(it => nodePath.resolve(root, `${fileName}.${it}`))
         .find(it => fs.existsSync(it))
