@@ -1,5 +1,5 @@
 import {SwppConfig} from "./swppRules";
-import fetch, {Response} from "node-fetch";
+import fetch from "node-fetch";
 
 const logger = require('hexo-log').default({
     debug: false,

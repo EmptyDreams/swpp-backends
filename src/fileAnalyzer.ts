@@ -1,11 +1,11 @@
-import fs, {read} from "fs";
+import fs from "fs";
 import nodePath from "path";
 import {Request} from "node-fetch";
-import {EjectData, fetchFile} from "./utils";
+import {fetchFile} from "./utils";
 import * as crypto from "crypto";
 import {Buffer} from "buffer";
 import HTMLParser from 'fast-html-parser';
-import CSSParser, {AtRule, Rule} from 'css'
+import CSSParser from 'css'
 import {readEjectData} from "./utils";
 import {SwppConfig} from "./swppRules";
 
