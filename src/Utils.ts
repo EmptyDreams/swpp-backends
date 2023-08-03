@@ -120,7 +120,11 @@ export function getSource(
     }
 }
 
-/** 拉取文件 */
+/**
+ * 拉取文件
+ *
+ * **调用该函数前必须调用过 [loadRules]**
+ */
 export async function fetchFile(link: string) {
     const config = readRules().config
     const url = replaceDevRequest(link)
@@ -150,7 +154,11 @@ export async function fetchFile(link: string) {
     }
 }
 
-/** 替换编译期的 URL（CDN 竞速） */
+/**
+ * 替换编译期的 URL（CDN 竞速）
+ *
+ * **调用该函数前必须调用过 [loadRules]**
+ */
 export function replaceDevRequest(link: string): string[] | string {
     const config = readRules().config
     return config.external?.replacer(link) ?? link
