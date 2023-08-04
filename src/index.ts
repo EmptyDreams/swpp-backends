@@ -21,13 +21,11 @@ import {refreshUrl, analyzer} from './VersionAnalyzer'
 
 // noinspection JSUnusedGlobalSymbols
 export default {
-    /** 缓存相关操作 */
     cache: {
         readEjectData, readUpdateJson,
         readRules, readMergeVersionMap,
         readOldVersionJson, readNewVersionJson
     },
-    /** 构建器 */
     builder: {
         buildServiceWorker,
         buildVersionJson,
@@ -35,15 +33,12 @@ export default {
         calcEjectValues,
         analyzer
     },
-    /** 加载器 */
     loader: {
         loadRules, loadUpdateJson, loadVersionJson
     },
-    /** 外部事件 */
     event: {
         addRulesMapEvent, refreshUrl, submitChange
     },
-    /** 工具函数 */
     utils: {
         getSource, getShorthand, findCache,
         fetchFile, replaceDevRequest, replaceRequest,
