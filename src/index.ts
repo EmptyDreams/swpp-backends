@@ -32,7 +32,7 @@ export default {
         buildVersionJson,
         buildNewInfo,
         calcEjectValues,
-        analyzer: analyze
+        analyze
     },
     loader: {
         loadRules, loadUpdateJson, loadVersionJson
