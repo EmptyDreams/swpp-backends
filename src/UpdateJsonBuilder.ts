@@ -54,7 +54,7 @@ function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
         }]
     }
     const change: ChangeExpression[] = []
-    const info: VersionInfo = {
+    const info: UpdateVersionInfo = {
         version: old ? old.info[0].version + 1 : 0,
         change
     }
@@ -99,10 +99,120 @@ function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
         })
     }
     change.push(...externalChange)
-    return {
+    return zipJson({
         global,
         info: [info, ...(old?.info ?? [])]
+    })
+}
+
+function zipJson(json: UpdateJson): UpdateJson {
+    const record = new Map<FlagStr, string[]>()
+    /** 合并同名项目 */
+    function merge(info: UpdateVersionInfo) {
+        const localRecord = new Map<FlagStr, Set<string>>()
+        if (!info.change) return
+        for (let exp of info.change) {
+            const value = exp.value
+            if (!localRecord.has(exp.flag))
+                localRecord.set(exp.flag, new Set())
+            if (!value) continue
+            const set = localRecord.get(exp.flag)!
+            if (typeof value === 'string') {
+                set.add(value)
+            } else {
+                value.forEach(it => set.add(it))
+            }
+        }
+        type FunResult = [FlagStr, string[]]
+        info.change = Array.from(localRecord)
+            .map(it => {
+                if (it[0] === 'html') return [it[0], []] as FunResult
+                const values = Array.from(it[1])
+                if (it[0] === 'str' || it[0] === 'reg') return [it[0], values] as FunResult
+                const filtered = values.filter((value, index) => {
+                    if (it[0] === 'end' && record.has('html') && /(\/|\.html)$/.test(value))
+                        return false
+                    for (let i = 0; i < values.length; i++) {
+                        if (i === index) continue
+                        const that = values[i]
+                        switch (it[0]) {
+                            case 'end':
+                                if (value.endsWith(that)) return false
+                                break
+                            case 'begin':
+                                if (value.startsWith(that)) return false
+                                break
+                        }
+                    }
+                    return true
+                })
+                return [it[0], filtered] as FunResult
+            }).filter(it => it[1].length !== 0 || it[0] === 'html')
+            .map(it => {
+                record.set(it[0], it[1])
+                if (it[1].length === 0) return { flag: it[0] }
+                return {
+                    flag: it[0],
+                    value: it[1].length === 1 ? it[1][0] : it[1]
+                }
+            })
     }
+    /** 移除不可达的表达式 */
+    function deleteUnreachableExp(list: UpdateVersionInfo[]) {
+        for (let i = list.length - 1; i > 0; i--) {
+            const info = list[i]
+            let change = info.change
+            if (!change) continue
+            for (let k = 0; k < change.length; k++) {
+                const exp = change[k]
+                const top = record.get(exp.flag)
+                if (exp.flag === 'html') {
+                    change.splice(k--, 1)
+                    continue
+                }
+                let array = typeof exp.value === 'string' ? [exp.value] : exp.value!
+                const find = (test: (it: string) => boolean) => {
+                    if (!top) return false
+                    return top.find(test)
+                }
+                switch (exp.flag) {
+                    case 'end':
+                        array = array.filter(value => {
+                            if (/(\/|\.html)$/.test(value) && record.has('html'))
+                                return false
+                            if (!top) return true
+                            return !find(it => value.endsWith(it))
+                        })
+                        break
+                    case 'begin':
+                        array = array.filter(value => !find(it => value.startsWith(it)))
+                        break
+                    case 'str':
+                        array = array.filter(value => !find(it => value.includes(it)))
+                        break
+                    case 'reg':
+                        array = array.filter(value => !top?.includes(value))
+                        break
+                }
+                switch (array.length) {
+                    case 0:
+                        change.splice(k--, 1)
+                        break
+                    case 1:
+                        exp.value = array[0]
+                        break
+                    default:
+                        exp.value = array
+                        break
+                }
+            }
+            if (change.length === 0)
+                delete info.change
+        }
+    }
+    merge(json.info[0])
+    deleteUnreachableExp(json.info)
+    return json
 }
 
 /** 获取 URL 的缩写形式 */
@@ -140,15 +250,17 @@ export function getShorthand(url: string, offset: number = 0): string {
 
 export interface UpdateJson {
     global: number,
-    info: VersionInfo[]
+    info: UpdateVersionInfo[]
 }
 
-export interface VersionInfo {
+export interface UpdateVersionInfo {
     version: number,
     change?: ChangeExpression[]
 }
 
 export interface ChangeExpression {
-    flag: 'html' | 'page' | 'end' | 'begin' | 'str' | 'reg',
+    flag: FlagStr,
     value?: string | string[]
 }
+
+export type FlagStr = 'html' | 'end' | 'begin' | 'str' | 'reg'
