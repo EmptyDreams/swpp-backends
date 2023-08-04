@@ -14,7 +14,10 @@ import {fetchFile, readEjectData} from './Utils'
  */
 export interface VersionJson {
     version: number,
-    list: VersionMap
+    list: VersionMap,
+    external: {
+        [propName: string]: any
+    }
 }
 
 /**
@@ -173,7 +176,7 @@ export async function buildVersionJson(
         }
     })
     return _newVersionJson = {
-        version: 3, list
+        version: 3, list, external: event
     }
 }
 

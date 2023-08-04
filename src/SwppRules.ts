@@ -171,7 +171,9 @@ export interface SwppRules {
      * @param banCache 是否禁用缓存
      * @param spare 备用 URL
      */
-    fetchFile?: (request: Request, banCache: boolean, spare?: SpareURLs) => Promise<Response>
+    fetchFile?: (request: Request, banCache: boolean, spare?: SpareURLs) => Promise<Response>,
+    /** 第三方添加的值 */
+    [propName: string]: any
 }
 
 export interface CacheRules {
