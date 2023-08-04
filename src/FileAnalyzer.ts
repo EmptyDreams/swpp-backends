@@ -407,7 +407,7 @@ export function findCache(url: URL | string): any | null {
     url = new URL(replaceRequest(url.href))
     for (let key in cacheRules) {
         const value = cacheRules[key]
-        if (value.match(url, eject.nodeEject)) return value
+        if (value.match(url, eject?.nodeEject)) return value
     }
     return null
 }
@@ -423,5 +423,5 @@ export function replaceRequest(url: string): string {
     if (!('modifyRequest' in rules)) return url
     const {modifyRequest} = rules
     const request = new Request(url)
-    return modifyRequest?.(request, readEjectData().nodeEject)?.url ?? url
+    return modifyRequest?.(request, readEjectData()?.nodeEject)?.url ?? url
 }

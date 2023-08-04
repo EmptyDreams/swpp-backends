@@ -19,7 +19,7 @@ export interface EjectCache {
     nodeEject: any
 }
 
-let ejectData: EjectCache | undefined = undefined
+let ejectData: EjectCache | undefined | null = undefined
 
 /**
  * 获取 eject values
@@ -30,7 +30,10 @@ let ejectData: EjectCache | undefined = undefined
  */
 export function calcEjectValues(framework: any) {
     const rules = readRules()
-    if (!('ejectValues' in rules)) return
+    if (!('ejectValues' in rules)) {
+        ejectData = null
+        return
+    }
     // noinspection JSUnresolvedReference
     const eject = rules.ejectValues?.(framework, rules)
     const nodeEject: any = {}
@@ -62,8 +65,8 @@ export function calcEjectValues(framework: any) {
  * + **执行该函数前必须调用过 [loadRules]**
  * + **执行该函数前必须调用过 [calcEjectValues]**
  */
-export function readEjectData(): EjectCache {
-    if (!ejectData) throw 'eject data 尚未初始化'
+export function readEjectData(): EjectCache | null {
+    if (ejectData === undefined) throw 'eject data 尚未初始化'
     return ejectData
 }
 

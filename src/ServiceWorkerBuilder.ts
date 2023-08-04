@@ -44,7 +44,7 @@ export function buildServiceWorker(): string {
     const keyword = "const { cacheList, fetchFile, getSpareUrls } = require('../sw-rules')"
     // noinspection JSUnresolvedVariable
     let content = fs.readFileSync(templatePath, 'utf8')
-        .replaceAll("// [insertion site] values", eject.strValue ?? '')
+        .replaceAll("// [insertion site] values", eject?.strValue ?? '')
         .replaceAll(keyword, cache)
         .replaceAll("'@$$[escape]'", (serviceWorkerConfig.escape).toString())
         .replaceAll("'@$$[cacheName]'", `'${serviceWorkerConfig.cacheName}'`)
