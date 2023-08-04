@@ -6,7 +6,7 @@ import * as crypto from 'crypto'
 import {Buffer} from 'buffer'
 import HTMLParser from 'fast-html-parser'
 import CSSParser from 'css'
-import {fetchFile, readEjectData} from './Utils'
+import {error, fetchFile, readEjectData} from './Utils'
 
 /**
  * 版本信息（可以用 JSON 序列化）
@@ -55,7 +55,7 @@ function eachAllFile(root: string, cb: (path: string) => void) {
  */
 export function isExclude(domain: string, url: string): boolean {
     const exclude = readRules().config?.json?.exclude
-    if (!exclude) throw 'exclude 为空'
+    if (!exclude) return false
     const list = isExternalLink(domain, url) ? exclude.other : exclude.localhost
     for (let reg of list) {
         if (url.match(reg)) return true
@@ -70,7 +70,7 @@ export function isExclude(domain: string, url: string): boolean {
  */
 export function isStable(url: string): boolean {
     const stable = readRules().config?.external?.stable
-    if (!stable) throw 'stable 为空'
+    if (!stable) return false
     for (let reg of stable) {
         if (url.match(reg)) return true
     }
@@ -105,7 +105,10 @@ export function submitCacheInfo(value: any) {
  * + **调用该函数前必须调用过 [loadCacheJson]**
  */
 export function readOldVersionJson(): VersionJson {
-    if (!_oldVersionJson) throw 'cache json 尚未初始化'
+    if (!_oldVersionJson) {
+        error('OldVersionReader', 'version json 尚未初始化')
+        throw 'version json 尚未初始化'
+    }
     return _oldVersionJson
 }
 
@@ -118,7 +121,10 @@ export function readOldVersionJson(): VersionJson {
  * + **执行该函数前必须调用过 [calcEjectValues]**
  */
 export function readNewVersionJson(): VersionJson {
-    if (!_newVersionJson) throw 'cache json 尚未初始化'
+    if (!_newVersionJson) {
+        error('NewVersionReader', 'version json 尚未初始化')
+        throw 'version json 尚未初始化'
+    }
     return _newVersionJson
 }
 
@@ -223,9 +229,14 @@ export async function eachAllLinkInUrl(
             return
         }
     }
-    const response = await fetchFile(url)
-    if (![200, 301, 302, 307, 308].includes(response.status))
+    const response = await fetchFile(url).catch(err => {
+        error('LinkItorInUrl', `拉取文件 [${url}] 时发生异常：${err}`)
+    })
+    if (!response) throw '拉取时异常'
+    if (![200, 301, 302, 307, 308].includes(response.status)) {
+        error('LinkItorInUrl', `拉取文件 [${url}] 时出现错误：${response.status}`)
         throw response
+    }
     const pathname = new URL(url).pathname
     let content: string | undefined
     const relay: string[] = []
@@ -367,7 +378,10 @@ export async function eachAllLinkInJavaScript(
     domain: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const ruleList = readRules().config?.external?.js
-    if (!ruleList) throw 'ruleList 为空'
+    if (!ruleList) {
+        error('LinkItorInJS', '不应发生的异常')
+        throw 'ruleList 为空'
+    }
     for (let value of ruleList) {
         if (typeof value === 'function') {
             const urls: string[] = value(content)

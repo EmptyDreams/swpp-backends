@@ -1,6 +1,6 @@
 import {readMergeVersionMap} from './FileAnalyzer'
 import {readRules} from './SwppRules'
-import {fetchFile, warn} from './Utils'
+import {error, fetchFile, warn} from './Utils'
 import {AnalyzeResult} from './VersionAnalyzer'
 
 let _oldJson: UpdateJson | undefined | null = undefined
@@ -33,7 +33,10 @@ export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
  * + **调用该函数前必须调用过 [loadUpdateJson]**
  */
 export function readUpdateJson(): UpdateJson | null {
-    if (_oldJson === undefined) throw 'UpdateJson 未初始化'
+    if (_oldJson === undefined) {
+        error('UpdateJsonReader','UpdateJson 尚未初始化')
+        throw 'UpdateJson 未初始化'
+    }
     return _oldJson
 }
 
@@ -50,7 +53,10 @@ export function readUpdateJson(): UpdateJson | null {
  */
 export function buildNewInfo(root: string, dif: AnalyzeResult): UpdateJson {
     const config = readRules().config.json
-    if (!config) throw '功能未开启'
+    if (!config) {
+        error('NewInfoBuilder', '功能未开启')
+        throw '功能未开启'
+    }
     const old = readUpdateJson()
     let global = old?.global ?? 0
     if (dif.force) return {
@@ -256,6 +262,7 @@ export function getShorthand(url: string, offset: number = 0): string {
                 removeSet.forEach(it => collide.delete(it))
                 break
             default:
+                error('Shorthand', '意料之外的错误：' + count)
                 throw '意料之外的错误：' + count
         }
     }

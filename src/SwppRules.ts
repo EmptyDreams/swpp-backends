@@ -2,6 +2,7 @@ import fs from 'fs'
 import {Request, Response} from 'node-fetch'
 import nodePath from 'path'
 import {SwppConfig, SwppConfigTemplate} from './SwppConfig'
+import {error} from './Utils'
 
 const defConfig: SwppConfigTemplate = {
     serviceWorker: {
@@ -53,7 +54,10 @@ let _rules: SwppRules
  * **执行该函数前必须调用过 [loadRules]**
  */
 export function readRules(): SwppRules {
-    if (!_rules) throw 'rules 尚未初始化'
+    if (!_rules) {
+        error('RulesReader', 'rules 尚未初始化')
+        throw 'rules 尚未初始化'
+    }
     return _rules
 }
 
@@ -82,8 +86,10 @@ export function loadRules(root: string, fileName: string, selects: string[]): Sw
     const selectPath = selects.flatMap(
         value => extensions.map(it => nodePath.resolve(value, `${fileName}.${it}`))
     ).find(it => fs.existsSync(it))
-    if (!(rootPath || selectPath))
+    if (!(rootPath || selectPath)) {
+        error('RulesLoader', '未查询到 rules 文件')
         throw '未查询到 rules 文件'
+    }
     const rootRules = rootPath ? { ...require(rootPath) } : {}
     const selectRules = selectPath ? require(selectPath) : {}
     const config = rootRules.config ?? {}
