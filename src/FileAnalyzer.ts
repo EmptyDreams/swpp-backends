@@ -47,13 +47,13 @@ function eachAllFile(root: string, cb: (path: string) => void) {
  *
  * + **执行该函数前必须调用过 [loadRules]**
  *
- * @param webRoot 网站域名
+ * @param domain 网站域名
  * @param url 要判断的 URL
  */
-export function isExclude(webRoot: string, url: string): boolean {
+export function isExclude(domain: string, url: string): boolean {
     const exclude = readRules().config?.json?.exclude
     if (!exclude) throw 'exclude 为空'
-    const list = isExternalLink(webRoot, url) ? exclude.other : exclude.localhost
+    const list = isExternalLink(domain, url) ? exclude.other : exclude.localhost
     for (let reg of list) {
         if (url.match(reg)) return true
     }
@@ -87,6 +87,13 @@ export async function loadVersionJson(url: string): Promise<VersionJson> {
 let _oldVersionJson: VersionJson
 let _newVersionJson: VersionJson
 let _mergeVersionMap: VersionMap
+
+const event: any[] = []
+
+/** 提交要存储到 version json 的值 */
+export function submitCacheInfo(value: any) {
+    event.push(value)
+}
 
 /**
  * 读取最后一次加载的 version json
@@ -129,25 +136,25 @@ export function readMergeVersionMap(): VersionMap {
 }
 
 /**
- * 构建一个 cache json
+ * 构建一个 version json
  *
  * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
  * + **执行该函数前必须调用过 [calcEjectValues]**
  *
  * @param protocol 网站的网络协议
- * @param webRoot 网站域名（包括二级域名）
+ * @param domain 网站域名（包括二级域名）
  * @param root 网页根目录（首页 index.html 所在目录）
  */
 export async function buildVersionJson(
-    protocol: ('https://' | 'http://'), webRoot: string, root: string
+    protocol: ('https://' | 'http://'), domain: string, root: string
 ): Promise<VersionJson> {
     const list: VersionMap = {}
     eachAllFile(root, async path => {
         const endIndex = path.length - (path.endsWith('/index.html') ? 10 : 0)
-        const url = new URL(protocol + nodePath.join(webRoot, path.substring(root.length, endIndex)))
+        const url = new URL(protocol + nodePath.join(domain, path.substring(root.length, endIndex)))
         const pathname = url.pathname
-        if (isExclude(webRoot, pathname)) return
+        if (isExclude(domain, pathname)) return
         let content = null
         if (findCache(url)) {
             content = fs.readFileSync(path, 'utf-8')
@@ -156,13 +163,13 @@ export async function buildVersionJson(
         }
         if (pathname.endsWith('/') || pathname.endsWith('.html')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInHtml(webRoot, content, list)
+            await eachAllLinkInHtml(domain, content, list)
         } else if (pathname.endsWith('.css')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInCss(webRoot, content, list)
+            await eachAllLinkInCss(domain, content, list)
         } else if (pathname.endsWith('.js')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInJavaScript(webRoot, content, list)
+            await eachAllLinkInJavaScript(domain, content, list)
         }
     })
     return _newVersionJson = {
@@ -179,18 +186,18 @@ export async function buildVersionJson(
  * + **调用该函数前必须调用过 [loadCacheJson]**
  * + **执行该函数前必须调用过 [calcEjectValues]**
  *
- * @param webRoot 网站域名
+ * @param domain 网站域名
  * @param url 要检索的 URL
  * @param result 存放结果的对象
  * @param event 检索到一个 URL 时触发的事件
  */
 export async function eachAllLinkInUrl(
-    webRoot: string, url: string, result: VersionMap, event?: (url: string) => void
+    domain: string, url: string, result: VersionMap, event?: (url: string) => void
 ) {
     if (url.startsWith('//')) url = 'http' + url
     if (url in result) return event?.(url)
-    if (!url.startsWith('http') || isExclude(webRoot, url)) return
-    if (!(isExternalLink(webRoot, url) && findCache(new URL(url)))) return
+    if (!url.startsWith('http') || isExclude(domain, url)) return
+    if (!(isExternalLink(domain, url) && findCache(new URL(url)))) return
     event?.(url)
     const stable = isStable(url)
     if (stable) {
@@ -226,15 +233,15 @@ export async function eachAllLinkInUrl(
     switch (true) {
         case pathname.endsWith('.html'): case pathname.endsWith('/'):
             content = await response.text()
-            await eachAllLinkInHtml(webRoot, content, result, nextEvent)
+            await eachAllLinkInHtml(domain, content, result, nextEvent)
             break
         case pathname.endsWith('.css'):
             content = await response.text()
-            await eachAllLinkInCss(webRoot, content, result, nextEvent)
+            await eachAllLinkInCss(domain, content, result, nextEvent)
             break
         case pathname.endsWith('.js'):
             content = await response.text()
-            await eachAllLinkInJavaScript(webRoot, content, result, nextEvent)
+            await eachAllLinkInJavaScript(domain, content, result, nextEvent)
             break
         default:
             if (stable) {
@@ -262,13 +269,13 @@ export async function eachAllLinkInUrl(
  * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
  *
- * @param webRoot 网站域名
+ * @param domain 网站域名
  * @param content HTML 文件内容
  * @param result 存放结果的对象
  * @param event 检索到 URL 时触发的事件
  */
 export async function eachAllLinkInHtml(
-    webRoot: string, content: string, result: VersionMap, event?: (url: string) => void
+    domain: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const each = async (node: HTMLParser.HTMLElement) => {
         let url: string | undefined = undefined
@@ -284,11 +291,11 @@ export async function eachAllLinkInHtml(
                 break
         }
         if (url) {
-            await eachAllLinkInUrl(webRoot, url, result, event)
+            await eachAllLinkInUrl(domain, url, result, event)
         } else if (node.tagName === 'script') {
-            await eachAllLinkInJavaScript(webRoot, node.rawText, result, event)
+            await eachAllLinkInJavaScript(domain, node.rawText, result, event)
         } else if (node.tagName === 'style') {
-            await eachAllLinkInCss(webRoot, node.rawText, result, event)
+            await eachAllLinkInCss(domain, node.rawText, result, event)
         }
         for (let childNode of node.childNodes) {
             await each(childNode)
@@ -305,13 +312,13 @@ export async function eachAllLinkInHtml(
  * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
  *
- * @param webRoot 网站域名
+ * @param domain 网站域名
  * @param content CSS 文件内容
  * @param result 存放结果的对象
  * @param event 当检索到一个 URL 后触发的事件
  */
 export async function eachAllLinkInCss(
-    webRoot: string, content: string, result: VersionMap, event?: (url: string) => void
+    domain: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const each = async (any: Array<any> | undefined) => {
         if (!any) return
@@ -326,13 +333,13 @@ export async function eachAllLinkInCss(
                         ?.map(it => it.replace(/(^url\(['"])|(['"]\)$)/g, ''))
                     if (list) {
                         for (let url of list) {
-                            await eachAllLinkInUrl(webRoot, url, result, event)
+                            await eachAllLinkInUrl(domain, url, result, event)
                         }
                     }
                     break
                 case 'import':
                     const url = rule.import.trim().replace(/^["']|["']$/g, '')
-                    await eachAllLinkInUrl(webRoot, url, result, event)
+                    await eachAllLinkInUrl(domain, url, result, event)
                     break
             }
         }
@@ -348,13 +355,13 @@ export async function eachAllLinkInCss(
  * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
  *
- * @param webRoot 网站域名
+ * @param domain 网站域名
  * @param content JS 文件内容
  * @param result 存放结果的对象
  * @param event 当检索到一个 URL 后触发的事件
  */
 export async function eachAllLinkInJavaScript(
-    webRoot: string, content: string, result: VersionMap, event?: (url: string) => void
+    domain: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const ruleList = readRules().config?.external?.js
     if (!ruleList) throw 'ruleList 为空'
@@ -362,7 +369,7 @@ export async function eachAllLinkInJavaScript(
         if (typeof value === 'function') {
             const urls: string[] = value(content)
             for (let url of urls) {
-                await eachAllLinkInUrl(webRoot, url, result, event)
+                await eachAllLinkInUrl(domain, url, result, event)
             }
         } else {
             const {head, tail} = value
@@ -372,7 +379,7 @@ export async function eachAllLinkInJavaScript(
                 ?.map(it => it.replace(/^['"`]|['"`]$/g, ''))
             if (list) {
                 for (let url of list) {
-                    await eachAllLinkInUrl(webRoot, url, result, event)
+                    await eachAllLinkInUrl(domain, url, result, event)
                 }
             }
         }
@@ -380,8 +387,8 @@ export async function eachAllLinkInJavaScript(
 }
 
 /** 判断一个 URL 是否是外部链接 */
-function isExternalLink(webRoot: string, url: string): boolean {
-    return new RegExp(`^(https?:)?\\/\\/${webRoot}`).test(url)
+function isExternalLink(domain: string, url: string): boolean {
+    return new RegExp(`^(https?:)?\\/\\/${domain}`).test(url)
 }
 
 /**
