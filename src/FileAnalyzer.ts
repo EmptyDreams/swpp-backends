@@ -203,7 +203,7 @@ export async function buildVersionJson(
 export async function eachAllLinkInUrl(
     domain: string, url: string, result: VersionMap, event?: (url: string) => void
 ) {
-    if (url.startsWith('//')) url = 'http' + url
+    if (url.startsWith('//')) url = 'http:' + url
     if (url in result) return event?.(url)
     if (!url.startsWith('http') || isExclude(domain, url)) return
     if (!(isExternalLink(domain, url) && findCache(new URL(url)))) return
@@ -295,7 +295,9 @@ export async function eachAllLinkInHtml(
         let url: string | undefined = undefined
         switch (node.tagName) {
             case 'link':
-                url = node.attributes.href
+                // noinspection SpellCheckingInspection
+                if (node.attributes.rel !== 'preconnect')
+                    url = node.attributes.href
                 break
             case 'script': case 'img': case 'source': case 'iframe': case 'embed':
                 url = node.attributes.src
