@@ -24,7 +24,6 @@ let ejectData: EjectCache | undefined = undefined
 /**
  * 获取 eject values
  * @param framework 框架对象
- * @param rules swpp rules 对象
  */
 export function calcEjectValues(framework: any) {
     const rules = readRules()

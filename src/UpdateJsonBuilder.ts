@@ -42,7 +42,7 @@ export function readUpdateJson(): UpdateJson | null {
  * @param root 网站根路径（包括网络协议）
  * @param dif 网站文件变化
  */
-function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
+export function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
     const config = readRules().config.json
     if (!config) throw '功能未开启'
     const old = readUpdateJson()
