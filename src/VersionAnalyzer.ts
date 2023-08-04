@@ -5,7 +5,8 @@ const extraUrl = new Set<string>()
 /**
  * 分析两个版本信息的不同
  *
- * **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
  *
  * @param version 新的版本信息
  */

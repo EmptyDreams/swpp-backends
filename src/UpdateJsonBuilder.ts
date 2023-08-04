@@ -14,7 +14,7 @@ export function submitChange(...change: ChangeExpression[]) {
 /**
  * 加载版本文件
  *
- * **调用该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadRules]**
  */
 export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
     if (_oldJson !== undefined) return _oldJson
@@ -29,8 +29,8 @@ export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
 /**
  * 读取最后一次加载的版本文件
  *
- * **调用该函数前必须调用过 [loadRules]**
- * **调用该函数前必须调用过 [loadUpdateJson]**
+ * + **调用该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadUpdateJson]**
  */
 export function readUpdateJson(): UpdateJson | null {
     if (_oldJson === undefined) throw 'UpdateJson 未初始化'
@@ -39,6 +39,12 @@ export function readUpdateJson(): UpdateJson | null {
 
 /**
  * 构建新的 update json
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [buildVersionJson]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
+ *
  * @param root 网站根路径（包括网络协议）
  * @param dif 网站文件变化
  */
@@ -215,7 +221,14 @@ function zipJson(json: UpdateJson): UpdateJson {
     return json
 }
 
-/** 获取 URL 的缩写形式 */
+/**
+ * 获取 URL 的缩写形式
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [buildVersionJson]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
+ */
 export function getShorthand(url: string, offset: number = 0): string {
     const map = readMergeVersionMap()
     let collide = new Set<string>()

@@ -23,6 +23,9 @@ let ejectData: EjectCache | undefined = undefined
 
 /**
  * 获取 eject values
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ *
  * @param framework 框架对象
  */
 export function calcEjectValues(framework: any) {
@@ -53,7 +56,12 @@ export function calcEjectValues(framework: any) {
     }
 }
 
-/** 读取最近的已计算的 eject 数据 */
+/**
+ * 读取最近的已计算的 eject 数据
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
+ */
 export function readEjectData(): EjectCache {
     if (!ejectData) throw 'eject data 尚未初始化'
     return ejectData

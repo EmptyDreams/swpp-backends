@@ -44,6 +44,9 @@ function eachAllFile(root: string, cb: (path: string) => void) {
 
 /**
  * 判断指定 URL 是否排除
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ *
  * @param webRoot 网站域名
  * @param url 要判断的 URL
  */
@@ -57,7 +60,11 @@ export function isExclude(webRoot: string, url: string): boolean {
     return false
 }
 
-/** 判断指定 URL 是否是 stable 的 */
+/**
+ * 判断指定 URL 是否是 stable 的
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ */
 export function isStable(url: string): boolean {
     const stable = readRules().config?.external?.stable
     if (!stable) throw 'stable 为空'
@@ -67,7 +74,11 @@ export function isStable(url: string): boolean {
     return false
 }
 
-/** 从指定 URL 加载 cache json */
+/**
+ * 从指定 URL 加载 cache json
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ */
 export async function loadVersionJson(url: string): Promise<VersionJson> {
     const response = await fetchFile(url)
     return _oldVersionJson = (await response.json()) as VersionJson
@@ -80,6 +91,7 @@ let _mergeVersionMap: VersionMap
 /**
  * 读取最后一次加载的 version json
  *
+ * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
  */
 export function readOldVersionJson(): VersionJson {
@@ -92,13 +104,22 @@ export function readOldVersionJson(): VersionJson {
  *
  * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [buildVersionJson]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
  */
 export function readNewVersionJson(): VersionJson {
     if (!_newVersionJson) throw 'cache json 尚未初始化'
     return _newVersionJson
 }
 
-/** 读取新旧版本文件合并后的版本地图 */
+/**
+ * 读取新旧版本文件合并后的版本地图
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [buildVersionJson]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
+ */
 export function readMergeVersionMap(): VersionMap {
     if (_mergeVersionMap) return _mergeVersionMap
     const map: VersionMap = {}
@@ -112,6 +133,7 @@ export function readMergeVersionMap(): VersionMap {
  *
  * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
  *
  * @param protocol 网站的网络协议
  * @param webRoot 网站域名（包括二级域名）
@@ -153,8 +175,9 @@ export async function buildVersionJson(
  *
  * 该函数会处理该 URL 指向的文件和文件中直接或间接包含的所有 URL
  *
- * **执行该函数前必须调用过 [loadRules]**
- * **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
  *
  * @param webRoot 网站域名
  * @param url 要检索的 URL
@@ -236,8 +259,8 @@ export async function eachAllLinkInUrl(
  *
  * 该函数仅处理 HTML 当中直接或间接包含的 URL，不处理文件本身
  *
- * **执行该函数前必须调用过 [loadRules]**
- * **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
  *
  * @param webRoot 网站域名
  * @param content HTML 文件内容
@@ -279,8 +302,8 @@ export async function eachAllLinkInHtml(
  *
  * 该函数仅处理 CSS 当中直接或间接包含的 URL，不处理文件本身
  *
- * **执行该函数前必须调用过 [loadRules]**
- * **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
  *
  * @param webRoot 网站域名
  * @param content CSS 文件内容
@@ -322,8 +345,8 @@ export async function eachAllLinkInCss(
  *
  * 该函数仅处理 JS 当中直接或间接包含的 URL，不处理文件本身
  *
- * **执行该函数前必须调用过 [loadRules]**
- * **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
  *
  * @param webRoot 网站域名
  * @param content JS 文件内容
@@ -364,7 +387,8 @@ function isExternalLink(webRoot: string, url: string): boolean {
 /**
  * 查询指定 URL 对应的缓存规则
  *
- * **执行该函数前必须调用过 [loadRules]**
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
  */
 export function findCache(url: URL | string): any | null {
     const {cacheRules} = readRules()
@@ -381,7 +405,8 @@ export function findCache(url: URL | string): any | null {
 /**
  * 替换请求
  *
- * **执行该函数前必须调用过 [loadRules]**
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
  */
 export function replaceRequest(url: string): string {
     const rules = readRules()

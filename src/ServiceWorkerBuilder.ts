@@ -4,7 +4,12 @@ import {getSource, readEjectData} from './Utils'
 import fs from 'fs'
 import nodePath from 'path'
 
-/** 构建 sw */
+/**
+ * 构建 sw
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
+ */
 export function buildServiceWorker(): string {
     const rules = readRules()
     const eject = readEjectData()
