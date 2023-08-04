@@ -1,6 +1,6 @@
 {
   "name": "swpp-backends",
-  "version": "0.0.1-alpha.1",
+  "version": "0.0.1-alpha",
   "main": "dist/index.js",
   "typings": "types/index.d.ts",
   "scripts": {
@@ -21,10 +21,11 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
+    "@types/node-fetch": "^2.6.4",
     "css": "^3.0.0",
     "fast-html-parser": "^1.0.1",
     "hexo-log": "^4.1.0",
-    "node-fetch": "^3.3.2"
+    "node-fetch": "^2.6.12"
   },
   "repository": {
     "type": "git",
