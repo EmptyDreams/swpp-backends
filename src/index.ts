@@ -18,7 +18,7 @@ import {
 import {buildServiceWorker} from './ServiceWorkerBuilder'
 import {readRules, loadRules, addRulesMapEvent} from './SwppRules'
 import {readUpdateJson, loadUpdateJson, submitChange, getShorthand, buildNewInfo} from './UpdateJsonBuilder'
-import {refreshUrl, analyzer} from './VersionAnalyzer'
+import {refreshUrl, analyze} from './VersionAnalyzer'
 
 // noinspection JSUnusedGlobalSymbols
 export default {
@@ -32,7 +32,7 @@ export default {
         buildVersionJson,
         buildNewInfo,
         calcEjectValues,
-        analyzer
+        analyzer: analyze
     },
     loader: {
         loadRules, loadUpdateJson, loadVersionJson
@@ -62,4 +62,4 @@ export {
 } from './SwppConfig'
 export {SwppRules, CacheRules, SpareURLs, EjectValue} from './SwppRules'
 export {UpdateJson, UpdateVersionInfo, FlagStr, ChangeExpression} from './UpdateJsonBuilder'
-export {AnalyzerResult} from './VersionAnalyzer'
+export {AnalyzeResult} from './VersionAnalyzer'

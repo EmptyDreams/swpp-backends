@@ -1,7 +1,7 @@
 import {readMergeVersionMap} from './FileAnalyzer'
 import {readRules} from './SwppRules'
 import {fetchFile, warn} from './Utils'
-import {AnalyzerResult} from './VersionAnalyzer'
+import {AnalyzeResult} from './VersionAnalyzer'
 
 let _oldJson: UpdateJson | undefined | null = undefined
 const externalChange: ChangeExpression[] = []
@@ -48,7 +48,7 @@ export function readUpdateJson(): UpdateJson | null {
  * @param root 网站根路径（包括网络协议）
  * @param dif 网站文件变化
  */
-export function buildNewInfo(root: string, dif: AnalyzerResult): UpdateJson {
+export function buildNewInfo(root: string, dif: AnalyzeResult): UpdateJson {
     const config = readRules().config.json
     if (!config) throw '功能未开启'
     const old = readUpdateJson()

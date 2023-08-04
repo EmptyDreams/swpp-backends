@@ -10,9 +10,9 @@ const extraUrl = new Set<string>()
  *
  * @param version 新的版本信息
  */
-export function analyzer(version: VersionJson): AnalyzerResult {
+export function analyze(version: VersionJson): AnalyzeResult {
     const oldVersion = readOldVersionJson()
-    const result: AnalyzerResult = {
+    const result: AnalyzeResult = {
         force: false,
         deleted: [],
         variational: [],
@@ -58,7 +58,7 @@ export function refreshUrl(url: string) {
     extraUrl.add(url)
 }
 
-export interface AnalyzerResult {
+export interface AnalyzeResult {
     /** 是否强制刷新所有缓存 */
     force: boolean,
     /** 被删除的 URL */
