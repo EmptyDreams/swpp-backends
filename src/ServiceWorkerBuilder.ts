@@ -22,7 +22,7 @@ export function buildServiceWorker(): string {
         config
     } = rules
     const serviceWorkerConfig = config.serviceWorker as ServiceWorkerConfig
-    const templatePath = nodePath.resolve('./', module.path, 'sw-template.js')
+    const templatePath = nodePath.resolve('./', module.path, 'resources/sw-template.js')
     // 获取拓展文件
     let cache = getSource(rules, undefined, [
         'cacheList', 'modifyRequest', 'getCdnList', 'getSpareUrls', 'blockRequest', 'fetchFile',
