@@ -1,11 +1,18 @@
 {
   "name": "swpp-backends",
-  "version": "0.0.1-alpha.0",
+  "version": "0.0.1-alpha.1",
   "main": "dist/index.js",
   "typings": "types/index.d.ts",
   "scripts": {
-    "build": "tsc"
+    "prepublishOnly": "tsc && gulp copy-resources"
   },
+  "description": "Generate a powerful ServiceWorker for your website.",
+  "author": "kmar",
+  "license": "AGPL-3.0",
+  "files": [
+    "dist",
+    "types"
+  ],
   "devDependencies": {
     "@types/css": "^0.0.33",
     "@types/fast-html-parser": "^1.0.2",
@@ -18,5 +25,14 @@
     "fast-html-parser": "^1.0.1",
     "hexo-log": "^4.1.0",
     "node-fetch": "^3.3.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/EmptyDreams/swpp-backends.git"
+  },
+  "homepage": "https://github.com/EmptyDreams/swpp-backends",
+  "keywords": [
+    "ServiceWorker",
+    "sw"
+  ]
 }
