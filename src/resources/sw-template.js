@@ -34,7 +34,7 @@
     self.addEventListener('activate', event => event.waitUntil(clients.claim()))
 
     // noinspection JSFileReferences
-    const { cacheList, fetchFile, getSpareUrls } = require('../sw-rules')
+    const { cacheRules, fetchFile, getSpareUrls } = require('../sw-rules')
 
     // 检查请求是否成功
     // noinspection JSUnusedLocalSymbols
@@ -106,8 +106,8 @@
     /** 判断指定url击中了哪一种缓存，都没有击中则返回null */
     function findCache(url) {
         if (url.hostname === 'localhost') return
-        for (let key in cacheList) {
-            const value = cacheList[key]
+        for (let key in cacheRules) {
+            const value = cacheRules[key]
             if (value.match(url)) return value
         }
     }
@@ -219,10 +219,6 @@
      * @constructor
      */
     function CacheChangeExpression(json) {
-        const checkCache = url => {
-            const cache = findCache(new URL(url))
-            return !cache || cache.clean
-        }
         /**
          * 遍历所有value
          * @param action {function(string): boolean} 接受value并返回bool的函数

@@ -25,7 +25,7 @@ export function buildServiceWorker(): string {
     const templatePath = nodePath.resolve('./', module.path, 'resources/sw-template.js')
     // 获取拓展文件
     let cache = getSource(rules, undefined, [
-        'cacheList', 'modifyRequest', 'getCdnList', 'getSpareUrls', 'blockRequest', 'fetchFile',
+        'cacheRules', 'modifyRequest', 'getRaceUrls', 'getSpareUrls', 'blockRequest', 'fetchFile',
         ...('external' in rules && Array.isArray(rules.external) ? rules.external : [])
     ], true) + '\n'
     if (!fetchFile) {
@@ -41,7 +41,7 @@ export function buildServiceWorker(): string {
         cache += `(${getSource(rules['afterJoin'])})()\n`
     if ('afterTheme' in rules)
         cache += `(${getSource(rules['afterTheme'])})()\n`
-    const keyword = "const { cacheList, fetchFile, getSpareUrls } = require('../sw-rules')"
+    const keyword = "const { cacheRules, fetchFile, getRaceUrls } = require('../sw-rules')"
     // noinspection JSUnresolvedVariable
     let content = fs.readFileSync(templatePath, 'utf8')
         .replaceAll("// [insertion site] values", eject?.strValue ?? '')
@@ -86,7 +86,7 @@ const JS_CODE_DEF_FETCH_FILE = `
     })
 `
 
-// getCdnList 函数的代码
+// getRaceUrls 函数的代码
 const JS_CODE_GET_CDN_LIST = `
     const fetchFile = (request, banCache) => {
         const fetchArgs = {
@@ -94,7 +94,7 @@ const JS_CODE_GET_CDN_LIST = `
             mode: 'cors',
             credentials: 'same-origin'
         }
-        const list = getCdnList(request.url)
+        const list = getRaceUrls(request.url)
         if (!list || !Promise.any) return fetch(request, fetchArgs)
         const res = list.map(url => new Request(url, request))
         const controllers = []

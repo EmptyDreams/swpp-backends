@@ -107,7 +107,7 @@ export function getSource(
                         const value = obj[key]
                         let str = getSource(value, typeChecker)
                         if (str.length === 0) return ''
-                        if (isTop && whiteList && ['cacheList', 'modifyRequest'].includes(key)) {
+                        if (isTop && whiteList && ['cacheRules', 'modifyRequest'].includes(key)) {
                             str = str
                                 .replace(
                                     /\(\s*(.*?)\s*,\s*\$eject\s*\)/g, "$1"

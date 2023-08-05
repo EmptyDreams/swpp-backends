@@ -46,7 +46,7 @@ export interface VersionJsonConfig {
     charLimit: number,
     /** 是否合并指定项目 */
     merge: string[],
-    /** 生成 cacheList.json 时忽略的文件 */
+    /** 生成版本信息时忽略的文件 */
     exclude: {
         localhost: RegExp[],
         other: RegExp[]
@@ -103,7 +103,7 @@ export interface SwppConfigTemplate {
         charLimit?: number,
         /** 是否合并指定项目 */
         merge?: string[],
-        /** 生成 cacheList.json 时忽略的文件 */
+        /** 生成版本信息时忽略的文件 */
         exclude?: {
             /** 当前网站的 URL */
             localhost?: RegExp[],
