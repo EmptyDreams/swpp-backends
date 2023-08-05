@@ -183,8 +183,12 @@ export async function buildVersionJson(
             await eachAllLinkInJavaScript(domain, content, list)
         }
     })
+    const external: any = {}
+    event.forEach((value, key) => {
+        external[key] = value
+    })
     return _newVersionJson = {
-        version: 3, list, external: event
+        version: 3, list, external
     }
 }
 
