@@ -352,10 +352,10 @@ export async function eachAllLinkInCss(
                 case 'declaration':
                     const value: string = rule.value
                     const list = value.match(/url\(['"]?([^'")]+)['"]?\)/g)
-                        ?.map(it => it.replace(/(^url\(['"])|(['"]\)$)/g, ''))
+                        ?.map(it => it.replace(/(^url\(['"]?)|(['"]?\)$)/g, ''))
                     if (list) {
                         for (let url of list) {
-                            if (!/^(https?:)|(\/\/)/) {
+                            if (!/^(https?:)|(\/\/)/.test(url)) {
                                 if (url[0] === '/') url = root + url.substring(1)
                                 else url = root + url
                             }
