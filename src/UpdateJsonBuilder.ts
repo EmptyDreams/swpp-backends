@@ -276,7 +276,7 @@ export function getShorthand(url: string, offset: number = 0): string {
             }
         }
         switch (count) {
-            case 1: return result
+            case 1: case 0: return result
             case 2:
                 --index
                 removeSet.forEach(it => collide.delete(it))
