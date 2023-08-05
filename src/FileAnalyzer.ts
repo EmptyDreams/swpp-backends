@@ -174,10 +174,10 @@ export async function buildVersionJson(
         }
         if (pathname.endsWith('/') || pathname.endsWith('.html')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInHtml(domain, content, list)
+            await eachAllLinkInHtml(domain, protocol + domain, content, list)
         } else if (pathname.endsWith('.css')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInCss(domain, content, list)
+            await eachAllLinkInCss(domain, protocol + domain, content, list)
         } else if (pathname.endsWith('.js')) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
             await eachAllLinkInJavaScript(domain, content, list)
@@ -217,7 +217,7 @@ export async function eachAllLinkInUrl(
     const stable = isStable(url)
     if (stable) {
         const old = readOldVersionJson().list
-        if (url in old) {
+        if (Array.isArray(old[url])) {
             const copyTree = (key: string) => {
                 const value = old[key]
                 if (!value) return
@@ -255,12 +255,12 @@ export async function eachAllLinkInUrl(
         case pathname.endsWith('.html'): case pathname.endsWith('/'):
             content = await response.text()
             update()
-            await eachAllLinkInHtml(domain, content, result, nextEvent)
+            await eachAllLinkInHtml(domain, content, url.substring(0, url.lastIndexOf('/') + 1), result, nextEvent)
             break
         case pathname.endsWith('.css'):
             content = await response.text()
             update()
-            await eachAllLinkInCss(domain, content, result, nextEvent)
+            await eachAllLinkInCss(domain, content, url.substring(0, url.lastIndexOf('/') + 1), result, nextEvent)
             break
         case pathname.endsWith('.js'):
             content = await response.text()
@@ -287,12 +287,13 @@ export async function eachAllLinkInUrl(
  * + **调用该函数前必须调用过 [loadCacheJson]**
  *
  * @param domain 网站域名
+ * @param root 当前资源的根
  * @param content HTML 文件内容
  * @param result 存放结果的对象
  * @param event 检索到 URL 时触发的事件
  */
 export async function eachAllLinkInHtml(
-    domain: string, content: string, result: VersionMap, event?: (url: string) => void
+    domain: string, root: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const each = async (node: HTMLParser.HTMLElement) => {
         let url: string | undefined = undefined
@@ -314,7 +315,7 @@ export async function eachAllLinkInHtml(
         } else if (node.tagName === 'script') {
             await eachAllLinkInJavaScript(domain, node.rawText, result, event)
         } else if (node.tagName === 'style') {
-            await eachAllLinkInCss(domain, node.rawText, result, event)
+            await eachAllLinkInCss(domain, root, node.rawText, result, event)
         }
         if (node.childNodes) {
             for (let childNode of node.childNodes) {
@@ -334,12 +335,13 @@ export async function eachAllLinkInHtml(
  * + **调用该函数前必须调用过 [loadCacheJson]**
  *
  * @param domain 网站域名
+ * @param root 当前资源的 URL 的根
  * @param content CSS 文件内容
  * @param result 存放结果的对象
  * @param event 当检索到一个 URL 后触发的事件
  */
 export async function eachAllLinkInCss(
-    domain: string, content: string, result: VersionMap, event?: (url: string) => void
+    domain: string, root: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const each = async (any: Array<any> | undefined) => {
         if (!any) return
@@ -353,6 +355,10 @@ export async function eachAllLinkInCss(
                         ?.map(it => it.replace(/(^url\(['"])|(['"]\)$)/g, ''))
                     if (list) {
                         for (let url of list) {
+                            if (!/^(https?:)|(\/\/)/) {
+                                if (url[0] === '/') url = root + url.substring(1)
+                                else url = root + url
+                            }
                             await eachAllLinkInUrl(domain, url, result, event)
                         }
                     }
