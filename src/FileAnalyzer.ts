@@ -41,9 +41,9 @@ async function eachAllFile(root: string, cb: (path: string) => Promise<void>) {
     if (stats.isFile()) await cb(root)
     else {
         const files = fs.readdirSync(root)
-        for (let it of files) {
-            await eachAllFile(nodePath.join(root, it), cb)
-        }
+        await Promise.all(
+            files.map(it => eachAllFile(nodePath.join(root, it), cb))
+        )
     }
 }
 
@@ -258,18 +258,15 @@ export async function eachAllLinkInUrl(
         case pathname.endsWith('.html'): case pathname.endsWith('/'):
             content = await response.text()
             update()
-            await eachAllLinkInHtml(domain, url.substring(0, url.lastIndexOf('/') + 1), content, result, nextEvent)
-            break
+            return eachAllLinkInHtml(domain, url.substring(0, url.lastIndexOf('/') + 1), content, result, nextEvent)
         case pathname.endsWith('.css'):
             content = await response.text()
             update()
-            await eachAllLinkInCss(domain, url.substring(0, url.lastIndexOf('/') + 1), content, result, nextEvent)
-            break
+            return eachAllLinkInCss(domain, url.substring(0, url.lastIndexOf('/') + 1), content, result, nextEvent)
         case pathname.endsWith('.js'):
             content = await response.text()
             update()
-            await eachAllLinkInJavaScript(domain, content, result, nextEvent)
-            break
+            return eachAllLinkInJavaScript(domain, content, result, nextEvent)
         default:
             if (stable) {
                 result[url] = []
@@ -298,7 +295,8 @@ export async function eachAllLinkInUrl(
 export async function eachAllLinkInHtml(
     domain: string, root: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
-    const each = async (node: HTMLParser.HTMLElement) => {
+    const taskList: Promise<any>[] = []
+    const each = (node: HTMLParser.HTMLElement) => {
         let url: string | undefined = undefined
         switch (node.tagName) {
             case 'link':
@@ -314,15 +312,15 @@ export async function eachAllLinkInHtml(
                 break
         }
         if (url) {
-            await eachAllLinkInUrl(domain, url, result, event)
+            taskList.push(eachAllLinkInUrl(domain, url, result, event))
         } else if (node.tagName === 'script') {
-            await eachAllLinkInJavaScript(domain, node.rawText, result, event)
+            taskList.push(eachAllLinkInJavaScript(domain, node.rawText, result, event))
         } else if (node.tagName === 'style') {
-            await eachAllLinkInCss(domain, root, node.rawText, result, event)
+            taskList.push(eachAllLinkInCss(domain, root, node.rawText, result, event))
         }
         if (node.childNodes) {
             for (let childNode of node.childNodes) {
-                await each(childNode)
+                each(childNode)
             }
         }
     }
@@ -333,7 +331,8 @@ export async function eachAllLinkInHtml(
         error('HtmlParser', `HTML [root=${root}] 中存在错误语法`)
     }
     if (html)
-        await each(html)
+        each(html)
+    return Promise.all(taskList)
 }
 
 /**
@@ -352,12 +351,13 @@ export async function eachAllLinkInHtml(
  */
 export async function eachAllLinkInCss(
     domain: string, root: string, content: string, result: VersionMap, event?: (url: string) => void
-) {
-    const each = async (any: Array<any> | undefined) => {
+): Promise<void[]> {
+    const taskList: Promise<any>[] = []
+    const each = (any: Array<any> | undefined) => {
         if (!any) return
         for (let rule of any) {
             if (rule.declarations)
-                await each(rule.declarations)
+                each(rule.declarations)
             switch (rule.type) {
                 case 'declaration':
                     const value: string = rule.value
@@ -369,13 +369,13 @@ export async function eachAllLinkInCss(
                                 if (url[0] === '/') url = root + url.substring(1)
                                 else url = root + url
                             }
-                            await eachAllLinkInUrl(domain, url, result, event)
+                            taskList.push(eachAllLinkInUrl(domain, url, result, event))
                         }
                     }
                     break
                 case 'import':
                     const url = rule.import.trim().replace(/^["']|["']$/g, '')
-                    await eachAllLinkInUrl(domain, url, result, event)
+                    taskList.push(eachAllLinkInUrl(domain, url, result, event))
                     break
             }
         }
@@ -387,7 +387,8 @@ export async function eachAllLinkInCss(
         error('CssParser', `CSS [root=${root}] 中存在错误语法`)
     }
     if (css)
-        await each(css)
+        each(css)
+    return Promise.all(taskList)
 }
 
 /**
@@ -403,9 +404,10 @@ export async function eachAllLinkInCss(
  * @param result 存放结果的对象
  * @param event 当检索到一个 URL 后触发的事件
  */
-export async function eachAllLinkInJavaScript(
+export function eachAllLinkInJavaScript(
     domain: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
+    const taskList: Promise<any>[] = []
     const ruleList = readRules().config?.external?.js
     if (!ruleList) {
         error('LinkItorInJS', '不应发生的异常')
@@ -415,7 +417,7 @@ export async function eachAllLinkInJavaScript(
         if (typeof value === 'function') {
             const urls: string[] = value(content)
             for (let url of urls) {
-                await eachAllLinkInUrl(domain, url, result, event)
+                taskList.push(eachAllLinkInUrl(domain, url, result, event))
             }
         } else {
             const {head, tail} = value
@@ -425,11 +427,12 @@ export async function eachAllLinkInJavaScript(
                 ?.map(it => it.replace(/^['"`]|['"`]$/g, ''))
             if (list) {
                 for (let url of list) {
-                    await eachAllLinkInUrl(domain, url, result, event)
+                    taskList.push(eachAllLinkInUrl(domain, url, result, event))
                 }
             }
         }
     }
+    return Promise.all(taskList)
 }
 
 /** 判断一个 URL 是否是外部链接 */
