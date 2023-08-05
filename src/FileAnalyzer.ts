@@ -340,10 +340,9 @@ export async function eachAllLinkInCss(
     const each = async (any: Array<any> | undefined) => {
         if (!any) return
         for (let rule of any) {
+            if (rule.declarations)
+                await each(rule.declarations)
             switch (rule.type) {
-                case 'rule':
-                    await each(rule.declarations)
-                    break
                 case 'declaration':
                     const value: string = rule.value
                     const list = value.match(/url\(['"]?([^'")]+)['"]?\)/g)
