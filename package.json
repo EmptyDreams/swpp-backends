@@ -1,6 +1,6 @@
 {
   "name": "swpp-backends",
-  "version": "0.0.9-alpha",
+  "version": "0.0.10-alpha",
   "main": "dist/index.js",
   "typings": "types/index.d.ts",
   "scripts": {

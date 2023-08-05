@@ -93,11 +93,11 @@ let _oldVersionJson: VersionJson
 let _newVersionJson: VersionJson
 let _mergeVersionMap: VersionMap
 
-const event: any[] = []
+const event = new Map<string, any>()
 
 /** 提交要存储到 version json 的值 */
-export function submitCacheInfo(value: any) {
-    event.push(value)
+export function submitCacheInfo(key: string, value: any) {
+    event.set(key, value)
 }
 
 /**
