@@ -22,6 +22,7 @@ export function analyze(version: VersionJson): AnalyzeResult {
             remove: [] as string[]
         }
     }
+    if (!oldVersion) return result
     if (version.version !== oldVersion.version) {
         result.force = true
         return result

@@ -6,7 +6,7 @@ import * as crypto from 'crypto'
 import {Buffer} from 'buffer'
 import HTMLParser from 'fast-html-parser'
 import CSSParser from 'css'
-import {error, fetchFile, readEjectData} from './Utils'
+import {error, fetchFile, readEjectData, warn} from './Utils'
 
 /**
  * 版本信息（可以用 JSON 序列化）
@@ -80,16 +80,21 @@ export function isStable(url: string): boolean {
 }
 
 /**
- * 从指定 URL 加载 cache json
+ * 从指定 URL 加载 version json
  *
  * + **执行该函数前必须调用过 [loadRules]**
  */
-export async function loadVersionJson(url: string): Promise<VersionJson> {
-    const response = await fetchFile(url)
-    return _oldVersionJson = (await response.json()) as VersionJson
+export async function loadVersionJson(url: string): Promise<VersionJson | null> {
+    const response = await fetchFile(url).catch(err => err)
+    if (response?.status === 404) {
+        warn('LoadVersionJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
+        return _oldVersionJson = null
+    } else {
+        return _oldVersionJson = (await response.json()) as VersionJson
+    }
 }
 
-let _oldVersionJson: VersionJson
+let _oldVersionJson: VersionJson | null | undefined = undefined
 let _newVersionJson: VersionJson
 let _mergeVersionMap: VersionMap
 
@@ -106,8 +111,8 @@ export function submitCacheInfo(key: string, value: any) {
  * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
  */
-export function readOldVersionJson(): VersionJson {
-    if (!_oldVersionJson) {
+export function readOldVersionJson(): VersionJson | null {
+    if (_oldVersionJson === undefined) {
         error('OldVersionReader', 'version json 尚未初始化')
         throw 'version json 尚未初始化'
     }
@@ -141,7 +146,7 @@ export function readNewVersionJson(): VersionJson {
 export function readMergeVersionMap(): VersionMap {
     if (_mergeVersionMap) return _mergeVersionMap
     const map: VersionMap = {}
-    Object.assign(map, readOldVersionJson().list)
+    Object.assign(map, readOldVersionJson()?.list ?? {})
     Object.assign(map, readNewVersionJson().list)
     return _mergeVersionMap = map
 }
@@ -216,10 +221,10 @@ export async function eachAllLinkInUrl(
     event?.(url)
     const stable = isStable(url)
     if (stable) {
-        const old = readOldVersionJson().list
-        if (Array.isArray(old[url])) {
+        const old = readOldVersionJson()?.list
+        if (Array.isArray(old?.[url])) {
             const copyTree = (key: string) => {
-                const value = old[key]
+                const value = old![key]
                 if (!value) return
                 result[key] = value
                 if (Array.isArray(value)) {
@@ -233,13 +238,10 @@ export async function eachAllLinkInUrl(
             return
         }
     }
-    const response = await fetchFile(url).catch(err => {
-        error('LinkItorInUrl', `拉取文件 [${url}] 时发生异常：${err}`)
-    })
-    if (!response) throw '拉取时异常'
-    if (![200, 301, 302, 307, 308].includes(response.status)) {
-        error('LinkItorInUrl', `拉取文件 [${url}] 时出现错误：${response.status}`)
-        throw response
+    const response = await fetchFile(url).catch(err => err)
+    if (![200, 301, 302, 307, 308].includes(response?.status ?? 0)) {
+        error('LinkItorInUrl', `拉取文件 [${url}] 时出现错误：${response?.status}`)
+        return
     }
     const pathname = new URL(url).pathname
     let content: string
@@ -323,7 +325,14 @@ export async function eachAllLinkInHtml(
             }
         }
     }
-    await each(HTMLParser.parse(content, { style: true, script: true }))
+    let html
+    try {
+        html = HTMLParser.parse(content, { style: true, script: true })
+    } catch (e) {
+        error('HtmlParser', `HTML [root=${root}] 中存在错误语法`)
+    }
+    if (html)
+        await each(html)
 }
 
 /**
@@ -370,7 +379,14 @@ export async function eachAllLinkInCss(
             }
         }
     }
-    await each(CSSParser.parse(content).stylesheet?.rules)
+    let css
+    try {
+        css = CSSParser.parse(content).stylesheet?.rules
+    } catch (e) {
+        error('CssParser', `CSS [root=${root}] 中存在错误语法`)
+    }
+    if (css)
+        await each(css)
 }
 
 /**
