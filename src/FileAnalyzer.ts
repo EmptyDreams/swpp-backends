@@ -221,8 +221,6 @@ export async function eachAllLinkInUrl(
                     for (let url of value) {
                         copyTree(url)
                     }
-                } else {
-                    event?.(value)
                 }
             }
             copyTree(url)
@@ -238,23 +236,28 @@ export async function eachAllLinkInUrl(
         throw response
     }
     const pathname = new URL(url).pathname
-    let content: string | undefined
-    const relay: string[] = []
+    let content: string
     const nextEvent = (it: string) => {
-        relay.push(it)
-        event?.(it)
+        result[url].push(it)
+    }
+    const update = () => {
+        if (stable) result[url] = []
+        else result[url] = crypto.createHash('md5').update(content).digest('hex')
     }
     switch (true) {
         case pathname.endsWith('.html'): case pathname.endsWith('/'):
             content = await response.text()
+            update()
             await eachAllLinkInHtml(domain, content, result, nextEvent)
             break
         case pathname.endsWith('.css'):
             content = await response.text()
+            update()
             await eachAllLinkInCss(domain, content, result, nextEvent)
             break
         case pathname.endsWith('.js'):
             content = await response.text()
+            update()
             await eachAllLinkInJavaScript(domain, content, result, nextEvent)
             break
         default:
@@ -265,13 +268,6 @@ export async function eachAllLinkInUrl(
                 result[url] = crypto.createHash('md5').update(buffer).digest('hex')
             }
             break
-    }
-    if (content) {
-        if (stable) {
-            result[url] = relay
-        } else {
-            result[url] = crypto.createHash('md5').update(content).digest('hex')
-        }
     }
 }
 
@@ -313,8 +309,10 @@ export async function eachAllLinkInHtml(
         } else if (node.tagName === 'style') {
             await eachAllLinkInCss(domain, node.rawText, result, event)
         }
-        for (let childNode of node.childNodes) {
-            await each(childNode)
+        if (node.childNodes) {
+            for (let childNode of node.childNodes) {
+                await each(childNode)
+            }
         }
     }
     await each(HTMLParser.parse(content, { style: true, script: true }))
@@ -407,7 +405,8 @@ export async function eachAllLinkInJavaScript(
 
 /** 判断一个 URL 是否是外部链接 */
 function isExternalLink(domain: string, url: string): boolean {
-    return new RegExp(`^(https?:)?\\/\\/${domain}`).test(url)
+    if (url[0] === '/' && url[1] !== '/') return false
+    return !new RegExp(`^(https?:)?\\/\\/${domain}`).test(url)
 }
 
 /**
