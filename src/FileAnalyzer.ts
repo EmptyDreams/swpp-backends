@@ -218,7 +218,6 @@ export async function eachAllLinkInUrl(
     if (url in result) return event?.(url)
     if (!url.startsWith('http') || isExclude(domain, url)) return
     if (!(isExternalLink(domain, url) && findCache(new URL(url)))) return
-    event?.(url)
     const stable = isStable(url)
     if (stable) {
         const old = readOldVersionJson()?.list
@@ -235,6 +234,7 @@ export async function eachAllLinkInUrl(
                 }
             }
             copyTree(url)
+            event?.(url)
             return
         }
     }
@@ -243,6 +243,7 @@ export async function eachAllLinkInUrl(
         error('LinkItorInUrl', `拉取文件 [${url}] 时出现错误：${response?.status}`)
         return
     }
+    event?.(url)
     const pathname = new URL(url).pathname
     let content: string
     const nextEvent = (it: string) => {
