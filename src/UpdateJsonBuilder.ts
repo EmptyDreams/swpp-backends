@@ -222,8 +222,28 @@ function zipJson(json: UpdateJson): UpdateJson {
                 delete info.change
         }
     }
+    function limit(json: UpdateJson) {
+        const charLimit = readRules().config.json!.charLimit
+        for (let i = 0; i !== -1; ++i) {
+            if (i === 999) {
+                error('UpdateJsonLimit', `JSON 输出长度异常：${JSON.stringify(json, null, 4)}`)
+                throw 'update json limit error'
+            }
+            const len = JSON.stringify(json).length
+            if (len > charLimit) {
+                if (json.info.length === 1) {
+                    delete json.info[0].change
+                } else {
+                    json.info.pop()
+                    if (json.info.length === 1)
+                        delete json.info[0].change
+                }
+            } else break
+        }
+    }
     merge(json.info[0])
     deleteUnreachableExp(json.info)
+    limit(json)
     return json
 }
 
