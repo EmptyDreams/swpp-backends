@@ -162,7 +162,7 @@ export async function buildVersionJson(
 ): Promise<VersionJson> {
     const list: VersionMap = {}
     await eachAllFile(root, async path => {
-        const endIndex = path.length - (path.endsWith('/index.html') ? 10 : 0)
+        const endIndex = path.length - (/[\/\\]index\.html$/.test(path) ? 10 : 0)
         const url = new URL(protocol + nodePath.join(domain, path.substring(root.length, endIndex)))
         const pathname = url.pathname
         if (isExclude(domain, pathname)) return
