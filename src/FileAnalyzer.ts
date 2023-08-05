@@ -36,12 +36,14 @@ export interface VersionMap {
  * @param root 根目录
  * @param cb 回调函数（接收的参数是文件的相对路径）
  */
-function eachAllFile(root: string, cb: (path: string) => void) {
+async function eachAllFile(root: string, cb: (path: string) => Promise<void>) {
     const stats = fs.statSync(root)
-    if (stats.isFile()) cb(root)
+    if (stats.isFile()) await cb(root)
     else {
         const files = fs.readdirSync(root)
-        files.forEach(it => eachAllFile(nodePath.join(root, it), cb))
+        for (let it of files) {
+            await eachAllFile(nodePath.join(root, it), cb)
+        }
     }
 }
 
@@ -159,7 +161,7 @@ export async function buildVersionJson(
     protocol: ('https://' | 'http://'), domain: string, root: string
 ): Promise<VersionJson> {
     const list: VersionMap = {}
-    eachAllFile(root, async path => {
+    await eachAllFile(root, async path => {
         const endIndex = path.length - (path.endsWith('/index.html') ? 10 : 0)
         const url = new URL(protocol + nodePath.join(domain, path.substring(root.length, endIndex)))
         const pathname = url.pathname
@@ -238,7 +240,8 @@ export async function eachAllLinkInUrl(
     const pathname = new URL(url).pathname
     let content: string
     const nextEvent = (it: string) => {
-        result[url].push(it)
+        if (stable)
+            result[url].push(it)
     }
     const update = () => {
         if (stable) result[url] = []
