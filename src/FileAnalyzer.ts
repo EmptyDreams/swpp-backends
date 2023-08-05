@@ -255,12 +255,12 @@ export async function eachAllLinkInUrl(
         case pathname.endsWith('.html'): case pathname.endsWith('/'):
             content = await response.text()
             update()
-            await eachAllLinkInHtml(domain, content, url.substring(0, url.lastIndexOf('/') + 1), result, nextEvent)
+            await eachAllLinkInHtml(domain, url.substring(0, url.lastIndexOf('/') + 1), content, result, nextEvent)
             break
         case pathname.endsWith('.css'):
             content = await response.text()
             update()
-            await eachAllLinkInCss(domain, content, url.substring(0, url.lastIndexOf('/') + 1), result, nextEvent)
+            await eachAllLinkInCss(domain, url.substring(0, url.lastIndexOf('/') + 1), content, result, nextEvent)
             break
         case pathname.endsWith('.js'):
             content = await response.text()
