@@ -86,7 +86,7 @@ export function isStable(url: string): boolean {
  */
 export async function loadVersionJson(url: string): Promise<VersionJson | null> {
     const response = await fetchFile(url).catch(err => err)
-    if (response?.status === 404) {
+    if (response?.status === 404 || response?.code === 'ENOTFOUND') {
         warn('LoadVersionJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
         return _oldVersionJson = null
     } else {
@@ -241,7 +241,7 @@ export async function eachAllLinkInUrl(
     result[url] = false
     const response = await fetchFile(url).catch(err => err)
     if (![200, 301, 302, 307, 308].includes(response?.status ?? 0)) {
-        error('LinkItorInUrl', `拉取文件 [${url}] 时出现错误：${response?.status}`)
+        error('LinkItorInUrl', `拉取文件 [${url}] 时出现错误：${response?.status ?? response?.code}`)
         return
     }
     event?.(url)

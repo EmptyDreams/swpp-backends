@@ -18,8 +18,8 @@ export function submitChange(...change: ChangeExpression[]) {
  */
 export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
     if (_oldJson !== undefined) return _oldJson
-    const response = await fetchFile(url)
-    if (response.status === 404) {
+    const response = await fetchFile(url).catch(err => err)
+    if (response?.status === 404 || response.code === 'ENOTFOUND') {
         warn('LoadUpdateJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
         return _oldJson = null
     }
