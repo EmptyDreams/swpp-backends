@@ -238,6 +238,7 @@ export async function eachAllLinkInUrl(
             return
         }
     }
+    result[url] = false
     const response = await fetchFile(url).catch(err => err)
     if (![200, 301, 302, 307, 308].includes(response?.status ?? 0)) {
         error('LinkItorInUrl', `拉取文件 [${url}] 时出现错误：${response?.status}`)
