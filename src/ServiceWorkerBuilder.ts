@@ -120,37 +120,43 @@ const JS_CODE_GET_SPARE_URLS = `
             mode: 'cors',
             credentials: 'same-origin'
         }
-        if (!spare) spare = getSpareUrls(request.url)
-        if (!spare) return fetch(request, fetchArgs)
+        if (!spare) {
+            spare = getSpareUrls(request.url)
+            if (!spare) return fetch(request, fetchArgs)
+        }
         const list = spare.list
-        const controllers = []
-        let error = 0
+        const controllers = new Array(list.length)
+        const startFetch =
+            index => fetch(
+                new Request(list[index], request),
+                Object.assign({
+                    signal: (controllers[index] = new AbortController()).signal
+                }, fetchArgs)
+            ).then(response => checkResponse(response) ? {r: response, i: index} : Promise.reject(response.status))
         return new Promise((resolve, reject) => {
-            const pull = () => {
-                const flag = controllers.length
-                if (flag === list.length) return
-                const plusError = () => {
-                    if (++error === list.length) reject(\`请求 \${request.url} 失败\`)
-                    else if (flag + 1 === controllers.length) {
-                        clearTimeout(controllers[flag].id)
-                        pull()
+            const startAll = () => {
+                Promise.any([
+                    first,
+                    ...Array.from({
+                        length: list.length - 1
+                    }, (_, index) => index + 2).map(index => startFetch(index))
+                ]).then(res => {
+                    for (let i = 0; i !== list.length; ++i) {
+                        if (i !== res.i)
+                            controllers[i].abort()
                     }
-                }
-                controllers.push({
-                    ctrl: new AbortController(),
-                    id: setTimeout(pull, spare.timeout)
-                })
-                fetch(new Request(list[flag], request), fetchArgs).then(response => {
-                    if (checkResponse(response)) {
-                        for (let i in controllers) {
-                            if (i !== flag) controllers[i].ctrl.abort()
-                            clearTimeout(controllers[i].id)
-                        }
-                        resolve(response)
-                    } else plusError()
-                }).catch(plusError)
+                    resolve(res.r)
+                }).catch(() => reject(\`请求 \${request.url} 失败\`))
             }
-            pull()
+            const id = setTimeout(startAll, spare.timeout)
+            const first = startFetch(0)
+                .then(res => {
+                    clearTimeout(id)
+                    resolve(res.r)
+                }).catch(() => {
+                    clearTimeout(id)
+                    startAll()
+                })
         })
     }
 `
