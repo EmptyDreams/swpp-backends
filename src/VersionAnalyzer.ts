@@ -1,6 +1,7 @@
 import {readOldVersionJson, VersionJson} from './FileAnalyzer'
+import {error} from './Utils'
 
-const extraUrl = new Set<string>()
+let extraUrl: Set<string> | null = new Set<string>()
 
 /**
  * 分析两个版本信息的不同
@@ -28,9 +29,9 @@ export function analyze(version: VersionJson): AnalyzeResult {
         return result
     }
     for (let url in oldVersion.list) {
-        if (extraUrl.has(url)) {
+        if (extraUrl!.has(url)) {
             result.refresh.push(url)
-            extraUrl.delete(url)
+            extraUrl!.delete(url)
             continue
         }
         const oldValue = oldVersion.list[url]
@@ -50,12 +51,17 @@ export function analyze(version: VersionJson): AnalyzeResult {
             result.variational.push(url)
         }
     }
-    extraUrl.forEach(url => result.refresh.push(url))
+    extraUrl!.forEach(url => result.refresh.push(url))
+    extraUrl = null
     return result
 }
 
 /** 手动添加一个要刷新的 URL */
 export function refreshUrl(url: string) {
+    if (!extraUrl) {
+        error('RefreshUrl', '版本信息已经分析完成，调用该函数无意义！')
+        throw 'refreshUrl 调用时机错误'
+    }
     extraUrl.add(url)
 }
 

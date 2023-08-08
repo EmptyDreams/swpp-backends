@@ -13,7 +13,8 @@ import {
     eachAllLinkInJavaScript,
     findCache,
     replaceRequest,
-    submitCacheInfo
+    submitCacheInfo,
+    submitExternalUrl
 } from './FileAnalyzer'
 import {buildServiceWorker} from './ServiceWorkerBuilder'
 import {readRules, loadRules, addRulesMapEvent} from './SwppRules'
@@ -38,7 +39,7 @@ export default {
         loadRules, loadUpdateJson, loadVersionJson
     },
     event: {
-        addRulesMapEvent, refreshUrl, submitChange, submitCacheInfo
+        addRulesMapEvent, refreshUrl, submitChange, submitCacheInfo, submitExternalUrl
     },
     utils: {
         getSource, getShorthand, findCache,

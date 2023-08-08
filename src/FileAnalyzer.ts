@@ -98,11 +98,25 @@ let _oldVersionJson: VersionJson | null | undefined = undefined
 let _newVersionJson: VersionJson
 let _mergeVersionMap: VersionMap
 
-const event = new Map<string, any>()
+let cacheInfoMap: Map<string, any> | null = new Map<string, any>()
+let urlList: Set<string> | null = new Set<string>()
 
 /** 提交要存储到 version json 的值 */
 export function submitCacheInfo(key: string, value: any) {
-    event.set(key, value)
+    if (!cacheInfoMap) {
+        error('SubmitCacheInfo', 'version json 已经完成构建，调用该函数无意义！')
+        throw 'submitCacheInfo 调用时机错误'
+    }
+    cacheInfoMap.set(key, value)
+}
+
+/** 添加一个要监听的 URL */
+export function submitExternalUrl(url: string) {
+    if (!urlList) {
+        error('SubmitExternalUrl', 'version json 已经完成构建，调用该函数无意义！')
+        throw 'submitExternalUrl 调用时机错误'
+    }
+    urlList.add(url)
 }
 
 /**
@@ -188,10 +202,14 @@ export async function buildVersionJson(
             await eachAllLinkInJavaScript(domain, content, list)
         }
     })
+    for (let url of urlList!) {
+        await eachAllLinkInUrl(domain, url, list)
+    }
     const external: any = {}
-    event.forEach((value, key) => {
+    cacheInfoMap!.forEach((value, key) => {
         external[key] = value
     })
+    urlList = cacheInfoMap = null
     return _newVersionJson = {
         version: 3, list, external
     }

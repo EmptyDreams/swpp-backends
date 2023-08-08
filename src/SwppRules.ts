@@ -45,7 +45,7 @@ const defConfig: SwppConfigTemplate = {
     }
 }
 
-const eventList: ((rules: any) => void)[] = []
+let eventList: ((rules: any) => void)[] | null = []
 let _rules: SwppRules
 
 /**
@@ -67,6 +67,10 @@ export function readRules(): SwppRules {
  * 执行时按照注册的顺序执行
  */
 export function addRulesMapEvent(mapper: (rules: any) => void) {
+    if (!eventList) {
+        error('AddRulesMapEvent', '规则文件已经加载完成，调用该函数无意义！')
+        throw 'addRulesMapEvent 调用时机错误'
+    }
     eventList.push(mapper)
 }
 
@@ -97,9 +101,10 @@ export function loadRules(root: string, fileName: string, selects: string[]): Sw
     mergeConfig(config, defConfig)
     Object.assign(rootRules, selectRules)
     rootRules.config = config
-    for (let event of eventList) {
+    for (let event of eventList!) {
         event(rootRules)
     }
+    eventList = null
     return _rules = rootRules
 }
 

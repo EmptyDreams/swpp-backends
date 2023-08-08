@@ -4,10 +4,14 @@ import {error, fetchFile, warn} from './Utils'
 import {AnalyzeResult} from './VersionAnalyzer'
 
 let _oldJson: UpdateJson | undefined | null = undefined
-const externalChange: ChangeExpression[] = []
+let externalChange: ChangeExpression[] | null = []
 
 /** 提交修改 */
 export function submitChange(...change: ChangeExpression[]) {
+    if (!externalChange) {
+        error('SubmitChange', '版本文件已经构建完成，调用该函数无意义！')
+        throw 'submitChange 调用时机错误'
+    }
     externalChange.push(...change)
 }
 
@@ -110,7 +114,8 @@ export function buildNewInfo(root: string, dif: AnalyzeResult): UpdateJson {
             value: Array.from(records.merge).map(it => `/${it}/`)
         })
     }
-    change.push(...externalChange)
+    change.push(...externalChange!)
+    externalChange = null
     return zipJson({
         global,
         info: [info, ...(old?.info ?? [])]
