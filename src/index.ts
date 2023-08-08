@@ -8,13 +8,12 @@ import {
     readMergeVersionMap,
     buildVersionJson,
     eachAllLinkInUrl,
-    eachAllLinkInHtml,
-    eachAllLinkInCss,
-    eachAllLinkInJavaScript,
     findCache,
+    findFileHandler,
     replaceRequest,
     submitCacheInfo,
-    submitExternalUrl
+    submitExternalUrl,
+    registryFileHandler
 } from './FileAnalyzer'
 import {buildServiceWorker} from './ServiceWorkerBuilder'
 import {readRules, loadRules, addRulesMapEvent} from './SwppRules'
@@ -39,13 +38,13 @@ export default {
         loadRules, loadUpdateJson, loadVersionJson
     },
     event: {
-        addRulesMapEvent, refreshUrl, submitChange, submitCacheInfo, submitExternalUrl
+        addRulesMapEvent, refreshUrl, submitChange, submitCacheInfo, submitExternalUrl, registryFileHandler
     },
     utils: {
         getSource, getShorthand, findCache,
         fetchFile, replaceDevRequest, replaceRequest,
-        isStable, isExclude,
-        eachAllLinkInUrl, eachAllLinkInHtml, eachAllLinkInCss, eachAllLinkInJavaScript
+        isStable, isExclude, findFileHandler,
+        eachAllLinkInUrl
     }
 }
 

@@ -191,15 +191,10 @@ export async function buildVersionJson(
             const key = decodeURIComponent(url.pathname)
             list[key] = crypto.createHash('md5').update(content).digest('hex')
         }
-        if (pathname.endsWith('/') || pathname.endsWith('.html')) {
+        const handler = findFileHandler(pathname)
+        if (handler) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInHtml(domain, protocol + domain, content, list)
-        } else if (pathname.endsWith('.css')) {
-            if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInCss(domain, protocol + domain, content, list)
-        } else if (pathname.endsWith('.js')) {
-            if (!content) content = fs.readFileSync(path, 'utf-8')
-            await eachAllLinkInJavaScript(domain, content, list)
+            await handler.handle(domain, url.href, content, list)
         }
     })
     for (let url of urlList!) {
@@ -213,6 +208,35 @@ export async function buildVersionJson(
     return _newVersionJson = {
         version: 3, list, external
     }
+}
+
+const fileHandlers: FileHandler[] = [
+    {
+        match: url => /(\/|\.html)$/.test(url),
+        handle: eachAllLinkInHtml
+    },
+    {
+        match: url => url.endsWith('.css'),
+        handle: eachAllLinkInCss
+    },
+    {
+        match: url => url.endsWith('.js'),
+        handle: eachAllLinkInJavaScript
+    }
+]
+
+/** 注册一个文件处理器 */
+export function registryFileHandler(handler: FileHandler) {
+    if (!urlList) {
+        error('RegistryFileHandler', '文件已经扫描完毕，调用该函数无意义！')
+        throw 'registryFileHandler 调用时机错误'
+    }
+    fileHandlers.push(handler)
+}
+
+/** 查询一个文件处理器 */
+export function findFileHandler(url: string): FileHandler | undefined {
+    return fileHandlers.find(it => it.match(url))
 }
 
 /**
@@ -256,6 +280,11 @@ export async function eachAllLinkInUrl(
             return
         }
     }
+    const handler = findFileHandler(new URL(url).pathname)
+    if (!handler && stable) {
+        result[url] = []
+        return
+    }
     result[url] = false
     const response = await fetchFile(url).catch(err => err)
     if (![200, 301, 302, 307, 308].includes(response?.status ?? 0)) {
@@ -263,79 +292,43 @@ export async function eachAllLinkInUrl(
         return
     }
     event?.(url)
-    const pathname = new URL(url).pathname
-    let content: string
-    const nextEvent = (it: string) => {
-        if (stable)
-            result[url].push(it)
-    }
-    const update = () => {
+    if (handler) {
+        const content = await response.text()
         if (stable) result[url] = []
         else result[url] = crypto.createHash('md5').update(content).digest('hex')
-    }
-    switch (true) {
-        case pathname.endsWith('.html'): case pathname.endsWith('/'):
-            content = await response.text()
-            update()
-            return eachAllLinkInHtml(domain, url.substring(0, url.lastIndexOf('/') + 1), content, result, nextEvent)
-        case pathname.endsWith('.css'):
-            content = await response.text()
-            update()
-            return eachAllLinkInCss(domain, url.substring(0, url.lastIndexOf('/') + 1), content, result, nextEvent)
-        case pathname.endsWith('.js'):
-            content = await response.text()
-            update()
-            return eachAllLinkInJavaScript(domain, content, result, nextEvent)
-        default:
-            if (stable) {
-                result[url] = []
-            } else {
-                const buffer = Buffer.from(await response.arrayBuffer())
-                result[url] = crypto.createHash('md5').update(buffer).digest('hex')
-            }
-            break
+        await handler.handle(domain, url, content, result, stable ? it => result[url].push(it) : undefined)
+    } else {
+        const buffer = Buffer.from(await response.arrayBuffer())
+        result[url] = crypto.createHash('md5').update(buffer).digest('hex')
     }
 }
 
-/**
- * 检索 HTML 文件中的所有外部链接
- *
- * 该函数仅处理 HTML 当中直接或间接包含的 URL，不处理文件本身
- *
- * + **执行该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadCacheJson]**
- *
- * @param domain 网站域名
- * @param root 当前资源的根
- * @param content HTML 文件内容
- * @param result 存放结果的对象
- * @param event 检索到 URL 时触发的事件
- */
-export async function eachAllLinkInHtml(
-    domain: string, root: string, content: string, result: VersionMap, event?: (url: string) => void
+async function eachAllLinkInHtml(
+    domain: string, url: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
+    const root = url.substring(0, url.lastIndexOf('/') + 1)
     const taskList: Promise<any>[] = []
     const each = (node: HTMLParser.HTMLElement) => {
-        let url: string | undefined = undefined
+        let subUrl: string | undefined = undefined
         switch (node.tagName) {
             case 'link':
                 // noinspection SpellCheckingInspection
                 if (node.attributes.rel !== 'preconnect')
-                    url = node.attributes.href
+                    subUrl = node.attributes.href
                 break
             case 'script': case 'img': case 'source': case 'iframe': case 'embed':
-                url = node.attributes.src
+                subUrl = node.attributes.src
                 break
             case 'object':
-                url = node.attributes.data
+                subUrl = node.attributes.data
                 break
         }
-        if (url) {
-            taskList.push(eachAllLinkInUrl(domain, url, result, event))
+        if (subUrl) {
+            taskList.push(eachAllLinkInUrl(domain, subUrl, result, event))
         } else if (node.tagName === 'script') {
-            taskList.push(eachAllLinkInJavaScript(domain, node.rawText, result, event))
+            taskList.push(eachAllLinkInJavaScript(domain, url, node.rawText, result, event))
         } else if (node.tagName === 'style') {
-            taskList.push(eachAllLinkInCss(domain, root, node.rawText, result, event))
+            taskList.push(eachAllLinkInCss(domain, url, node.rawText, result, event))
         }
         if (node.childNodes) {
             for (let childNode of node.childNodes) {
@@ -347,30 +340,17 @@ export async function eachAllLinkInHtml(
     try {
         html = HTMLParser.parse(content, { style: true, script: true })
     } catch (e) {
-        error('HtmlParser', `HTML [root=${root}] 中存在错误语法`)
+        error('HtmlParser', `HTML [root=${url}] 中存在错误语法`)
     }
     if (html)
         each(html)
     return Promise.all(taskList)
 }
 
-/**
- * 检索 CSS 文件中的所有外部链
- *
- * 该函数仅处理 CSS 当中直接或间接包含的 URL，不处理文件本身
- *
- * + **执行该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadCacheJson]**
- *
- * @param domain 网站域名
- * @param root 当前资源的 URL 的根
- * @param content CSS 文件内容
- * @param result 存放结果的对象
- * @param event 当检索到一个 URL 后触发的事件
- */
-export async function eachAllLinkInCss(
-    domain: string, root: string, content: string, result: VersionMap, event?: (url: string) => void
+async function eachAllLinkInCss(
+    domain: string, url: string, content: string, result: VersionMap, event?: (url: string) => void
 ): Promise<void[]> {
+    const root = url.substring(0, url.lastIndexOf('/') + 1)
     const taskList: Promise<any>[] = []
     const each = (any: Array<any> | undefined) => {
         if (!any) return
@@ -410,21 +390,8 @@ export async function eachAllLinkInCss(
     return Promise.all(taskList)
 }
 
-/**
- * 遍历 JS 文件中地所有外部链接
- *
- * 该函数仅处理 JS 当中直接或间接包含的 URL，不处理文件本身
- *
- * + **执行该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadCacheJson]**
- *
- * @param domain 网站域名
- * @param content JS 文件内容
- * @param result 存放结果的对象
- * @param event 当检索到一个 URL 后触发的事件
- */
-export function eachAllLinkInJavaScript(
-    domain: string, content: string, result: VersionMap, event?: (url: string) => void
+function eachAllLinkInJavaScript(
+    domain: string, _: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
     const taskList: Promise<any>[] = []
     const ruleList = readRules().config?.external?.js
@@ -490,4 +457,9 @@ export function replaceRequest(url: string): string {
     const {modifyRequest} = rules
     const request = new Request(url)
     return modifyRequest?.(request, readEjectData()?.nodeEject)?.url ?? url
+}
+
+export interface FileHandler {
+    match: (url: string) => boolean,
+    handle: (domain: string, url: string, content: string, result: VersionMap, event?: (url: string) => void) => Promise<any>
 }
