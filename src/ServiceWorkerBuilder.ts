@@ -59,7 +59,7 @@ export function buildServiceWorker(): string {
     if (blockRequest) {
         content = content.replace('// [blockRequest call]', `
                 if (blockRequest(url))
-                    return event.respondWith(new Response(null, {status: 208}))
+                    return event.respondWith(new Response(null, {status: 204}))
             `)
     }
     // noinspection JSUnresolvedVariable
