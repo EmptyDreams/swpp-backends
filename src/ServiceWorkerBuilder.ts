@@ -139,7 +139,7 @@ const JS_CODE_GET_SPARE_URLS = `
                     first,
                     ...Array.from({
                         length: list.length - 1
-                    }, (_, index) => index + 2).map(index => startFetch(index))
+                    }, (_, index) => index + 1).map(index => startFetch(index))
                 ]).then(res => {
                     for (let i = 0; i !== list.length; ++i) {
                         if (i !== res.i)
