@@ -1,4 +1,4 @@
-import {readEjectData, getSource, fetchFile, replaceDevRequest, calcEjectValues} from './Utils'
+import {readEjectData, getSource, fetchFile, replaceDevRequest, calcEjectValues, deepFreeze} from './Utils'
 import {
     isExclude,
     isStable,
@@ -44,7 +44,7 @@ export default {
         getSource, getShorthand, findCache,
         fetchFile, replaceDevRequest, replaceRequest,
         isStable, isExclude, findFileHandler,
-        eachAllLinkInUrl
+        eachAllLinkInUrl, deepFreeze
     }
 }
 

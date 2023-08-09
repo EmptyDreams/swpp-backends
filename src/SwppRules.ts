@@ -2,7 +2,7 @@ import fs from 'fs'
 import {Request, Response} from 'node-fetch'
 import nodePath from 'path'
 import {SwppConfig, SwppConfigTemplate} from './SwppConfig'
-import {error} from './Utils'
+import {deepFreeze, error} from './Utils'
 
 const defConfig: SwppConfigTemplate = {
     serviceWorker: {
@@ -105,6 +105,7 @@ export function loadRules(root: string, fileName: string, selects: string[]): Sw
         event(rootRules)
     }
     eventList = null
+    deepFreeze(rootRules)
     return _rules = rootRules
 }
 
