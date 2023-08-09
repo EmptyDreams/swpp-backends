@@ -132,9 +132,11 @@ const JS_CODE_GET_SPARE_URLS = `
                 Object.assign({
                     signal: (controllers[index] = new AbortController()).signal
                 }, fetchArgs)
-            ).then(response => checkResponse(response) ? {r: response, i: index} : Promise.reject(response.status))
+            ).then(response => checkResponse(response) ? {r: response, i: index} : Promise.reject())
         return new Promise((resolve, reject) => {
+            let flag = true
             const startAll = () => {
+                flag = false
                 Promise.any([
                     first,
                     ...Array.from({
@@ -151,11 +153,16 @@ const JS_CODE_GET_SPARE_URLS = `
             const id = setTimeout(startAll, spare.timeout)
             const first = startFetch(0)
                 .then(res => {
-                    clearTimeout(id)
-                    resolve(res.r)
+                    if (flag) {
+                        clearTimeout(id)
+                        resolve(res.r)
+                    }
                 }).catch(() => {
-                    clearTimeout(id)
-                    startAll()
+                    if (flag) {
+                        clearTimeout(id)
+                        startAll()
+                    }
+                    return Promise.reject()
                 })
         })
     }
