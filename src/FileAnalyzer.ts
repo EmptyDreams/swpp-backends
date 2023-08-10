@@ -369,6 +369,9 @@ async function eachAllLinkInCss(
                             break
                     }
                     break
+                default:
+                    ++i
+                    break
             }
         }
         return -1
