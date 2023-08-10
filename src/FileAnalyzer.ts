@@ -1,5 +1,4 @@
 import fs from 'fs'
-import {it} from 'node:test'
 import nodePath from 'path'
 import {Request} from 'node-fetch'
 import {readRules} from './SwppRules'
