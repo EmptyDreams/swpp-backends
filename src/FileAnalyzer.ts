@@ -338,7 +338,7 @@ async function eachAllLinkInHtml(
     try {
         html = HTMLParser.parse(content, { style: true, script: true })
     } catch (e) {
-        error('HtmlParser', `HTML [root=${url}] 中存在错误语法`)
+        error('HtmlParser', `HTML [${url}] 中存在错误语法`)
     }
     if (html)
         each(html)
