@@ -1,4 +1,5 @@
 import fs from 'fs'
+import {it} from 'node:test'
 import nodePath from 'path'
 import {Request} from 'node-fetch'
 import {readRules} from './SwppRules'
@@ -350,35 +351,58 @@ async function eachAllLinkInCss(
 ): Promise<void[]> {
     const root = url.substring(0, url.lastIndexOf('/'))
     const urls = new Set<string>()
+    /** 从指定位置开始查询注释 */
+    const findComment = (tag: string, start: number) => {
+        for (let i = start; i < content.length;) {
+            const item = content[i]
+            switch (item) {
+                case tag[0]:
+                    if (content[i + 1] === tag[1])
+                        return i
+                    ++i
+                    break
+                case '"': case '\'':
+                    while (true) {
+                        const index = content.indexOf(item, i + 1)
+                        if (index < 0) return -1
+                        i = index + 1
+                        if (content[index - 1] !== '\\')
+                            break
+                    }
+                    break
+            }
+        }
+        return -1
+    }
     for (let i = 0; i < content.length; ) {
-        const left = content.indexOf('/*', i)
+        const left = findComment('/*', i)
         let sub
-        if (left < 0) {
+        if (left === -1) {
             sub = content.substring(i)
             i = Number.MAX_VALUE
         } else {
             sub = content.substring(i, left)
-            const right = content.indexOf('*/', left + 2)
-            if (right < 0) i = Number.MAX_VALUE
+            const right = findComment('*/', left + 2)
+            if (right === -1) i = Number.MAX_VALUE
             else i = right + 2
         }
         sub.match(/(url\(.*?\))|(@import\s+['"].*?['"])|((https?:)?\/\/[^\s/$.?#].\S*)/g)
             ?.map(it => it.replace(/(^url\((['"]?))|((['"]?)\)$)|(^@import\s+['"])|(['"]$)/g, ''))
-            ?.forEach(it => urls.add(it))
+            ?.map(it => {
+                switch (true) {
+                    case it.startsWith('http'):
+                        return it
+                    case it.startsWith('//'):
+                        return 'http' + it
+                    case it.startsWith('/'):
+                        return root + it
+                    default:
+                        return root + '/' + it
+                }
+            })?.forEach(it => urls.add(it))
     }
     return Promise.all(
-        Array.from(urls).map(it => {
-            switch (true) {
-                case it.startsWith('http'):
-                    return it
-                case it.startsWith('//'):
-                    return 'http' + it
-                case it.startsWith('/'):
-                    return root + it
-                default:
-                    return root + '/' + it
-            }
-        }).map(it => eachAllLinkInUrl(domain, it, result, event))
+        Array.from(urls).map(it => eachAllLinkInUrl(domain, it, result, event))
     )
 }
 
