@@ -415,6 +415,16 @@ function eachAllLinkInJavaScript(
         error('LinkItorInJS', '不应发生的异常')
         throw 'ruleList 为空'
     }
+    const calcRegLength = (item: string) => {
+        let length = item.length
+        for (let i = 0; i < item.length; ++i) {
+            if (item[i] === '\\') {
+                ++i
+                --length
+            }
+        }
+        return length
+    }
     for (let value of ruleList) {
         if (typeof value === 'function') {
             const urls: string[] = value(content)
@@ -423,9 +433,11 @@ function eachAllLinkInJavaScript(
             }
         } else {
             const {head, tail} = value
+            const headLength = calcRegLength(head)
+            const tailLength = calcRegLength(tail)
             const reg = new RegExp(`${head}(['"\`])(.*?)(['"\`])${tail}`, 'mg')
             const list = content.match(reg)
-                ?.map(it => it.substring(head.length, it.length - tail.length).trim())
+                ?.map(it => it.substring(headLength, it.length - tailLength).trim())
                 ?.map(it => it.replace(/^['"`]|['"`]$/g, ''))
             if (list) {
                 for (let url of list) {
