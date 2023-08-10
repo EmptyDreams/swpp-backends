@@ -362,7 +362,7 @@ async function eachAllLinkInCss(
             if (right < 0) i = Number.MAX_VALUE
             else i = right + 2
         }
-        sub.match(/((https?:)?\/\/[^\s/$.?#].\S*)|(url\(.*?\))|(@import\s+['"].*?['"])/g)
+        sub.match(/(url\(.*?\))|(@import\s+['"].*?['"])|((https?:)?\/\/[^\s/$.?#].\S*)/g)
             ?.map(it => it.replace(/(url\((['"]?))|((['"]?)\))/g, ''))
             ?.forEach(it => urls.add(it))
     }
