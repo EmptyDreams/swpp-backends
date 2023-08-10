@@ -35,7 +35,7 @@ export interface RegisterConfig {
 /** 与 DOM 端有关的配置 */
 export interface DomConfig {
     /** 缓存更新成功后触发的操作 */
-    onsuccess: VoidFunction
+    onsuccess?: VoidFunction
 }
 
 /** 与版本文件相关的配置项 */
@@ -77,7 +77,7 @@ export interface SwppConfigTemplate {
         debug?: boolean
     },
     /** 与 ServiceWorker 注册有关的配置 */
-    register: boolean | {
+    register?: boolean | {
         /** 注册成功后执行的代码 */
         onsuccess?: VoidFunction,
         /** 注册失败后执行的代码 */
