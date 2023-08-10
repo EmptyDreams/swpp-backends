@@ -5,7 +5,6 @@ import {readRules} from './SwppRules'
 import * as crypto from 'crypto'
 import {Buffer} from 'buffer'
 import HTMLParser from 'fast-html-parser'
-import CSSParser from 'css'
 import {error, fetchFile, readEjectData, warn} from './Utils'
 
 /**
@@ -306,7 +305,6 @@ export async function eachAllLinkInUrl(
 async function eachAllLinkInHtml(
     domain: string, url: string, content: string, result: VersionMap, event?: (url: string) => void
 ) {
-    const root = url.substring(0, url.lastIndexOf('/') + 1)
     const taskList: Promise<any>[] = []
     const each = (node: HTMLParser.HTMLElement) => {
         let subUrl: string | undefined = undefined
@@ -350,44 +348,38 @@ async function eachAllLinkInHtml(
 async function eachAllLinkInCss(
     domain: string, url: string, content: string, result: VersionMap, event?: (url: string) => void
 ): Promise<void[]> {
-    const root = url.substring(0, url.lastIndexOf('/') + 1)
-    const taskList: Promise<any>[] = []
-    const each = (any: Array<any> | undefined) => {
-        if (!any) return
-        for (let rule of any) {
-            if (rule.declarations)
-                each(rule.declarations)
-            switch (rule.type) {
-                case 'declaration':
-                    const value: string = rule.value
-                    const list = value.match(/url\(['"]?([^'")]+)['"]?\)/g)
-                        ?.map(it => it.replace(/(^url\(['"]?)|(['"]?\)$)/g, ''))
-                    if (list) {
-                        for (let url of list) {
-                            if (!/^(https?:)|(\/\/)/.test(url)) {
-                                if (url[0] === '/') url = root + url.substring(1)
-                                else url = root + url
-                            }
-                            taskList.push(eachAllLinkInUrl(domain, url, result, event))
-                        }
-                    }
-                    break
-                case 'import':
-                    const url = rule.import.trim().replace(/^["']|["']$/g, '')
-                    taskList.push(eachAllLinkInUrl(domain, url, result, event))
-                    break
-            }
+    const root = url.substring(0, url.lastIndexOf('/'))
+    const urls = new Set<string>()
+    for (let i = 0; i < content.length; ) {
+        const left = content.indexOf('/*', i)
+        let sub
+        if (left < 0) {
+            sub = content.substring(i)
+            i = Number.MAX_VALUE
+        } else {
+            sub = content.substring(i, left)
+            const right = content.indexOf('*/', left + 2)
+            if (right < 0) i = Number.MAX_VALUE
+            else i = right + 2
         }
+        sub.match(/((https?:)?\/\/[^\s/$.?#].\S*)|(url\(.*?\))|(@import\s+['"].*?['"])/g)
+            ?.map(it => it.replace(/(url\((['"]?))|((['"]?)\))/g, ''))
+            ?.forEach(it => urls.add(it))
     }
-    let css
-    try {
-        css = CSSParser.parse(content).stylesheet?.rules
-    } catch (e) {
-        error('CssParser', `CSS [root=${root}] 中存在错误语法`)
-    }
-    if (css)
-        each(css)
-    return Promise.all(taskList)
+    return Promise.all(
+        Array.from(urls).map(it => {
+            switch (true) {
+                case it.startsWith('http'):
+                    return it
+                case it.startsWith('//'):
+                    return 'http' + it
+                case it.startsWith('/'):
+                    return root + it
+                default:
+                    return root + '/' + it
+            }
+        }).map(it => eachAllLinkInUrl(domain, it, result, event))
+    )
 }
 
 function eachAllLinkInJavaScript(

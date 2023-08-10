@@ -22,7 +22,6 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "css": "^3.0.0",
     "fast-html-parser": "^1.0.1",
     "hexo-log": "^4.1.0",
     "node-fetch": "^2.6.12"
