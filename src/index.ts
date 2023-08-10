@@ -22,7 +22,7 @@ import {refreshUrl, analyze} from './VersionAnalyzer'
 
 // noinspection JSUnusedGlobalSymbols
 export default {
-    version: '1.2.0',
+    version: '1.2.1',
     cache: {
         readEjectData, readUpdateJson,
         readRules, readMergeVersionMap,
