@@ -1,4 +1,4 @@
-import fetch from 'node-fetch'
+import nodeFetch, {RequestInit, Response} from 'node-fetch'
 import {readRules} from './Variant'
 
 const logger = require('hexo-log').default({
@@ -183,6 +183,34 @@ export async function fetchFile(link: string) {
 export function replaceDevRequest(link: string): string[] | string {
     const config = readRules().config
     return config.external?.replacer(link) ?? link
+}
+
+let fetchActiveCount = 0
+const waitList: any[] = []
+
+/**
+ * 拉取一个文件
+ *
+ * 拉取时有数量限制，当活跃的 fetch 超过数量限制后会进入队列等待，后进入的优先执行
+ */
+function fetch(url: string, opts: RequestInit): Promise<Response> {
+    const limit = readRules().config.external?.concurrencyLimit ?? 100
+    const start = (url: string, opts: RequestInit) => nodeFetch(url, opts)
+        .then(response => {
+            if (waitList.length !== 0) {
+                const {url, opts, resolve, reject} = waitList.pop()!
+                start(url, opts).then(it => resolve(it))
+                    .catch(err => reject(err))
+            }
+            return response
+        }).finally(() => --fetchActiveCount)
+    if (fetchActiveCount < limit) {
+        ++fetchActiveCount
+        return start(url, opts)
+    }
+    return new Promise((resolve, reject) => {
+        waitList.push({url, opts, resolve, reject})
+    })
 }
 
 /** 通过 CDN 竞速的方式拉取文件 */

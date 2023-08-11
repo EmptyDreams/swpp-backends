@@ -1,11 +1,11 @@
 import fs from 'fs'
 import {Request, Response} from 'node-fetch'
 import nodePath from 'path'
-import {SwppConfig, SwppConfigTemplate} from './SwppConfig'
+import {SwppConfig} from './SwppConfig'
 import {deepFreeze, error} from './Utils'
 import {createVariant} from './Variant'
 
-const defConfig: SwppConfigTemplate = {
+const defConfig: SwppConfig = {
     serviceWorker: {
         escape: 0,
         cacheName: 'kmarBlogCache',
@@ -40,9 +40,10 @@ const defConfig: SwppConfigTemplate = {
     },
     external: {
         timeout: 5000,
+        concurrencyLimit: 100,
         js: [],
         stable: [],
-        replacer: it => it
+        replacer: (it: string) => it
     }
 }
 

@@ -57,6 +57,8 @@ export interface VersionJsonConfig {
 export interface ExternalMonitorConfig {
     /** 拉取网络文件的超时时间 */
     timeout: number,
+    /** 拉取文件时的并发限制 */
+    concurrencyLimit: number,
     /** 匹配 JS 代码中的 URL */
     js: ({ head: string, tail: string } | ((jsCode: string) => string[]))[],
     /** 链接不变内容就不变的 URL */
@@ -115,6 +117,8 @@ export interface SwppConfigTemplate {
     external?: boolean | {
         /** 拉取网络文件的超时时间 */
         timeout?: number,
+        /** 拉取文件时的并发限制 */
+        concurrencyLimit: number,
         /** 匹配 JS 代码中的 URL */
         js?: ({ head: string, tail: string } | ((jsCode: string) => string[]))[],
         /** 链接不变内容就不变的 URL */
