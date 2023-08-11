@@ -15,7 +15,17 @@ import {
 import {buildServiceWorker} from './ServiceWorkerBuilder'
 import {loadRules, addRulesMapEvent} from './SwppRules'
 import {loadUpdateJson, submitChange, getShorthand, buildNewInfo} from './UpdateJsonBuilder'
-import {readMergeVersionMap, readNewVersionJson, readOldVersionJson, readRules, readUpdateJson, readAnalyzeResult} from './Variant'
+import {
+    readMergeVersionMap,
+    readNewVersionJson,
+    readOldVersionJson,
+    readRules,
+    readUpdateJson,
+    readAnalyzeResult,
+    createVariant,
+    readVariant,
+    deleteVariant
+} from './Variant'
 import {refreshUrl, analyze} from './VersionAnalyzer'
 
 // noinspection JSUnusedGlobalSymbols
@@ -44,7 +54,7 @@ export default {
         getSource, getShorthand, findCache,
         fetchFile, replaceDevRequest, replaceRequest,
         isStable, isExclude, findFileHandler,
-        eachAllLinkInUrl, deepFreeze
+        eachAllLinkInUrl, deepFreeze, createVariant, readVariant, deleteVariant
     }
 }
 
