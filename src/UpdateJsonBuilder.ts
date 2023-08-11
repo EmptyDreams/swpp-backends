@@ -13,7 +13,7 @@ import {AnalyzeResult} from './VersionAnalyzer'
  * @param root 网站根路径（包括网络协议）
  * @param dif 网站文件变化
  */
-export function buildNewInfo(root: string, dif: AnalyzeResult): UpdateJson {
+export function buildUpdateJson(root: string, dif: AnalyzeResult): UpdateJson {
     const config = readRules().config.json
     if (!config) {
         error('NewInfoBuilder', '功能未开启')

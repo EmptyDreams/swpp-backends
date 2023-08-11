@@ -14,7 +14,7 @@ import {
 } from './FileAnalyzer'
 import {buildServiceWorker} from './ServiceWorkerBuilder'
 import {loadRules, addRulesMapEvent} from './SwppRules'
-import {loadUpdateJson, submitChange, getShorthand, buildNewInfo} from './UpdateJsonBuilder'
+import {loadUpdateJson, submitChange, getShorthand, buildUpdateJson} from './UpdateJsonBuilder'
 import {
     readMergeVersionMap,
     readNewVersionJson,
@@ -26,7 +26,7 @@ import {
     readVariant,
     deleteVariant
 } from './Variant'
-import {refreshUrl, analyze} from './VersionAnalyzer'
+import {refreshUrl, analyzeVersion} from './VersionAnalyzer'
 import {buildDomJs} from './DomBuilder'
 
 // noinspection JSUnusedGlobalSymbols
@@ -42,9 +42,9 @@ export default {
         buildServiceWorker,
         buildDomJs,
         buildVersionJson,
-        buildNewInfo,
+        buildUpdateJson,
         calcEjectValues,
-        analyze
+        analyzeVersion
     },
     loader: {
         loadRules, loadUpdateJson, loadVersionJson

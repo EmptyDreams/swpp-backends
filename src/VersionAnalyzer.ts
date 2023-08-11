@@ -10,7 +10,7 @@ let extraUrl: Set<string> | null = new Set<string>()
  * + **调用该函数前必须调用过 [loadCacheJson]**
  * + **调用该函数前必须调用过 [buildVersionJson]**
  */
-export function analyze(): AnalyzeResult {
+export function analyzeVersion(): AnalyzeResult {
     const newVersion = readNewVersionJson()
     const oldVersion = readOldVersionJson()
     const result: AnalyzeResult = {
