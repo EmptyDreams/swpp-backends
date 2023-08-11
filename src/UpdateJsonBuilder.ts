@@ -1,9 +1,7 @@
-import {readMergeVersionMap} from './FileAnalyzer'
-import {readRules} from './SwppRules'
 import {error, fetchFile, warn} from './Utils'
+import {createVariant, readMergeVersionMap, readRules, readUpdateJson} from './Variant'
 import {AnalyzeResult} from './VersionAnalyzer'
 
-let _oldJson: UpdateJson | undefined | null = undefined
 let externalChange: ChangeExpression[] | null = []
 
 /** 提交修改 */
@@ -21,27 +19,13 @@ export function submitChange(...change: ChangeExpression[]) {
  * + **调用该函数前必须调用过 [loadRules]**
  */
 export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
-    if (_oldJson !== undefined) return _oldJson
+    const key = 'oldUpdateJson'
     const response = await fetchFile(url).catch(err => err)
     if (response?.status === 404 || response.code === 'ENOTFOUND') {
         warn('LoadUpdateJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
-        return _oldJson = null
+        return createVariant(key, null)
     }
-    return _oldJson = (await response.json()) as UpdateJson
-}
-
-/**
- * 读取最后一次加载的版本文件
- *
- * + **调用该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadUpdateJson]**
- */
-export function readUpdateJson(): UpdateJson | null {
-    if (_oldJson === undefined) {
-        error('UpdateJsonReader','UpdateJson 尚未初始化')
-        throw 'UpdateJson 未初始化'
-    }
-    return _oldJson
+    return createVariant(key, await response.json()) as UpdateJson
 }
 
 /**

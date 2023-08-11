@@ -1,11 +1,11 @@
 import fs from 'fs'
 import nodePath from 'path'
 import {Request} from 'node-fetch'
-import {readRules} from './SwppRules'
 import * as crypto from 'crypto'
 import {Buffer} from 'buffer'
 import HTMLParser from 'fast-html-parser'
 import {error, fetchFile, readEjectData, warn} from './Utils'
+import {createVariant, readOldVersionJson, readRules, readVariant} from './Variant'
 
 /**
  * 版本信息（可以用 JSON 序列化）
@@ -84,18 +84,15 @@ export function isStable(url: string): boolean {
  * + **执行该函数前必须调用过 [loadRules]**
  */
 export async function loadVersionJson(url: string): Promise<VersionJson | null> {
+    const key = 'oldVersionJson'
     const response = await fetchFile(url).catch(err => err)
     if (response?.status === 404 || response?.code === 'ENOTFOUND') {
         warn('LoadVersionJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
-        return _oldVersionJson = null
+        return createVariant(key, null)
     } else {
-        return _oldVersionJson = (await response.json()) as VersionJson
+        return createVariant(key, await response.json()) as VersionJson
     }
 }
-
-let _oldVersionJson: VersionJson | null | undefined = undefined
-let _newVersionJson: VersionJson
-let _mergeVersionMap: VersionMap
 
 let cacheInfoMap: Map<string, any> | null = new Map<string, any>()
 let urlList: Set<string> | null = new Set<string>()
@@ -119,52 +116,6 @@ export function submitExternalUrl(url: string) {
 }
 
 /**
- * 读取最后一次加载的 version json
- *
- * + **执行该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadCacheJson]**
- */
-export function readOldVersionJson(): VersionJson | null {
-    if (_oldVersionJson === undefined) {
-        error('OldVersionReader', 'version json 尚未初始化')
-        throw 'version json 尚未初始化'
-    }
-    return _oldVersionJson
-}
-
-/**
- * 读取最后一次构建的 VersionJson
- *
- * + **执行该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadCacheJson]**
- * + **执行该函数前必须调用过 [buildVersionJson]**
- * + **执行该函数前必须调用过 [calcEjectValues]**
- */
-export function readNewVersionJson(): VersionJson {
-    if (!_newVersionJson) {
-        error('NewVersionReader', 'version json 尚未初始化')
-        throw 'version json 尚未初始化'
-    }
-    return _newVersionJson
-}
-
-/**
- * 读取新旧版本文件合并后的版本地图
- *
- * + **执行该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadCacheJson]**
- * + **执行该函数前必须调用过 [buildVersionJson]**
- * + **执行该函数前必须调用过 [calcEjectValues]**
- */
-export function readMergeVersionMap(): VersionMap {
-    if (_mergeVersionMap) return _mergeVersionMap
-    const map: VersionMap = {}
-    Object.assign(map, readOldVersionJson()?.list ?? {})
-    Object.assign(map, readNewVersionJson().list)
-    return _mergeVersionMap = map
-}
-
-/**
  * 构建一个 version json
  *
  * + **执行该函数前必须调用过 [loadRules]**
@@ -178,6 +129,11 @@ export function readMergeVersionMap(): VersionMap {
 export async function buildVersionJson(
     protocol: ('https://' | 'http://'), domain: string, root: string
 ): Promise<VersionJson> {
+    const key = 'newVersionJson'
+    if (readVariant(key)) {
+        error('VersionJsonBuilder', '已经构建过一次版本文件')
+        throw '重复构建版本文件'
+    }
     const list: VersionMap = {}
     await eachAllFile(root, async path => {
         const endIndex = path.length - (/[\/\\]index\.html$/.test(path) ? 10 : 0)
@@ -204,9 +160,10 @@ export async function buildVersionJson(
         external[key] = value
     })
     urlList = cacheInfoMap = null
-    return _newVersionJson = {
-        version: 3, list, external
-    }
+    return createVariant('newVersionJson', {
+        version: 3,
+        list, external
+    })
 }
 
 const fileHandlers: FileHandler[] = [

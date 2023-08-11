@@ -3,9 +3,6 @@ import {
     isExclude,
     isStable,
     loadVersionJson,
-    readOldVersionJson,
-    readNewVersionJson,
-    readMergeVersionMap,
     buildVersionJson,
     eachAllLinkInUrl,
     findCache,
@@ -16,8 +13,9 @@ import {
     registryFileHandler
 } from './FileAnalyzer'
 import {buildServiceWorker} from './ServiceWorkerBuilder'
-import {readRules, loadRules, addRulesMapEvent} from './SwppRules'
-import {readUpdateJson, loadUpdateJson, submitChange, getShorthand, buildNewInfo} from './UpdateJsonBuilder'
+import {loadRules, addRulesMapEvent} from './SwppRules'
+import {loadUpdateJson, submitChange, getShorthand, buildNewInfo} from './UpdateJsonBuilder'
+import {readMergeVersionMap, readNewVersionJson, readOldVersionJson, readRules, readUpdateJson, readAnalyzeResult} from './Variant'
 import {refreshUrl, analyze} from './VersionAnalyzer'
 
 // noinspection JSUnusedGlobalSymbols
@@ -26,7 +24,8 @@ export default {
     cache: {
         readEjectData, readUpdateJson,
         readRules, readMergeVersionMap,
-        readOldVersionJson, readNewVersionJson
+        readOldVersionJson, readNewVersionJson,
+        readAnalyzeResult
     },
     builder: {
         buildServiceWorker,

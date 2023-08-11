@@ -1,8 +1,8 @@
 import {ServiceWorkerConfig} from './SwppConfig'
-import {readRules} from './SwppRules'
 import {getSource, readEjectData} from './Utils'
 import fs from 'fs'
 import nodePath from 'path'
+import {readRules} from './Variant'
 
 /**
  * 构建 sw

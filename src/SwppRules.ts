@@ -3,6 +3,7 @@ import {Request, Response} from 'node-fetch'
 import nodePath from 'path'
 import {SwppConfig, SwppConfigTemplate} from './SwppConfig'
 import {deepFreeze, error} from './Utils'
+import {createVariant} from './Variant'
 
 const defConfig: SwppConfigTemplate = {
     serviceWorker: {
@@ -46,20 +47,6 @@ const defConfig: SwppConfigTemplate = {
 }
 
 let eventList: ((rules: any) => void)[] | null = []
-let _rules: SwppRules
-
-/**
- * 读取最后一次构建的 rules
- *
- * **执行该函数前必须调用过 [loadRules]**
- */
-export function readRules(): SwppRules {
-    if (!_rules) {
-        error('RulesReader', 'rules 尚未初始化')
-        throw 'rules 尚未初始化'
-    }
-    return _rules
-}
 
 /**
  * 添加一个 rules 映射事件，这个事件允许用户修改 rules 的内容
@@ -105,8 +92,7 @@ export function loadRules(root: string, fileName: string, selects: string[]): Sw
         event(rootRules)
     }
     eventList = null
-    deepFreeze(rootRules)
-    return _rules = rootRules
+    return createVariant('swppRules', deepFreeze(rootRules))
 }
 
 /** 合并配置项 */

@@ -1,5 +1,6 @@
-import {readOldVersionJson, VersionJson} from './FileAnalyzer'
-import {error} from './Utils'
+import {VersionJson} from './FileAnalyzer'
+import {deepFreeze, error} from './Utils'
+import {createVariant, readOldVersionJson} from './Variant'
 
 let extraUrl: Set<string> | null = new Set<string>()
 
@@ -53,7 +54,7 @@ export function analyze(version: VersionJson): AnalyzeResult {
     }
     extraUrl!.forEach(url => result.refresh.push(url))
     extraUrl = null
-    return result
+    return createVariant('swppAnalyze', deepFreeze(result))
 }
 
 /** 手动添加一个要刷新的 URL */

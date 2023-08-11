@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import {readRules} from './SwppRules'
+import {readRules} from './Variant'
 
 const logger = require('hexo-log').default({
     debug: false,
@@ -201,12 +201,13 @@ async function fetchSpeed(list: string[]) {
 }
 
 /** 深度冻结一个对象，这将使得无法修改对象中的任何值，也无法添加新的值 */
-export function deepFreeze(obj: any) {
-    if (!obj) return
+export function deepFreeze<T>(obj: T): T {
+    if (!obj) return obj
     Object.freeze(obj)
     for (let key in obj) {
         const value = obj[key]
         if (typeof value === 'object')
             deepFreeze(value)
     }
+    return obj
 }
