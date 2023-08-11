@@ -5,63 +5,6 @@ import {SwppConfig} from './SwppConfig'
 import {deepFreeze, error} from './Utils'
 import {createVariant} from './Variant'
 
-const defConfig: SwppConfig = {
-    serviceWorker: {
-        escape: 0,
-        cacheName: 'kmarBlogCache',
-        debug: false
-    },
-    register: {
-        onerror: () => console.error('Service Worker 注册失败！可能是由于您的浏览器不支持该功能！'),
-        builder: (root: string, _: any, pluginConfig: SwppConfig) => {
-            const registerConfig = pluginConfig.register as any
-            const {onerror, onsuccess} = registerConfig
-            return `<script>
-                (() => {
-                    let sw = navigator.serviceWorker
-                    let error = ${onerror.toString()}
-                    if (!sw?.register('${new URL(root).pathname}sw.js')
-                        ${onsuccess ? '?.then(' + onsuccess.toString() + ')' : ''}
-                        ?.catch(error)
-                    ) error()
-                })()
-            </script>`
-        }
-    },
-    dom: {},
-    json: {
-        maxHtml: 15,
-        charLimit: 1024,
-        merge: [],
-        exclude: {
-            localhost: [/^\/sw\.js$/],
-            other: []
-        }
-    },
-    external: {
-        timeout: 5000,
-        concurrencyLimit: 100,
-        js: [],
-        stable: [],
-        replacer: (it: string) => it
-    }
-}
-
-let eventList: ((rules: any) => void)[] | null = []
-
-/**
- * 添加一个 rules 映射事件，这个事件允许用户修改 rules 的内容
- *
- * 执行时按照注册的顺序执行
- */
-export function addRulesMapEvent(mapper: (rules: any) => void) {
-    if (!eventList) {
-        error('AddRulesMapEvent', '规则文件已经加载完成，调用该函数无意义！')
-        throw 'addRulesMapEvent 调用时机错误'
-    }
-    eventList.push(mapper)
-}
-
 /**
  * 加载 rules 文件
  * @param root 项目根目录
@@ -112,6 +55,21 @@ function mergeConfig(dist: any, that: any): any {
         }
     }
     return dist
+}
+
+let eventList: ((rules: any) => void)[] | null = []
+
+/**
+ * 添加一个 rules 映射事件，这个事件允许用户修改 rules 的内容
+ *
+ * 执行时按照注册的顺序执行
+ */
+export function addRulesMapEvent(mapper: (rules: any) => void) {
+    if (!eventList) {
+        error('AddRulesMapEvent', '规则文件已经加载完成，调用该函数无意义！')
+        throw 'addRulesMapEvent 调用时机错误'
+    }
+    eventList.push(mapper)
 }
 
 export interface SwppRules {
@@ -198,4 +156,46 @@ export interface SpareURLs {
 export interface EjectValue {
     prefix: string,
     value: string | number | boolean | bigint | object | string[] | number[] | boolean[] | bigint[] | object[]
+}
+
+const defConfig: SwppConfig = {
+    serviceWorker: {
+        escape: 0,
+        cacheName: 'kmarBlogCache',
+        debug: false
+    },
+    register: {
+        onerror: () => console.error('Service Worker 注册失败！可能是由于您的浏览器不支持该功能！'),
+        builder: (root: string, _: any, pluginConfig: SwppConfig) => {
+            const registerConfig = pluginConfig.register as any
+            const {onerror, onsuccess} = registerConfig
+            return `<script>
+                (() => {
+                    let sw = navigator.serviceWorker
+                    let error = ${onerror.toString()}
+                    if (!sw?.register('${new URL(root).pathname}sw.js')
+                        ${onsuccess ? '?.then(' + onsuccess.toString() + ')' : ''}
+                        ?.catch(error)
+                    ) error()
+                })()
+            </script>`
+        }
+    },
+    dom: {},
+    json: {
+        maxHtml: 15,
+        charLimit: 1024,
+        merge: [],
+        exclude: {
+            localhost: [/^\/sw\.js$/],
+            other: []
+        }
+    },
+    external: {
+        timeout: 5000,
+        concurrencyLimit: 100,
+        js: [],
+        stable: [],
+        replacer: (it: string) => it
+    }
 }

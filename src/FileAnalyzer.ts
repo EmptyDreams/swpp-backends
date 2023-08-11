@@ -8,6 +8,59 @@ import {error, fetchFile, readEjectData, warn} from './Utils'
 import {createVariant, readOldVersionJson, readRules, readVariant} from './Variant'
 
 /**
+ * 构建一个 version json
+ *
+ * + **执行该函数前必须调用过 [loadRules]**
+ * + **调用该函数前必须调用过 [loadCacheJson]**
+ * + **执行该函数前必须调用过 [calcEjectValues]**
+ *
+ * @param protocol 网站的网络协议
+ * @param domain 网站域名（包括二级域名）
+ * @param root 网页根目录（首页 index.html 所在目录）
+ */
+export async function buildVersionJson(
+    protocol: ('https://' | 'http://'), domain: string, root: string
+): Promise<VersionJson> {
+    const key = 'newVersionJson'
+    if (readVariant(key)) {
+        error('VersionJsonBuilder', '已经构建过一次版本文件')
+        throw '重复构建版本文件'
+    }
+    const config = readRules().config
+    const list: VersionMap = {}
+    await eachAllFile(root, async path => {
+        const endIndex = path.length - (/[\/\\]index\.html$/.test(path) ? 10 : 0)
+        const url = new URL(protocol + nodePath.join(domain, path.substring(root.length, endIndex)))
+        const pathname = url.pathname
+        if (isExclude(domain, pathname)) return
+        let content = null
+        if (findCache(url)) {
+            content = fs.readFileSync(path, 'utf-8')
+            const key = decodeURIComponent(url.pathname)
+            list[key] = crypto.createHash('md5').update(content).digest('hex')
+        }
+        if (!config.external) return
+        const handler = findFileHandler(pathname)
+        if (handler) {
+            if (!content) content = fs.readFileSync(path, 'utf-8')
+            await handler.handle(domain, url.href, content, list)
+        }
+    })
+    for (let url of urlList!) {
+        await eachAllLinkInUrl(domain, url, list)
+    }
+    const external: any = {}
+    cacheInfoMap!.forEach((value, key) => {
+        external[key] = value
+    })
+    urlList = cacheInfoMap = null
+    return createVariant('newVersionJson', {
+        version: 3,
+        list, external
+    })
+}
+
+/**
  * 版本信息（可以用 JSON 序列化）
  * @see VersionMap
  */
@@ -113,59 +166,6 @@ export function submitExternalUrl(url: string) {
         throw 'submitExternalUrl 调用时机错误'
     }
     urlList.add(url)
-}
-
-/**
- * 构建一个 version json
- *
- * + **执行该函数前必须调用过 [loadRules]**
- * + **调用该函数前必须调用过 [loadCacheJson]**
- * + **执行该函数前必须调用过 [calcEjectValues]**
- *
- * @param protocol 网站的网络协议
- * @param domain 网站域名（包括二级域名）
- * @param root 网页根目录（首页 index.html 所在目录）
- */
-export async function buildVersionJson(
-    protocol: ('https://' | 'http://'), domain: string, root: string
-): Promise<VersionJson> {
-    const key = 'newVersionJson'
-    if (readVariant(key)) {
-        error('VersionJsonBuilder', '已经构建过一次版本文件')
-        throw '重复构建版本文件'
-    }
-    const config = readRules().config
-    const list: VersionMap = {}
-    await eachAllFile(root, async path => {
-        const endIndex = path.length - (/[\/\\]index\.html$/.test(path) ? 10 : 0)
-        const url = new URL(protocol + nodePath.join(domain, path.substring(root.length, endIndex)))
-        const pathname = url.pathname
-        if (isExclude(domain, pathname)) return
-        let content = null
-        if (findCache(url)) {
-            content = fs.readFileSync(path, 'utf-8')
-            const key = decodeURIComponent(url.pathname)
-            list[key] = crypto.createHash('md5').update(content).digest('hex')
-        }
-        if (!config.external) return
-        const handler = findFileHandler(pathname)
-        if (handler) {
-            if (!content) content = fs.readFileSync(path, 'utf-8')
-            await handler.handle(domain, url.href, content, list)
-        }
-    })
-    for (let url of urlList!) {
-        await eachAllLinkInUrl(domain, url, list)
-    }
-    const external: any = {}
-    cacheInfoMap!.forEach((value, key) => {
-        external[key] = value
-    })
-    urlList = cacheInfoMap = null
-    return createVariant('newVersionJson', {
-        version: 3,
-        list, external
-    })
 }
 
 const fileHandlers: FileHandler[] = [

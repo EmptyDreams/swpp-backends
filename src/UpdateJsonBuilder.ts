@@ -2,32 +2,6 @@ import {error, fetchFile, warn} from './Utils'
 import {createVariant, readMergeVersionMap, readRules, readUpdateJson} from './Variant'
 import {AnalyzeResult} from './VersionAnalyzer'
 
-let externalChange: ChangeExpression[] | null = []
-
-/** 提交修改 */
-export function submitChange(...change: ChangeExpression[]) {
-    if (!externalChange) {
-        error('SubmitChange', '版本文件已经构建完成，调用该函数无意义！')
-        throw 'submitChange 调用时机错误'
-    }
-    externalChange.push(...change)
-}
-
-/**
- * 加载版本文件
- *
- * + **调用该函数前必须调用过 [loadRules]**
- */
-export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
-    const key = 'oldUpdateJson'
-    const response = await fetchFile(url).catch(err => err)
-    if (response?.status === 404 || response.code === 'ENOTFOUND') {
-        warn('LoadUpdateJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
-        return createVariant(key, null)
-    }
-    return createVariant(key, await response.json()) as UpdateJson
-}
-
 /**
  * 构建新的 update json
  *
@@ -104,6 +78,32 @@ export function buildNewInfo(root: string, dif: AnalyzeResult): UpdateJson {
         global,
         info: [info, ...(old?.info ?? [])]
     })
+}
+
+let externalChange: ChangeExpression[] | null = []
+
+/** 提交修改 */
+export function submitChange(...change: ChangeExpression[]) {
+    if (!externalChange) {
+        error('SubmitChange', '版本文件已经构建完成，调用该函数无意义！')
+        throw 'submitChange 调用时机错误'
+    }
+    externalChange.push(...change)
+}
+
+/**
+ * 加载版本文件
+ *
+ * + **调用该函数前必须调用过 [loadRules]**
+ */
+export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
+    const key = 'oldUpdateJson'
+    const response = await fetchFile(url).catch(err => err)
+    if (response?.status === 404 || response.code === 'ENOTFOUND') {
+        warn('LoadUpdateJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
+        return createVariant(key, null)
+    }
+    return createVariant(key, await response.json()) as UpdateJson
 }
 
 function zipJson(json: UpdateJson): UpdateJson {
