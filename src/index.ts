@@ -27,6 +27,7 @@ import {
     deleteVariant
 } from './Variant'
 import {refreshUrl, analyze} from './VersionAnalyzer'
+import {buildDomJs} from './DomBuilder'
 
 // noinspection JSUnusedGlobalSymbols
 export default {
@@ -39,6 +40,7 @@ export default {
     },
     builder: {
         buildServiceWorker,
+        buildDomJs,
         buildVersionJson,
         buildNewInfo,
         calcEjectValues,

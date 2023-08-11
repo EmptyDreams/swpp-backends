@@ -1,5 +1,5 @@
 import {ServiceWorkerConfig} from './SwppConfig'
-import {getSource, readEjectData} from './Utils'
+import {error, getSource, readEjectData} from './Utils'
 import fs from 'fs'
 import nodePath from 'path'
 import {readRules} from './Variant'
@@ -21,6 +21,10 @@ export function buildServiceWorker(): string {
         blockRequest,
         config
     } = rules
+    if (!config.serviceWorker) {
+        error('ServiceWorkerBuilder', '插件未开启该项')
+        throw '功能未开启'
+    }
     const serviceWorkerConfig = config.serviceWorker as ServiceWorkerConfig
     const templatePath = nodePath.resolve('./', module.path, 'resources/sw-template.js')
     // 获取拓展文件
