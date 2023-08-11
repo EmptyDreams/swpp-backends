@@ -29,6 +29,7 @@ export async function buildVersionJson(
     const rules = readRules()
     const config = rules.config
     const list: VersionMap = {}
+    // 遍历所有文件
     await eachAllFile(root, async path => {
         const endIndex = path.length - (/[\/\\]index\.html$/.test(path) ? 10 : 0)
         const url = new URL(protocol + nodePath.join(domain, path.substring(root.length, endIndex)))
@@ -36,11 +37,13 @@ export async function buildVersionJson(
         if (isExclude(domain, pathname)) return
         let content = null
         if (findCache(url)) {
+            // 对于需要缓存的文件计算 MD5 值并存储
             content = fs.readFileSync(path, 'utf-8')
             const key = decodeURIComponent(url.pathname)
             list[key] = crypto.createHash('md5').update(content).digest('hex')
         }
         if (!config.external) return
+        // 分析外部文件
         const handler = findFileHandler(pathname)
         if (handler) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
@@ -48,6 +51,7 @@ export async function buildVersionJson(
         }
     })
     if (config.external) {
+        // 分析规则文件中通过 extraListenedUrls 导入的 URL
         if ('extraListenedUrls' in rules) {
             const urls = rules.extraListenedUrls
             if (typeof urls.forEach !== 'function') {
@@ -62,6 +66,7 @@ export async function buildVersionJson(
                 urlList!.add(it)
             })
         }
+        // 处理通过 API 提交的 URL
         for (let url of urlList!) {
             await eachAllLinkInUrl(domain, url, list)
         }
