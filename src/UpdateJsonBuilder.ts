@@ -1,5 +1,5 @@
 import {error, fetchFile, warn} from './Utils'
-import {createVariant, readMergeVersionMap, readRules, readUpdateJson} from './Variant'
+import {createVariant, readMergeVersionMap, readOldVersionJson, readRules, readUpdateJson} from './Variant'
 import {AnalyzeResult} from './VersionAnalyzer'
 
 /**
@@ -14,32 +14,47 @@ import {AnalyzeResult} from './VersionAnalyzer'
  * @param dif 网站文件变化
  */
 export function buildUpdateJson(root: string, dif: AnalyzeResult): UpdateJson {
-    const config = readRules().config.json
+    const rules = readRules()
+    const config = rules.config.json
     if (!config) {
-        error('NewInfoBuilder', '功能未开启')
+        error('UpdateJsonBuilder', '功能未开启')
         throw '功能未开启'
     }
     const old = readUpdateJson()
     let global = old?.global ?? 0
-    if (dif.force) return {
+    let userUpdate = rules.update
+    if (userUpdate) {
+        if (!userUpdate.flag) {
+            error('UpdateJsonBuilder', '规则文件的 update 项目必须包含 flag 值！')
+            throw '规则文件的 update 不合规'
+        }
+        if (userUpdate.flag === readOldVersionJson()?.external?.flag)
+            userUpdate = undefined
+    }
+    // 如果需要强制刷新直接返回
+    if (dif.force || userUpdate?.force) return {
         global: global + 1,
         info: [{
             version: old ? old.info[0].version + 1 : 0
         }]
     }
-    const change: ChangeExpression[] = []
+    if (root.endsWith('/'))
+        root = root.substring(0, root.length - 1)
+
+    const change: ChangeExpression[] = userUpdate?.change ?? []
     const info: UpdateVersionInfo = {
         version: old ? old.info[0].version + 1 : 0,
         change
     }
-    const list = [...dif.refresh, ...dif.deleted, ...dif.variational, ...dif.rules.remove]
+    const list = [...dif.refresh, ...dif.deleted, ...dif.variational, ...dif.rules.remove, ...(userUpdate?.refresh ?? [])]
     const records = {
+        // 记录要合并的值
         merge: new Set<string>(),
+        // 记录 HTML 值
         html: new Set<string>()
     }
     for (let url of list) {
-        if (url.startsWith('/')) {
-            // 本地链接
+        if (url.startsWith('/')) {  // 本地链接
             const merge = config.merge.find(it => url.startsWith(`/${it}/`))
             if (merge) {
                 records.merge.add(merge)
