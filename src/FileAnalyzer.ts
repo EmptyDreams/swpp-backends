@@ -26,7 +26,8 @@ export async function buildVersionJson(
         error('VersionJsonBuilder', '已经构建过一次版本文件')
         throw '重复构建版本文件'
     }
-    const config = readRules().config
+    const rules = readRules()
+    const config = rules.config
     const list: VersionMap = {}
     await eachAllFile(root, async path => {
         const endIndex = path.length - (/[\/\\]index\.html$/.test(path) ? 10 : 0)
@@ -46,8 +47,24 @@ export async function buildVersionJson(
             await handler.handle(domain, url.href, content, list)
         }
     })
-    for (let url of urlList!) {
-        await eachAllLinkInUrl(domain, url, list)
+    if (config.external) {
+        if ('extraListenedUrls' in rules) {
+            const urls = rules.extraListenedUrls
+            if (typeof urls.forEach !== 'function') {
+                error('VersionJsonBuilder', `规则文件中的 extraListenedUrls 缺少 forEach 函数`)
+                throw 'extraListenedUrls 类型错误'
+            }
+            urls.forEach((it: any) => {
+                if (typeof it !== 'string') {
+                    error('VersionJsonBuilder', 'extraListenedUrls 中应当存储 string 类型的值')
+                    throw 'extraListenedUrls 元素类型错误'
+                }
+                urlList!.add(it)
+            })
+        }
+        for (let url of urlList!) {
+            await eachAllLinkInUrl(domain, url, list)
+        }
     }
     const external: any = {}
     cacheInfoMap!.forEach((value, key) => {
