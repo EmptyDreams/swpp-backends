@@ -1,6 +1,5 @@
-import {VersionJson} from './FileAnalyzer'
 import {deepFreeze, error} from './Utils'
-import {createVariant, readOldVersionJson} from './Variant'
+import {createVariant, readNewVersionJson, readOldVersionJson} from './Variant'
 
 let extraUrl: Set<string> | null = new Set<string>()
 
@@ -9,10 +8,10 @@ let extraUrl: Set<string> | null = new Set<string>()
  *
  * + **执行该函数前必须调用过 [loadRules]**
  * + **调用该函数前必须调用过 [loadCacheJson]**
- *
- * @param version 新的版本信息
+ * + **调用该函数前必须调用过 [buildVersionJson]**
  */
-export function analyze(version: VersionJson): AnalyzeResult {
+export function analyze(): AnalyzeResult {
+    const newVersion = readNewVersionJson()
     const oldVersion = readOldVersionJson()
     const result: AnalyzeResult = {
         force: false,
@@ -25,7 +24,7 @@ export function analyze(version: VersionJson): AnalyzeResult {
         }
     }
     if (!oldVersion) return result
-    if (version.version !== oldVersion.version) {
+    if (newVersion.version !== oldVersion.version) {
         result.force = true
         return result
     }
@@ -36,7 +35,7 @@ export function analyze(version: VersionJson): AnalyzeResult {
             continue
         }
         const oldValue = oldVersion.list[url]
-        const newValue = version.list[url]
+        const newValue = newVersion.list[url]
         if (!newValue) {
             result.deleted.push(url)
             continue

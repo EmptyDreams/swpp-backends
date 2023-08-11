@@ -134,6 +134,7 @@ export async function buildVersionJson(
         error('VersionJsonBuilder', '已经构建过一次版本文件')
         throw '重复构建版本文件'
     }
+    const config = readRules().config
     const list: VersionMap = {}
     await eachAllFile(root, async path => {
         const endIndex = path.length - (/[\/\\]index\.html$/.test(path) ? 10 : 0)
@@ -146,6 +147,7 @@ export async function buildVersionJson(
             const key = decodeURIComponent(url.pathname)
             list[key] = crypto.createHash('md5').update(content).digest('hex')
         }
+        if (!config.external) return
         const handler = findFileHandler(pathname)
         if (handler) {
             if (!content) content = fs.readFileSync(path, 'utf-8')
