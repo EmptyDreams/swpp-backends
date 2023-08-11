@@ -5,7 +5,7 @@ import * as crypto from 'crypto'
 import {Buffer} from 'buffer'
 import HTMLParser from 'fast-html-parser'
 import {error, fetchFile, readEjectData, warn} from './Utils'
-import {createVariant, readOldVersionJson, readRules, readVariant} from './Variant'
+import {writeVariant, readOldVersionJson, readRules, readVariant, readEvent} from './Variant'
 
 /**
  * 构建一个 version json
@@ -29,6 +29,10 @@ export async function buildVersionJson(
     const rules = readRules()
     const config = rules.config
     const list: VersionMap = {}
+    const cacheInfoMap: Map<string, any> = readEvent('submitCacheInfo')
+    const urlList: Set<string> = readEvent('submitExternalUrl')
+    writeVariant('submitCacheInfo', false)
+    writeVariant('submitExternalUrl', false)
     // 遍历所有文件
     await eachAllFile(root, async path => {
         const endIndex = path.length - (/[\/\\]index\.html$/.test(path) ? 10 : 0)
@@ -72,11 +76,10 @@ export async function buildVersionJson(
         }
     }
     const external: any = {}
-    cacheInfoMap!.forEach((value, key) => {
+    cacheInfoMap.forEach((value, key) => {
         external[key] = value
     })
-    urlList = cacheInfoMap = null
-    return createVariant('newVersionJson', {
+    return writeVariant('newVersionJson', {
         version: 3,
         list, external
     })
@@ -163,60 +166,51 @@ export async function loadVersionJson(url: string): Promise<VersionJson | null> 
     const response = await fetchFile(url).catch(err => err)
     if (response?.status === 404 || response?.code === 'ENOTFOUND') {
         warn('LoadVersionJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
-        return createVariant(key, null)
+        return writeVariant(key, null)
     } else {
-        return createVariant(key, await response.json()) as VersionJson
+        return writeVariant(key, await response.json()) as VersionJson
     }
 }
 
-let cacheInfoMap: Map<string, any> | null = new Map<string, any>()
-let urlList: Set<string> | null = new Set<string>()
-
 /** 提交要存储到 version json 的值 */
 export function submitCacheInfo(key: string, value: any) {
-    if (!cacheInfoMap) {
-        error('SubmitCacheInfo', 'version json 已经完成构建，调用该函数无意义！')
-        throw 'submitCacheInfo 调用时机错误'
-    }
+    const cacheInfoMap: Map<string, any> = readEvent('submitCacheInfo')
     cacheInfoMap.set(key, value)
 }
 
 /** 添加一个要监听的 URL */
 export function submitExternalUrl(url: string) {
-    if (!urlList) {
-        error('SubmitExternalUrl', 'version json 已经完成构建，调用该函数无意义！')
-        throw 'submitExternalUrl 调用时机错误'
-    }
-    urlList.add(url)
+    readEvent<Set<string>>('submitExternalUrl').add(url)
 }
 
-const fileHandlers: FileHandler[] = [
+writeVariant('submitCacheInfo', new Map<string, any>())
+writeVariant('submitExternalUrl', new Set<string>())
+writeVariant('registryFileHandler', [])
+
+readVariant('registryFileHandler').push(...[
     {
-        match: url => /(\/|\.html)$/.test(url),
+        match: (url: string) => /(\/|\.html)$/.test(url),
         handle: eachAllLinkInHtml
     },
     {
-        match: url => url.endsWith('.css'),
+        match: (url: string) => url.endsWith('.css'),
         handle: eachAllLinkInCss
     },
     {
-        match: url => url.endsWith('.js'),
+        match: (url: string) => url.endsWith('.js'),
         handle: eachAllLinkInJavaScript
     }
-]
+])
 
 /** 注册一个文件处理器 */
 export function registryFileHandler(handler: FileHandler) {
-    if (!urlList) {
-        error('RegistryFileHandler', '文件已经扫描完毕，调用该函数无意义！')
-        throw 'registryFileHandler 调用时机错误'
-    }
-    fileHandlers.push(handler)
+    // noinspection JSMismatchedCollectionQueryUpdate
+    readEvent<FileHandler[]>('registryFileHandler').push(handler)
 }
 
 /** 查询一个文件处理器 */
 export function findFileHandler(url: string): FileHandler | undefined {
-    return fileHandlers.find(it => it.match(url))
+    return readEvent<FileHandler[]>('registryFileHandler').find(it => it.match(url))
 }
 
 /**

@@ -1,5 +1,5 @@
 import {error, fetchFile, warn} from './Utils'
-import {createVariant, readMergeVersionMap, readOldVersionJson, readRules, readUpdateJson} from './Variant'
+import {writeVariant, readEvent, readMergeVersionMap, readOldVersionJson, readRules, readUpdateJson} from './Variant'
 import {AnalyzeResult} from './VersionAnalyzer'
 
 /**
@@ -20,6 +20,8 @@ export function buildUpdateJson(root: string, dif: AnalyzeResult): UpdateJson {
         error('UpdateJsonBuilder', '功能未开启')
         throw '功能未开启'
     }
+    const externalChange = readEvent('swppSubmitChange') as ChangeExpression[]
+    writeVariant('swppSubmitChange', false)
     const old = readUpdateJson()
     let global = old?.global ?? 0
     let userUpdate = rules.update
@@ -87,23 +89,18 @@ export function buildUpdateJson(root: string, dif: AnalyzeResult): UpdateJson {
             value: Array.from(records.merge).map(it => `/${it}/`)
         })
     }
-    change.push(...externalChange!)
-    externalChange = null
+    change.push(...externalChange)
     return zipJson({
         global,
         info: [info, ...(old?.info ?? [])]
     })
 }
 
-let externalChange: ChangeExpression[] | null = []
+writeVariant('swppSubmitChange', [])
 
 /** 提交修改 */
 export function submitChange(...change: ChangeExpression[]) {
-    if (!externalChange) {
-        error('SubmitChange', '版本文件已经构建完成，调用该函数无意义！')
-        throw 'submitChange 调用时机错误'
-    }
-    externalChange.push(...change)
+    readEvent<ChangeExpression[]>('swppSubmitChange').push(...change)
 }
 
 /**
@@ -116,9 +113,9 @@ export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
     const response = await fetchFile(url).catch(err => err)
     if (response?.status === 404 || response.code === 'ENOTFOUND') {
         warn('LoadUpdateJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
-        return createVariant(key, null)
+        return writeVariant(key, null)
     }
-    return createVariant(key, await response.json()) as UpdateJson
+    return writeVariant(key, await response.json()) as UpdateJson
 }
 
 function zipJson(json: UpdateJson): UpdateJson {

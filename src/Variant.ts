@@ -1,3 +1,5 @@
+import exp from 'constants'
+import {type} from 'os'
 import {VersionJson, VersionMap} from './FileAnalyzer'
 import {SwppRules} from './SwppRules'
 import {UpdateJson} from './UpdateJsonBuilder'
@@ -7,7 +9,7 @@ import {AnalyzeResult} from './VersionAnalyzer'
 const map = new Map<string, any>()
 
 /** 创建一个变量 */
-export function createVariant<T>(key: string, value: T): T {
+export function writeVariant<T>(key: string, value: T): T {
     map.set(key, value)
     return value
 }
@@ -68,7 +70,7 @@ export function readMergeVersionMap(): VersionMap {
     const map: VersionMap = {}
     Object.assign(map, readOldVersionJson()?.list ?? {})
     Object.assign(map, readNewVersionJson().list)
-    createVariant(key, deepFreeze(map))
+    writeVariant(key, deepFreeze(map))
     return map
 }
 
@@ -93,6 +95,11 @@ export function readAnalyzeResult(): AnalyzeResult {
     return readLoadedData('swppAnalyze', 'AnalyzeResultReader', 'analyze result')
 }
 
+/** 读取一个事件 */
+export function readEvent<T>(key: string): T {
+    return readLoadedData(key, key[0].toUpperCase() + key.substring(1), key)
+}
+
 function readLoadedData(key: string, type: string, name: string): any {
     const item = readVariant(key)
     switch (item) {
@@ -100,7 +107,7 @@ function readLoadedData(key: string, type: string, name: string): any {
             error(type, `${name} 尚未初始化`)
             throw name
         case false:
-            error(type, `${name} 已经销毁`)
+            error(type, `${name} 事件周期已经结束`)
             throw name
         default:
             return item

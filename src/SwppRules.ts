@@ -3,7 +3,7 @@ import {Request, Response} from 'node-fetch'
 import nodePath from 'path'
 import {SwppConfig} from './SwppConfig'
 import {deepFreeze, error} from './Utils'
-import {createVariant} from './Variant'
+import {readEvent, writeVariant} from './Variant'
 
 /**
  * 加载 rules 文件
@@ -12,6 +12,8 @@ import {createVariant} from './Variant'
  * @param selects 附加的可选目录，优先级低于 [root]
  */
 export function loadRules(root: string, fileName: string, selects: string[]): SwppRules {
+    const eventList = readEvent<any[]>('addRulesMapEvent')
+    writeVariant('addRulesMapEvent', false)
     // 支持的拓展名
     const extensions = ['cjs', 'js']
     // 根目录下的 rules 文件
@@ -32,11 +34,10 @@ export function loadRules(root: string, fileName: string, selects: string[]): Sw
     mergeConfig(config, defConfig)
     Object.assign(rootRules, selectRules)
     rootRules.config = config
-    for (let event of eventList!) {
+    for (let event of eventList) {
         event(rootRules)
     }
-    eventList = null
-    return createVariant('swppRules', deepFreeze(rootRules))
+    return writeVariant('swppRules', deepFreeze(rootRules))
 }
 
 /** 合并配置项 */
@@ -57,7 +58,7 @@ function mergeConfig(dist: any, that: any): any {
     return dist
 }
 
-let eventList: ((rules: any) => void)[] | null = []
+writeVariant('addRulesMapEvent', [])
 
 /**
  * 添加一个 rules 映射事件，这个事件允许用户修改 rules 的内容
@@ -65,11 +66,7 @@ let eventList: ((rules: any) => void)[] | null = []
  * 执行时按照注册的顺序执行
  */
 export function addRulesMapEvent(mapper: (rules: any) => void) {
-    if (!eventList) {
-        error('AddRulesMapEvent', '规则文件已经加载完成，调用该函数无意义！')
-        throw 'addRulesMapEvent 调用时机错误'
-    }
-    eventList.push(mapper)
+    readEvent<any[]>('addRulesMapEvent').push(mapper)
 }
 
 export interface SwppRules {

@@ -1,5 +1,5 @@
 import nodeFetch, {RequestInit, Response} from 'node-fetch'
-import {readRules} from './Variant'
+import {readRules, readVariant, writeVariant} from './Variant'
 
 const logger = require('hexo-log').default({
     debug: false,
@@ -19,8 +19,6 @@ export interface EjectCache {
     nodeEject: any
 }
 
-let ejectData: EjectCache | undefined | null = undefined
-
 /**
  * 获取 eject values
  *
@@ -31,7 +29,7 @@ let ejectData: EjectCache | undefined | null = undefined
 export function calcEjectValues(framework: any) {
     const rules = readRules()
     if (!('ejectValues' in rules)) {
-        ejectData = null
+        writeVariant('swppEjectData', false)
         return
     }
     // noinspection JSUnresolvedReference
@@ -53,10 +51,10 @@ export function calcEjectValues(framework: any) {
         ejectStr += `    ${data.prefix} ${key} = ${str}\n`
         nodeEject[key] = data.value
     }
-    ejectData = {
+    writeVariant('swppEjectData', {
         strValue: ejectStr,
         nodeEject
-    }
+    })
 }
 
 /**
@@ -65,7 +63,8 @@ export function calcEjectValues(framework: any) {
  * + **执行该函数前必须调用过 [loadRules]**
  * + **执行该函数前必须调用过 [calcEjectValues]**
  */
-export function readEjectData(): EjectCache | null {
+export function readEjectData(): EjectCache | false {
+    const ejectData = readVariant('swppEjectData')
     if (ejectData === undefined) {
         error('EjectReader', 'eject data 尚未初始化')
         throw 'eject data 尚未初始化'

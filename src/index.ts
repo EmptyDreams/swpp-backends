@@ -22,7 +22,7 @@ import {
     readRules,
     readUpdateJson,
     readAnalyzeResult,
-    createVariant,
+    writeVariant,
     readVariant,
     deleteVariant
 } from './Variant'
@@ -56,7 +56,7 @@ export default {
         getSource, getShorthand, findCache,
         fetchFile, replaceDevRequest, replaceRequest,
         isStable, isExclude, findFileHandler,
-        eachAllLinkInUrl, deepFreeze, createVariant, readVariant, deleteVariant
+        eachAllLinkInUrl, deepFreeze, writeVariant, readVariant, deleteVariant
     }
 }
 

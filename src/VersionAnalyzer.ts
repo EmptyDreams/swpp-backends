@@ -1,7 +1,5 @@
-import {deepFreeze, error} from './Utils'
-import {createVariant, readNewVersionJson, readOldVersionJson} from './Variant'
-
-let extraUrl: Set<string> | null = new Set<string>()
+import {deepFreeze} from './Utils'
+import {writeVariant, readNewVersionJson, readOldVersionJson, readEvent} from './Variant'
 
 /**
  * 分析两个版本信息的不同
@@ -11,6 +9,8 @@ let extraUrl: Set<string> | null = new Set<string>()
  * + **调用该函数前必须调用过 [buildVersionJson]**
  */
 export function analyzeVersion(): AnalyzeResult {
+    const extraUrl: Set<string> = readEvent('refreshUrl')
+    writeVariant('refreshUrl', false)
     const newVersion = readNewVersionJson()
     const oldVersion = readOldVersionJson()
     const result: AnalyzeResult = {
@@ -52,17 +52,12 @@ export function analyzeVersion(): AnalyzeResult {
         }
     }
     extraUrl!.forEach(url => result.refresh.push(url))
-    extraUrl = null
-    return createVariant('swppAnalyze', deepFreeze(result))
+    return writeVariant('swppAnalyze', deepFreeze(result))
 }
 
 /** 手动添加一个要刷新的 URL */
 export function refreshUrl(url: string) {
-    if (!extraUrl) {
-        error('RefreshUrl', '版本信息已经分析完成，调用该函数无意义！')
-        throw 'refreshUrl 调用时机错误'
-    }
-    extraUrl.add(url)
+    readEvent<Set<string>>('refreshUrl').add(url)
 }
 
 export interface AnalyzeResult {
