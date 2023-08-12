@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     if (!checkServiceWorker()) return
     if (sessionStorage.getItem('updated')) {
-        sessionStorage.removeItem('updated')
+        sessionStorage.removeItem('updated');
         // ${onSuccess}
     } else postMessage2SW('update')
     navigator.serviceWorker.addEventListener('message', event => {
