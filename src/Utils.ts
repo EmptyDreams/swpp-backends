@@ -63,13 +63,13 @@ export function calcEjectValues(framework: any) {
  * + **执行该函数前必须调用过 [loadRules]**
  * + **执行该函数前必须调用过 [calcEjectValues]**
  */
-export function readEjectData(): EjectCache | false {
+export function readEjectData(): EjectCache | null {
     const ejectData = readVariant('swppEjectData')
     if (ejectData === undefined) {
         error('EjectReader', 'eject data 尚未初始化')
         throw 'eject data 尚未初始化'
     }
-    return ejectData
+    return ejectData || null
 }
 
 /**
