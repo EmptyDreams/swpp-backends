@@ -257,6 +257,11 @@ function zipJson(json: UpdateJson): UpdateJson {
  * + **执行该函数前必须调用过 [calcEjectValues]**
  */
 export function getShorthand(url: string, offset: number = 0): string {
+    if (url.endsWith('/')) {
+        const startIndex = url.indexOf('//') + 2
+        if (url.indexOf('/', startIndex) === url.length - 1)
+            return '/'
+    }
     const map = readMergeVersionMap()
     let collide = new Set<string>()
     for (let mapKey in map) {
