@@ -364,7 +364,7 @@ async function eachAllLinkInCss(
             else i = right + 2
         }
         sub.match(/(url\(.*?\))|(@import\s+['"].*?['"])|((https?:)?\/\/[^\s/$.?#].\S*)/g)
-            ?.map(it => it.replace(/(^url\((['"]?))|((['"]?)\)$)|(^@import\s+['"])|(['"]$)/g, ''))
+            ?.map(it => it.replace(/(^url\(\s*(['"]?))|((['"]?\s*)\)$)|(^@import\s+['"])|(['"]$)/g, ''))
             ?.map(it => {
                 switch (true) {
                     case it.startsWith('http'):
