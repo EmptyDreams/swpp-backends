@@ -38,8 +38,7 @@ export function buildUpdateJson(root: string, dif: AnalyzeResult): UpdateJson {
             error('UpdateJsonBuilder', '规则文件的 update 项目必须包含 flag 值！')
             throw '规则文件的 update 不合规'
         }
-        readNewVersionJson().external.flag = userUpdate.flag
-        if (userUpdate.flag === readOldVersionJson()?.external?.flag)
+        if (userUpdate.flag === readOldVersionJson()?.external?.swppFlag)
             userUpdate = undefined
     }
     // 如果需要强制刷新直接返回

@@ -4,7 +4,7 @@ import {Request} from 'node-fetch'
 import * as crypto from 'crypto'
 import {Buffer} from 'buffer'
 import HTMLParser from 'fast-html-parser'
-import {error, fetchFile, readEjectData, warn} from './Utils'
+import {deepFreeze, error, fetchFile, readEjectData, warn} from './Utils'
 import {writeVariant, readOldVersionJson, readRules, readVariant, readEvent} from './Variant'
 
 /**
@@ -79,10 +79,13 @@ export async function buildVersionJson(
     cacheInfoMap.forEach((value, key) => {
         external[key] = value
     })
-    return writeVariant('newVersionJson', {
+    if ('update' in rules) {
+        external.swppFlag = rules.update.flag
+    }
+    return writeVariant('newVersionJson', deepFreeze({
         version: 3,
         list, external
-    })
+    }))
 }
 
 /**
