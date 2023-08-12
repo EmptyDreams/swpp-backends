@@ -373,6 +373,8 @@ async function eachAllLinkInCss(
                         return 'http' + it
                     case it.startsWith('/'):
                         return root + it
+                    case it.startsWith('./'):
+                        return root + it.substring(1)
                     default:
                         return root + '/' + it
                 }
