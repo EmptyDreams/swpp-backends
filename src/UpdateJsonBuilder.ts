@@ -1,5 +1,13 @@
 import {error, fetchFile, warn} from './Utils'
-import {writeVariant, readEvent, readMergeVersionMap, readOldVersionJson, readRules, readUpdateJson} from './Variant'
+import {
+    writeVariant,
+    readEvent,
+    readMergeVersionMap,
+    readOldVersionJson,
+    readRules,
+    readUpdateJson,
+    readNewVersionJson
+} from './Variant'
 import {AnalyzeResult} from './VersionAnalyzer'
 
 /**
@@ -30,6 +38,7 @@ export function buildUpdateJson(root: string, dif: AnalyzeResult): UpdateJson {
             error('UpdateJsonBuilder', '规则文件的 update 项目必须包含 flag 值！')
             throw '规则文件的 update 不合规'
         }
+        readNewVersionJson().external.flag = userUpdate.flag
         if (userUpdate.flag === readOldVersionJson()?.external?.flag)
             userUpdate = undefined
     }
