@@ -32,7 +32,10 @@ export function loadRules(root: string, fileName: string, selects: string[]): Sw
     const config = rootRules.config ?? {}
     mergeConfig(config, selectRules.config ?? {})
     mergeConfig(config, defConfig)
-    Object.assign(rootRules, selectRules)
+    for (let key in selectRules) {
+        if (!(key in rootRules))
+            rootRules[key] = selectRules[key]
+    }
     rootRules.config = config
     for (let event of eventList) {
         event(rootRules)
