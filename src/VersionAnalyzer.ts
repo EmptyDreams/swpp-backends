@@ -55,6 +55,8 @@ export function analyzeVersion(): AnalyzeResult {
     return writeVariant('swppAnalyze', deepFreeze(result))
 }
 
+writeVariant('refreshUrl', new Set<string>())
+
 /** 手动添加一个要刷新的 URL */
 export function refreshUrl(url: string) {
     readEvent<Set<string>>('refreshUrl').add(url)
