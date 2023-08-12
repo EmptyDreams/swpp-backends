@@ -194,8 +194,9 @@
             if (this.force) return true
             else if (this.refresh) return findCache(url).clean
             else {
+                const obj = new URL(url)
                 for (let it of list) {
-                    if (it.match(url)) return true
+                    if (it.match(obj)) return true
                 }
             }
             return false
@@ -230,13 +231,14 @@
                 case 'html':
                     return url => url.match(/(\/|\.html)$/)
                 case 'end':
-                    return url => forEachValues(value => url.endsWith(value))
+                    return url => forEachValues(value => url.href.endsWith(value))
                 case 'begin':
-                    return url => forEachValues(value => url.startsWith(value))
+                    return url => forEachValues(value => url.pathname.startsWith(value))
                 case 'str':
-                    return url => forEachValues(value => url.includes(value))
+                    return url => forEachValues(value => url.href.includes(value))
                 case 'reg':
-                    return url => forEachValues(value => url.match(new RegExp(value, 'i')))
+                    // noinspection JSCheckFunctionSignatures
+                    return url => forEachValues(value => url.href.match(new RegExp(value, 'i')))
                 default: throw `未知表达式：${JSON.stringify(json)}`
             }
         }
