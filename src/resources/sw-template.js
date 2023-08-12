@@ -148,8 +148,8 @@
             // [debug escape]
             //如果需要清理全站
             if (refresh) {
-                if (global !== oldVersion.global) list.refresh = true
-                else list.clean(new CacheChangeExpression({'flag': 'all'}))
+                if (global !== oldVersion.global) list.force = true
+                else list.refresh = true
             }
             return {list, version: newVersion}
         })
@@ -186,21 +186,13 @@
         }
 
         /**
-         * 清除列表，并将指定元素推入列表中
-         * @param element {CacheChangeExpression} 要推入的元素，留空表示不推入
-         */
-        this.clean = element => {
-            list.length = 0
-            if (!element) this.push(element)
-        }
-
-        /**
          * 判断指定 URL 是否和某一条规则匹配
          * @param url {string} URL
          * @return {boolean}
          */
         this.match = url => {
-            if (this.refresh) return true
+            if (this.force) return true
+            else if (this.refresh) return findCache(url).clean
             else {
                 for (let it of list) {
                     if (it.match(url)) return true
