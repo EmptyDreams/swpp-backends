@@ -42,13 +42,9 @@ export function calcEjectValues(framework: any) {
             throw '变量名违规：' + key
         }
         const data = eject[key]
-        const str = getSource(data.value, name => {
-            if (['string', 'number', 'boolean', 'object', 'array', 'bigint'].includes(name))
-                return true
-            logger.error(`[SWPP EjectValue] 不支持导出 ${name} 类型的数据`)
-            throw `不支持的键值：key=${key}, value type=${name}`
-        })
-        ejectStr += `    ${data.prefix} ${key} = ${str}\n`
+        const str = getSource(data.value)
+        const name = `eject${key[0].toUpperCase()}${key.substring(1)}`
+        ejectStr += `    ${data.prefix} ${name} = ${str}\n`
         nodeEject[key] = data.value
     }
     writeVariant('swppEjectData', {
