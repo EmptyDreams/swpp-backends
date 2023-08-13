@@ -31,7 +31,7 @@ import {buildDomJs} from './DomBuilder'
 
 // noinspection JSUnusedGlobalSymbols
 export default {
-    version: '2.0.7',
+    version: '2.0.8',
     cache: {
         readEjectData, readUpdateJson,
         readRules, readMergeVersionMap,
