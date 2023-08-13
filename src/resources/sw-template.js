@@ -195,11 +195,12 @@
          */
         this.match = url => {
             if (this.force) return true
-            else if (this.refresh) return findCache(url).clean
+            // noinspection JSValidateTypes
+            url = new URL(url)
+            if (this.refresh) return findCache(url).clean
             else {
-                const obj = new URL(url)
                 for (let it of list) {
-                    if (it.match(obj)) return true
+                    if (it.match(url)) return true
                 }
             }
             return false
