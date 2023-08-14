@@ -119,9 +119,14 @@ export function submitChange(...change: ChangeExpression[]) {
 export async function loadUpdateJson(url: string): Promise<UpdateJson | null> {
     const key = 'oldUpdateJson'
     const response = await fetchFile(url).catch(err => err)
-    if (response?.status === 404 || response.code === 'ENOTFOUND') {
-        warn('LoadUpdateJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
+    if (response.status === 404 || response.code === 'ENOTFOUND') {
+        warn('UpdateJsonLoader', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
         return writeVariant(key, null)
+    } else if (![200, 301, 302, 307, 308].includes(response.status)) {
+        error('UpdateJsonLoader', `拉取 ${url} 时出现 ${response.status} 错误！`)
+        if ('status' in response)
+            throw `拉取时出现 ${response.status} 异常`
+        throw response
     }
     return writeVariant(key, await response.json()) as UpdateJson
 }

@@ -167,12 +167,16 @@ export function isStable(url: string): boolean {
 export async function loadVersionJson(url: string): Promise<VersionJson | null> {
     const key = 'oldVersionJson'
     const response = await fetchFile(url).catch(err => err)
-    if (response?.status === 404 || response?.code === 'ENOTFOUND') {
-        warn('LoadVersionJson', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
+    if (response.status === 404 || response?.code === 'ENOTFOUND') {
+        warn('VersionJsonLoader', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
         return writeVariant(key, null)
-    } else {
-        return writeVariant(key, await response.json()) as VersionJson
+    } else if (![200, 301, 302, 307, 308].includes(response.status)) {
+        error('VersionJsonLoader', `拉取 ${url} 时出现 ${response.status} 错误！`)
+        if ('status' in response)
+            throw `拉取时出现 ${response.status} 异常`
+        throw response
     }
+    return writeVariant(key, await response.json()) as VersionJson
 }
 
 /** 提交要存储到 version json 的值 */
