@@ -5,8 +5,7 @@ import {
     readMergeVersionMap,
     readOldVersionJson,
     readRules,
-    readUpdateJson,
-    readNewVersionJson
+    readUpdateJson, readAnalyzeResult
 } from './Variant'
 import {AnalyzeResult} from './VersionAnalyzer'
 
@@ -21,7 +20,7 @@ import {AnalyzeResult} from './VersionAnalyzer'
  * @param root 网站根路径（包括网络协议）
  * @param dif 网站文件变化
  */
-export function buildUpdateJson(root: string, dif: AnalyzeResult): UpdateJson {
+export function buildUpdateJson(root: string, dif?: AnalyzeResult): UpdateJson {
     const rules = readRules()
     const config = rules.config.json
     if (!config) {
@@ -41,6 +40,7 @@ export function buildUpdateJson(root: string, dif: AnalyzeResult): UpdateJson {
         if (userUpdate.flag === readOldVersionJson()?.external?.swppFlag)
             userUpdate = undefined
     }
+    if (!dif) dif = readAnalyzeResult()
     // 如果需要强制刷新直接返回
     if (dif.force || userUpdate?.force) return {
         global: global + 1,
