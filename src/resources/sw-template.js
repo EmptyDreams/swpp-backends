@@ -233,7 +233,7 @@
         const getMatch = () => {
             switch (json['flag']) {
                 case 'html':
-                    return url => url.match(/(\/|\.html)$/)
+                    return url => url.pathname.match(/(\/|\.html)$/)
                 case 'end':
                     return url => forEachValues(value => url.href.endsWith(value))
                 case 'begin':
