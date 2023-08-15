@@ -59,7 +59,7 @@ export function buildServiceWorker(): string {
         .replaceAll("'@$$[cacheName]'", `'${serviceWorkerConfig.cacheName}'`)
     if (modifyRequest) {
         content = content.replaceAll('// [modifyRequest call]', `
-                const modify = modifyRequest(request, url)
+                const modify = modifyRequest(request)
                 if (modify) {
                     request = modify
                     url = new URL(request.url)
