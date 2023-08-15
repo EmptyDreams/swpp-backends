@@ -65,10 +65,10 @@
 
     self.addEventListener('fetch', event => {
         let request = event.request
+        let url = new URL(request.url)
+        // [blockRequest call]
         if (request.method !== 'GET' || !request.url.startsWith('http')) return
         // [modifyRequest call]
-        const url = new URL(request.url)
-        // [blockRequest call]
         const cacheRule = findCache(url)
         if (cacheRule) {
             let key = `https://${url.host}${url.pathname}`
