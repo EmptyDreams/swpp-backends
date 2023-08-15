@@ -65,7 +65,7 @@ export function buildServiceWorker(): string {
                     url = new URL(request.url)
                 }
             `).replaceAll('// [modifyRequest else-if]', `
-                else if (modify) event.respondWith(fetchFile(request, false))
+                else if (modify) handleFetch(fetchFile(request, false))
             `)
     }
     if (blockRequest) {

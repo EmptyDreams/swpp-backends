@@ -63,33 +63,65 @@
         )).then(list => list.filter(it => it))
     )
 
+    /**
+     * 缓存列表
+     * @type {Map<string, {s, e}[]>}
+     */
+    const cacheMap = new Map()
+
     self.addEventListener('fetch', event => {
         let request = event.request
         let url = new URL(request.url)
         // [blockRequest call]
         if (request.method !== 'GET' || !request.url.startsWith('http')) return
         // [modifyRequest call]
+        let cacheKey = url.hostname + url.pathname + url.search
+        let cache = cacheMap.get(cacheKey)
+        if (cache) {
+            return event.respondWith(
+                new Promise((resolve, reject) => {
+                    cacheMap.get(cacheKey).push({s: resolve, e: reject})
+                })
+            )
+        }
+        cacheMap.set(cacheKey, cache = [])
+        /** 处理拉取 */
+        const handleFetch = promise =>
+            event.respondWith(promise.then(response => {
+                for (let item of cache) {
+                    item.s(response.clone())
+                }
+            }).catch(err => {
+                for (let item of cache) {
+                    item.e(err)
+                }
+            }).then(() => {
+                cacheMap.delete(cacheKey)
+                return promise
+            }))
         const cacheRule = findCache(url)
         if (cacheRule) {
             let key = `https://${url.host}${url.pathname}`
             if (key.endsWith('/index.html')) key = key.substring(0, key.length - 10)
             if (cacheRule.search) key += url.search
-            event.respondWith(caches.match(key)
-                .then(cache => cache ?? fetchFile(request, true)
-                    .then(response => {
-                        if (checkResponse(response)) {
-                            const clone = response.clone()
-                            caches.open(CACHE_NAME).then(it => it.put(key, clone))
-                            // [debug put]
-                        }
-                        return response
-                    })
+            handleFetch(
+                caches.match(key).then(
+                    cache => cache ?? fetchFile(request, true)
+                        .then(response => {
+                            if (checkResponse(response)) {
+                                const clone = response.clone()
+                                caches.open(CACHE_NAME).then(it => it.put(key, clone))
+                                // [debug put]
+                            }
+                            return response
+                        })
                 )
             )
         } else {
             const spare = getSpareUrls(request.url)
-            if (spare) event.respondWith(fetchFile(request, false, spare))
+            if (spare) handleFetch(fetchFile(request, false, spare))
             // [modifyRequest else-if]
+            else handleFetch(fetch(request))
         }
     })
 
@@ -106,8 +138,11 @@
             )
     })
 
-    /** 判断指定url击中了哪一种缓存，都没有击中则返回null */
-    function findCache(url) {
+    /**
+     * 判断指定 url 击中了哪一种缓存，都没有击中则返回 null
+     * @param url {URL}
+     */
+    const findCache = url => {
         if (url.hostname === 'localhost') return
         for (let key in cacheRules) {
             const value = cacheRules[key]
