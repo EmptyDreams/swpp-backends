@@ -1,3 +1,5 @@
+![swpp](./swpp.jpg)
+
 ## 欢迎使用 SwppBackends
 
 swpp-backends（以下简称 swpp）插件的功能是为网站生成一个高度可用的 ServiceWorker（以下简称 SW），为网站优化二次加载、提供离线体验、提高可靠性，并为此附带了一些其它的功能。
