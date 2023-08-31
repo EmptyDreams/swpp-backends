@@ -127,3 +127,13 @@ export interface SwppConfigTemplate {
         replacer?: (srcUrl: string) => string[] | string
     }
 }
+
+/** 文件拉取模式等级 */
+export enum FileFetchModeLevel {
+    /** 严格，不允许 404 */
+    STRICT,
+    /** 普通，允许 404，但仅允许服务器返回 404 状态码 */
+    NORMAL,
+    /** 宽松，允许任何形式的 404，包括服务器返回 404、DNS 解析失败等 */
+    LOOSE
+}

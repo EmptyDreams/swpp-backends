@@ -1,11 +1,12 @@
-import fs from 'fs'
-import nodePath from 'path'
-import {Request} from 'node-fetch'
-import * as crypto from 'crypto'
 import {Buffer} from 'buffer'
+import * as crypto from 'crypto'
 import HTMLParser from 'fast-html-parser'
+import fs from 'fs'
+import {Request} from 'node-fetch'
+import nodePath from 'path'
+import {FileFetchModeLevel} from './SwppConfig'
 import {deepFreeze, error, fetchFile, readEjectData, warn} from './Utils'
-import {writeVariant, readOldVersionJson, readRules, readVariant, readEvent} from './Variant'
+import {readEvent, readOldVersionJson, readRules, readVariant, writeVariant} from './Variant'
 
 /**
  * 构建一个 version json
@@ -164,19 +165,24 @@ export function isStable(url: string): boolean {
  *
  * + **执行该函数前必须调用过 [loadRules]**
  */
-export async function loadVersionJson(url: string): Promise<VersionJson | null> {
+export async function loadVersionJson(
+    url: string, level: FileFetchModeLevel = FileFetchModeLevel.NORMAL
+): Promise<VersionJson | null> {
     const key = 'oldVersionJson'
     const response = await fetchFile(url).catch(err => err)
-    if (response.status === 404 || response?.code === 'ENOTFOUND') {
-        warn('VersionJsonLoader', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
-        return writeVariant(key, null)
-    } else if (![200, 301, 302, 307, 308].includes(response.status)) {
-        error('VersionJsonLoader', `拉取 ${url} 时出现 ${response.status} 错误！`)
-        if ('status' in response)
-            throw `拉取时出现 ${response.status} 异常`
-        throw response
+    switch (true) {
+        case response.status == 404 && level >= FileFetchModeLevel.NORMAL:
+        case response.code == 'ENOTFOUND' && level == FileFetchModeLevel.LOOSE:
+            warn('VersionJsonLoader', `拉取 ${url} 时出现 404 错误，如果您是第一次构建请忽略这个警告。`)
+            return writeVariant(key, null)
+        default:
+            error('VersionJsonLoader', `拉取 ${url} 时出现 ${response.status} 错误！`)
+            if ('status' in response)
+                throw `拉取时出现 ${response.status} 异常`
+            throw response
+        case [200, 301, 302, 307, 308].includes(response.status):
+            return writeVariant(key, await response.json()) as VersionJson
     }
-    return writeVariant(key, await response.json()) as VersionJson
 }
 
 /** 提交要存储到 version json 的值 */
