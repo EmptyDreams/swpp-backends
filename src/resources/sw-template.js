@@ -121,7 +121,7 @@
             const spare = getSpareUrls(request.url)
             if (spare) handleFetch(fetchFile(request, false, spare))
             // [modifyRequest else-if]
-            else handleFetch(fetch(request).catch(err => new Response(err, {status: -1})))
+            else handleFetch(fetch(request).catch(err => new Response(err, {status: 499})))
         }
     })
 
