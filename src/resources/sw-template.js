@@ -134,6 +134,7 @@
                     type: 'update',
                     update: info.list,
                     version: info.version,
+                    old: info.old
                 })
             )
     })
@@ -152,7 +153,7 @@
 
     /**
      * 根据JSON删除缓存
-     * @returns {Promise<{version, list}>}
+     * @returns {Promise<{version, list, old}>}
      */
     const updateJson = () => {
         /**
@@ -171,14 +172,17 @@
             // 跨版本幅度过大，直接清理全站
             return true
         }
-        /** 解析字符串 */
+        /**
+         * 解析字符串
+         * @return {Promise<any>}
+         */
         const parseJson = json => dbVersion.read().then(oldVersion => {
             const {info, global} = json
             const newVersion = {global, local: info[0].version, escape: oldVersion?.escape ?? 0}
             //新用户不进行更新操作
             if (!oldVersion) {
                 dbVersion.write(newVersion)
-                return newVersion
+                return {version: newVersion, old: oldVersion}
             }
             let list = new VersionList()
             let refresh = parseChange(list, info, oldVersion.local)
@@ -189,19 +193,20 @@
                 if (global !== oldVersion.global) list.force = true
                 else list.refresh = true
             }
-            return {list, version: newVersion}
+            return {list, version: newVersion, old: oldVersion}
         })
         return fetchFile(new Request('/update.json'), false)
             .then(response => {
                 if (checkResponse(response))
                     return response.json().then(json =>
                         parseJson(json).then(result => {
-                                return result.list ? deleteCache(result.list)
+                            const info = {version: result.version, old: result.old}
+                            if (result.list)
+                                return deleteCache(result.list)
                                     .then(list => list.length === 0 ? null : list)
-                                    .then(list => ({list, version: result.version}))
-                                    : {version: result}
-                            }
-                        )
+                                    .then(list => Object.assign({list}, info))
+                            else return info
+                        })
                     )
                 else throw `加载 update.json 时遇到异常，状态码：${response.status}`
             })
@@ -232,7 +237,10 @@
             if (this.force) return true
             // noinspection JSValidateTypes
             url = new URL(url)
-            if (this.refresh) return findCache(url).clean
+            if (this.refresh) {
+                // noinspection JSCheckFunctionSignatures
+                return findCache(url).clean
+            }
             else {
                 for (let it of list) {
                     if (it.match(url)) return true
