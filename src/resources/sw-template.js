@@ -12,6 +12,7 @@
     const dbVersion = {
         write: (id) => caches.open(CACHE_NAME)
             .then(cache => cache.put(CTRL_PATH, new Response(JSON.stringify(id)))),
+        /** @return {*} */
         read: () => caches.match(CTRL_PATH).then(response => response?.json())
     }
 
@@ -20,7 +21,6 @@
         const escape = '@$$[escape]'
         if (escape) {
             dbVersion.read()
-                .then(response => response?.json())
                 .then(async oldVersion => {
                     if (oldVersion?.escape !== escape) {
                         oldVersion.escape = escape
