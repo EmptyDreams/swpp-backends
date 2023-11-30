@@ -188,6 +188,8 @@
             const newVersion = {global, local: info[0].version, escape: oldVersion?.escape ?? 0}
             // 新用户和刚进行过逃逸操作的用户不进行更新操作
             if (!oldVersion || escapeTrigger) {
+                // noinspection JSValidateTypes
+                newVersion.escape = '@$$[escape]'
                 escapeTrigger = false
                 writeVersion(newVersion)
                 return {new: newVersion, old: oldVersion}
