@@ -5,32 +5,36 @@
     const CACHE_NAME = '@$$[cacheName]'
     /** 控制信息存储地址（必须以`/`结尾） */
     const CTRL_PATH = 'https://id.v3/'
+    let escapeTrigger
 
 // [insertion site] values
 
-    /** 控制信息读写操作 */
-    const dbVersion = {
-        write: (id) => caches.open(CACHE_NAME)
-            .then(cache => cache.put(CTRL_PATH, new Response(JSON.stringify(id)))),
-        /** @return {*} */
-        read: () => caches.match(CTRL_PATH).then(response => response?.json())
-    }
+    /**
+     * 读取本地版本号
+     * @return {Promise<BrowserVersion|undefined>}
+     */
+    const readVersion = () => caches.match(CTRL_PATH).then(response => response?.json())
+    /**
+     * 写入版本号
+     * @param version {BrowserVersion}
+     * @return {Promise<void>}
+     */
+    const writeVersion = version => caches.open(CACHE_NAME)
+        .then(cache => cache.put(CTRL_PATH, new Response(JSON.stringify(version))))
 
     self.addEventListener('install', () => {
         self.skipWaiting()
         const escape = '@$$[escape]'
         if (escape) {
-            dbVersion.read()
-                .then(async oldVersion => {
-                    if (oldVersion?.escape !== escape) {
-                        oldVersion.escape = escape
-                        await dbVersion.write(oldVersion)
-                        // noinspection JSUnresolvedVariable
-                        caches.delete(CACHE_NAME)
-                            .then(() => clients.matchAll())
-                            .then(list => list.forEach(client => client.postMessage({type: 'escape'})))
-                    }
-                })
+            readVersion().then(oldVersion => {
+                if (oldVersion?.escape !== escape) {
+                    escapeTrigger = true
+                    // noinspection JSUnresolvedVariable
+                    caches.delete(CACHE_NAME)
+                        .then(() => clients.matchAll())
+                        .then(list => list.forEach(client => client.postMessage({type: 'escape'})))
+                }
+            })
         }
     })
 
@@ -130,14 +134,10 @@
     self.addEventListener('message', event => {
         // [debug message]
         if (event.data === 'update')
-            updateJson().then(info =>
-                // noinspection JSUnresolvedVariable
-                event.source.postMessage({
-                    type: 'update',
-                    update: info.list,
-                    version: info.version,
-                    old: info.old
-                })
+            updateJson().then(info => {
+                    info.type = 'update'
+                    event.source.postMessage(info)
+                }
             )
     })
 
@@ -155,9 +155,9 @@
 
     /**
      * 根据JSON删除缓存
-     * @returns {Promise<{version, list, old}>}
+     * @returns {Promise<UpdateInfo>}
      */
-    const updateJson = () => {
+    const updateJson = async () => {
         /**
          * 解析elements，并把结果输出到list中
          * @return boolean 是否刷新全站缓存
@@ -176,42 +176,44 @@
         }
         /**
          * 解析字符串
-         * @return {Promise<any>}
+         * @return {Promise<{
+         *     list?: VersionList,
+         *     new: BrowserVersion,
+         *     old: BrowserVersion
+         * }>}
          */
-        const parseJson = json => dbVersion.read().then(oldVersion => {
+        const parseJson = json => readVersion().then(oldVersion => {
             const {info, global} = json
+            /** @type {BrowserVersion} */
             const newVersion = {global, local: info[0].version, escape: oldVersion?.escape ?? 0}
-            //新用户不进行更新操作
-            if (!oldVersion) {
-                dbVersion.write(newVersion)
-                return {version: newVersion, old: oldVersion}
+            // 新用户和刚进行过逃逸操作的用户不进行更新操作
+            if (!oldVersion || escapeTrigger) {
+                escapeTrigger = false
+                writeVersion(newVersion)
+                return {new: newVersion, old: oldVersion}
             }
             let list = new VersionList()
             let refresh = parseChange(list, info, oldVersion.local)
-            dbVersion.write(newVersion)
+            writeVersion(newVersion)
             // [debug escape]
-            //如果需要清理全站
+            // 如果需要清理全站
             if (refresh) {
                 if (global !== oldVersion.global) list.force = true
                 else list.refresh = true
             }
-            return {list, version: newVersion, old: oldVersion}
+            return {list, new: newVersion, old: oldVersion}
         })
-        return fetchFile(new Request('/update.json'), false)
-            .then(response => {
-                if (checkResponse(response))
-                    return response.json().then(json =>
-                        parseJson(json).then(result => {
-                            const info = {version: result.version, old: result.old}
-                            if (result.list)
-                                return deleteCache(result.list)
-                                    .then(list => list.length === 0 ? null : list)
-                                    .then(list => Object.assign({list}, info))
-                            else return info
-                        })
-                    )
-                else throw `加载 update.json 时遇到异常，状态码：${response.status}`
-            })
+        const response = await fetchFile(new Request('/update.json'), false)
+        if (!checkResponse(response))
+            throw `加载 update.json 时遇到异常，状态码：${response.status}`
+        const json = await response.json()
+        const result = await parseJson(json)
+        if (result.list) {
+            const list = await deleteCache(result.list)
+            result.list = list?.length ? list : null
+        }
+        // noinspection JSValidateTypes
+        return result
     }
 
     /**
