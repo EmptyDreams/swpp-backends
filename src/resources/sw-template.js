@@ -19,16 +19,18 @@
         self.skipWaiting()
         const escape = '@$$[escape]'
         if (escape) {
-            dbVersion.read().then(oldVersion => {
-                if (oldVersion && oldVersion.escape !== escape) {
-                    oldVersion.escape = escape
-                    dbVersion.write(oldVersion)
-                    // noinspection JSUnresolvedVariable
-                    caches.delete(CACHE_NAME)
-                        .then(() => clients.matchAll())
-                        .then(list => list.forEach(client => client.postMessage({type: 'escape'})))
-                }
-            })
+            dbVersion.read()
+                .then(response => response?.json())
+                .then(async oldVersion => {
+                    if (oldVersion?.escape !== escape) {
+                        oldVersion.escape = escape
+                        await dbVersion.write(oldVersion)
+                        // noinspection JSUnresolvedVariable
+                        caches.delete(CACHE_NAME)
+                            .then(() => clients.matchAll())
+                            .then(list => list.forEach(client => client.postMessage({type: 'escape'})))
+                    }
+                })
         }
     })
 
