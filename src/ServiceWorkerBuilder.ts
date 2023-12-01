@@ -50,7 +50,7 @@ export function buildServiceWorker(): string {
         cache += `(${getSource(rules['afterJoin'])})()\n`
     if ('afterTheme' in rules)
         cache += `(${getSource(rules['afterTheme'])})()\n`
-    const keyword = "const { cacheRules, fetchFile, getSpareUrls } = require('../sw-rules')"
+    const keyword = "const { cacheRules, fetchFile, getSpareUrls, skipRequest } = require('../sw-rules')"
     // noinspection JSUnresolvedVariable
     let content = fs.readFileSync(templatePath, 'utf8')
         .replaceAll("// [insertion site] values", eject?.strValue ?? '')
