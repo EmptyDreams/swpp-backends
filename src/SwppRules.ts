@@ -87,6 +87,12 @@ export interface SwppRules {
      */
     modifyRequest?: (request: Request, $eject: any) => Request | undefined,
     /**
+     * 判断是否跳过处理指定的请求，返回 true 后将完全不对该请求进行任何处理
+     *
+     * 该方法会在 modifyRequest 执行后触发
+     */
+    skipRequest?: (request: Request) => boolean
+    /**
      * 获取一个 URL 对应的多个 CDN 的 URL
      *
      * 竞速时除了 URL 外所有参数保持一致

@@ -45,7 +45,7 @@
     self.addEventListener('activate', event => event.waitUntil(clients.claim()))
 
     // noinspection JSFileReferences
-    const { cacheRules, fetchFile, getSpareUrls } = require('../sw-rules')
+    const { cacheRules, fetchFile, getSpareUrls, skipRequest } = require('../sw-rules')
 
     // 检查请求是否成功
     // noinspection JSUnusedLocalSymbols
@@ -83,6 +83,7 @@
         // [blockRequest call]
         if (request.method !== 'GET' || !request.url.startsWith('http')) return
         // [modifyRequest call]
+        if (skipRequest?.(request)) return
         let cacheKey = url.hostname + url.pathname + url.search
         let cache = cacheMap.get(cacheKey)
         if (cache) {
@@ -155,7 +156,8 @@
         request,
         Object.assign({
             cache: optional ? "no-store" : "default",
-            mode: 'cors'
+            mode: 'cors',
+            credentials: 'same-origin'
         }, optional || {})
     )
 

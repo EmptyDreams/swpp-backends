@@ -29,7 +29,7 @@ export function buildServiceWorker(): string {
     const templatePath = nodePath.resolve('./', module.path, 'resources/sw-template.js')
     // 获取拓展文件
     let cache = getSource(rules, undefined, [
-        'cacheRules', 'modifyRequest', 'getRaceUrls', 'getSpareUrls', 'blockRequest', 'fetchFile',
+        'cacheRules', 'modifyRequest', 'getRaceUrls', 'getSpareUrls', 'blockRequest', 'fetchFile', 'skipRequest',
         ...('external' in rules && Array.isArray(rules.external) ? rules.external : [])
     ], true) + '\n'
     if (!fetchFile) {
