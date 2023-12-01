@@ -1,6 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    /** 检查 SW 是否可用 */
-    const checkServiceWorker = () => 'serviceWorker' in navigator && navigator.serviceWorker.controller
+    if (!navigator.serviceWorker?.controller) return
     /** 发送信息到 sw */
     const postMessage2SW = type => navigator.serviceWorker.controller.postMessage(type)
     const pjaxUpdate = url => {
@@ -19,26 +18,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    if (!checkServiceWorker()) return
-    if (sessionStorage.getItem('updated')) {
+    const prevUpdated = sessionStorage.getItem('updated')
+    if (prevUpdated) {
         sessionStorage.removeItem('updated');
         // ${onSuccess}
-    } else postMessage2SW('update')
+    } else if (prevUpdated !== '2') postMessage2SW('update')
     navigator.serviceWorker.addEventListener('message', event => {
         const data = event.data
         switch (data.type) {
             case 'update':
-                const list = data.update
-                if (!list) break
+                const list = data.list
                 sessionStorage.setItem('updated', '1')
                 // noinspection JSUnresolvedVariable,JSUnresolvedFunction
-                if (window.Pjax?.isSupported()) {
+                if (list && window.Pjax?.isSupported()) {
                     list.filter(url => /\.(js|css)$/.test(url))
                         .forEach(pjaxUpdate)
                 }
                 location.reload()
                 break
             case 'escape':
+                sessionStorage.setItem('updated', '2')
                 location.reload()
                 break
         }
