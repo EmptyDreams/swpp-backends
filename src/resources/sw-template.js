@@ -5,7 +5,6 @@
     const CACHE_NAME = '@$$[cacheName]'
     /** 控制信息存储地址（必须以`/`结尾） */
     const CTRL_PATH = 'https://id.v3/'
-    let escapeTrigger
 
 // [insertion site] values
 
@@ -26,13 +25,16 @@
         self.skipWaiting()
         const escape = '@$$[escape]'
         if (escape) {
-            readVersion().then(oldVersion => {
-                if (oldVersion?.escape !== escape) {
-                    escapeTrigger = true
-                    // noinspection JSUnresolvedVariable
-                    caches.delete(CACHE_NAME)
-                        .then(() => clients.matchAll())
-                        .then(list => list.forEach(client => client.postMessage({type: 'escape'})))
+            readVersion().then(async oldVersion => {
+                // noinspection JSIncompatibleTypesComparison
+                if (oldVersion && oldVersion.escape !== escape) {
+                    // noinspection JSValidateTypes
+                    oldVersion.escape = escape
+                    await caches.delete(CACHE_NAME)
+                    await writeVersion(oldVersion)
+                    // noinspection JSUnresolvedReference
+                    const list = await clients.matchAll()
+                    list.forEach(client => client.postMessage({type: 'escape'}))
                 }
             })
         }
@@ -204,10 +206,9 @@
             /** @type {BrowserVersion} */
             const newVersion = {global, local: info[0].version, escape: oldVersion?.escape ?? 0}
             // 新用户和刚进行过逃逸操作的用户不进行更新操作
-            if (!oldVersion || escapeTrigger) {
+            if (!oldVersion) {
                 // noinspection JSValidateTypes
                 newVersion.escape = '@$$[escape]'
-                escapeTrigger = false
                 writeVersion(newVersion)
                 return {new: newVersion, old: oldVersion}
             }

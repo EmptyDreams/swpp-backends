@@ -18,17 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    const prevUpdated = sessionStorage.getItem('updated')
-    if (prevUpdated) {
-        sessionStorage.removeItem('updated');
+    const SESSION_KEY = 'updated'
+    if (sessionStorage.getItem(SESSION_KEY)) {
+        sessionStorage.removeItem(SESSION_KEY);
         // ${onSuccess}
-    } else if (prevUpdated !== '2') postMessage2SW('update')
+    } else postMessage2SW('update')
     navigator.serviceWorker.addEventListener('message', event => {
+        sessionStorage.setItem(SESSION_KEY, '1')
         const data = event.data
         switch (data.type) {
             case 'update':
                 const list = data.list
-                sessionStorage.setItem('updated', '1')
                 // noinspection JSUnresolvedVariable,JSUnresolvedFunction
                 if (list && window.Pjax?.isSupported()) {
                     list.filter(url => /\.(js|css)$/.test(url))
@@ -37,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 location.reload()
                 break
             case 'escape':
-                sessionStorage.setItem('updated', '2')
                 location.reload()
                 break
         }
