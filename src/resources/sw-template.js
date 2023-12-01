@@ -155,8 +155,7 @@
         request,
         Object.assign({
             cache: optional ? "no-store" : "default",
-            mode: 'cors',
-            credentials: 'same-origin'
+            mode: 'cors'
         }, optional || {})
     )
 
