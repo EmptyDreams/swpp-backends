@@ -92,8 +92,8 @@
         }
         cacheMap.set(cacheKey, cache = [])
         /** 处理拉取 */
-        const handleFetch = promise =>
-            event.respondWith(promise.then(response => {
+        const handleFetch = promise => event.respondWith(
+            promise.then(response => {
                 for (let item of cache) {
                     item.s(response.clone())
                 }
@@ -104,7 +104,8 @@
             }).then(() => {
                 cacheMap.delete(cacheKey)
                 return promise
-            }))
+            })
+        )
         const cacheRule = findCache(url)
         if (cacheRule) {
             let key = `https://${url.host}${url.pathname}`
@@ -127,7 +128,7 @@
             const spare = getSpareUrls(request.url)
             if (spare) handleFetch(fetchFile(request, false, spare))
             // [modifyRequest else-if]
-            else handleFetch(fetch(request).catch(err => new Response(err, {status: 499})))
+            else handleFetch(fetchWithCors(request, false).catch(err => new Response(err, {status: 499})))
         }
     })
 
@@ -140,6 +141,22 @@
                 }
             )
     })
+
+    /**
+     * 添加 cors 配置请求指定资源
+     * @param request {Request|string}
+     * @param banCache {boolean} 是否禁用 HTTP 缓存
+     * @param optional {RequestInit?} 额外的配置项
+     * @return {Promise<Response>}
+     */
+    const fetchWithCors = (request, banCache, optional) => fetch(
+        request,
+        Object.assign({
+            cache: optional ? "no-store" : "default",
+            mode: 'cors',
+            credentials: 'same-origin'
+        }, optional || {})
+    )
 
     /**
      * 判断指定 url 击中了哪一种缓存，都没有击中则返回 null
