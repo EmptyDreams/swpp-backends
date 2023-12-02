@@ -15,6 +15,7 @@ export function buildServiceWorker(): string {
     const eject = readEjectData()
     const {
         modifyRequest,
+        skipRequest,
         fetchFile,
         getRaceUrls,
         getSpareUrls,
@@ -67,6 +68,9 @@ export function buildServiceWorker(): string {
             `).replaceAll('// [modifyRequest else-if]', `
                 else if (modify) handleFetch(fetchWithCors(request, false).catch(err => new Response(err, {status: 499})))
             `)
+    }
+    if (skipRequest) {
+        content = content.replaceAll('// [skipRequest call]', `if (skipRequest(request)) return;`)
     }
     if (blockRequest) {
         content = content.replace('// [blockRequest call]', `

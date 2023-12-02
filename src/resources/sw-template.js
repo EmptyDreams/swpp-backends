@@ -83,7 +83,7 @@
         // [blockRequest call]
         if (request.method !== 'GET' || !request.url.startsWith('http')) return
         // [modifyRequest call]
-        if (skipRequest?.(request)) return
+        // [skipRequest call]
         let cacheKey = url.hostname + url.pathname + url.search
         let cache = cacheMap.get(cacheKey)
         if (cache) {
