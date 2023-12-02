@@ -136,7 +136,7 @@
             const spare = getSpareUrls(request.url)
             if (spare) handleFetch(fetchFile(request, false, spare))
             // [modifyRequest else-if]
-            else handleFetch(fetchWithCors(request, false).catch(err => new Response(err, {status: 499})))
+            else handleFetch(fetchWithCache(request).catch(err => new Response(err, {status: 499})))
         }
     })
 
@@ -150,21 +150,42 @@
     })
 
     /**
-     * 添加 cors 配置请求指定资源
+     * 基础 fetch
      * @param request {Request|string}
-     * @param banCache {boolean} 是否禁用 HTTP 缓存
+     * @param banCache {boolean} 是否禁用缓存
+     * @param cors {boolean} 是否启用 cors
      * @param optional {RequestInit?} 额外的配置项
      * @return {Promise<Response>}
      */
-    const fetchWithCors = (request, banCache, optional) => {
+    const baseFetcher = (request, banCache, cors, optional) => {
         if (!optional) optional = {}
         optional.cache = banCache ? 'no-store' : 'default'
-        if (isCors(request)) {
+        if (cors) {
             optional.mode = 'cors'
             optional.credentials = 'same-origin'
         }
         return fetch(request, optional)
     }
+
+    /**
+     * 添加 cors 配置请求指定资源
+     * @param request {Request}
+     * @param optional {RequestInit?} 额外的配置项
+     * @return {Promise<Response>}
+     */
+    const fetchWithCache = (request, optional) =>
+        baseFetcher(request, false, isCors(request), optional)
+
+    // noinspection JSUnusedLocalSymbols
+    /**
+     * 添加 cors 配置请求指定资源
+     * @param request {Request}
+     * @param banCache {boolean} 是否禁用 HTTP 缓存
+     * @param optional {RequestInit?} 额外的配置项
+     * @return {Promise<Response>}
+     */
+    const fetchWithCors = (request, banCache, optional) =>
+        baseFetcher(request, banCache, true, optional)
 
     /**
      * 判断指定 url 击中了哪一种缓存，都没有击中则返回 null

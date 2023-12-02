@@ -66,7 +66,7 @@ export function buildServiceWorker(): string {
                     url = new URL(request.url)
                 }
             `).replaceAll('// [modifyRequest else-if]', `
-                else if (modify) handleFetch(fetchWithCors(request, false).catch(err => new Response(err, {status: 499})))
+                else if (modify) handleFetch(fetchWithCache(request, false).catch(err => new Response(err, {status: 499})))
             `)
     }
     if (skipRequest) {

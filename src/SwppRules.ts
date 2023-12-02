@@ -84,10 +84,7 @@ export interface SwppRules {
         [propName: string]: CacheRules
     }
     /**
-     * 判断指定请求是否使用 CORS
-     *
-     * **注意：对于需要使用缓存、竞速等功能的 URL 必须使用 CORS，否则无法判断状态码从而使得功能失效或工作异常**
-     *
+     * 判断指定请求是否使用 CORS（必须启用 CORS 的请求将不通过该函数判断）
      * @param request 当前请求的 request
      */
     isCors?: (request: Request) => boolean
@@ -188,6 +185,6 @@ export interface EjectValue {
 const defRules: SwppRules = {
     config: {},
     // @ts-ignore
-    isCors: request => !request.headers.get('Accept')?.startsWith('image/'),
+    isCors: () => false,
     isMemoryQueue: () => false
 }
