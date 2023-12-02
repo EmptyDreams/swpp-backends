@@ -30,7 +30,7 @@ export function buildServiceWorker(): string {
     const templatePath = nodePath.resolve('./', module.path, 'resources/sw-template.js')
     // 获取拓展文件
     let cache = getSource(rules, undefined, [
-        'cacheRules', 'modifyRequest', 'getRaceUrls', 'getSpareUrls', 'blockRequest', 'fetchFile', 'skipRequest',
+        'cacheRules', 'modifyRequest', 'getRaceUrls', 'getSpareUrls', 'blockRequest', 'fetchFile', 'skipRequest', 'isCors', 'isMemoryQueue',
         ...('external' in rules && Array.isArray(rules.external) ? rules.external : [])
     ], true) + '\n'
     if (!fetchFile) {
@@ -51,7 +51,7 @@ export function buildServiceWorker(): string {
         cache += `(${getSource(rules['afterJoin'])})()\n`
     if ('afterTheme' in rules)
         cache += `(${getSource(rules['afterTheme'])})()\n`
-    const keyword = "const { cacheRules, fetchFile, getSpareUrls } = require('../sw-rules')"
+    const keyword = "const { cacheRules, fetchFile, getSpareUrls, isCors, isMemoryQueue } = require('../sw-rules')"
     // noinspection JSUnresolvedVariable
     let content = fs.readFileSync(templatePath, 'utf8')
         .replaceAll("// [insertion site] values", eject?.strValue ?? '')

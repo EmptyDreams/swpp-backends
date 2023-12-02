@@ -137,3 +137,45 @@ export enum FileFetchModeLevel {
     /** 宽松，允许任何形式的 404，包括服务器返回 404、DNS 解析失败等 */
     LOOSE
 }
+
+export const defConfig: SwppConfig = {
+    serviceWorker: {
+        escape: 0,
+        cacheName: 'kmarBlogCache',
+        debug: false
+    },
+    register: {
+        onerror: () => console.error('Service Worker 注册失败！可能是由于您的浏览器不支持该功能！'),
+        builder: (root: string, _: any, pluginConfig: SwppConfig) => {
+            const registerConfig = pluginConfig.register as any
+            const {onerror, onsuccess} = registerConfig
+            return `<script>
+                (() => {
+                    let sw = navigator.serviceWorker
+                    let error = ${onerror.toString()}
+                    if (!sw?.register('${new URL(root).pathname}sw.js')
+                        ${onsuccess ? '?.then(' + onsuccess.toString() + ')' : ''}
+                        ?.catch(error)
+                    ) error()
+                })()
+            </script>`
+        }
+    },
+    dom: {},
+    json: {
+        maxHtml: 15,
+        charLimit: 1024,
+        merge: [],
+        exclude: {
+            localhost: [/^\/sw\.js$/],
+            other: []
+        }
+    },
+    external: {
+        timeout: 5000,
+        concurrencyLimit: 100,
+        js: [],
+        stable: [],
+        replacer: (it: string) => it
+    }
+}

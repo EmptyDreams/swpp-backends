@@ -45,7 +45,7 @@
     self.addEventListener('activate', event => event.waitUntil(clients.claim()))
 
     // noinspection JSFileReferences
-    const { cacheRules, fetchFile, getSpareUrls } = require('../sw-rules')
+    const { cacheRules, fetchFile, getSpareUrls, isCors, isMemoryQueue } = require('../sw-rules')
 
     // 检查请求是否成功
     // noinspection JSUnusedLocalSymbols
@@ -73,7 +73,7 @@
 
     /**
      * 缓存列表
-     * @type {Map<string, {s, e}[]>}
+     * @type {Map<string, function(any)[]>}
      */
     const cacheMap = new Map()
 
@@ -85,30 +85,35 @@
         // [modifyRequest call]
         // [skipRequest call]
         let cacheKey = url.hostname + url.pathname + url.search
-        let cache = cacheMap.get(cacheKey)
-        if (cache) {
-            return event.respondWith(
-                new Promise((resolve, reject) => {
-                    cacheMap.get(cacheKey).push({s: resolve, e: reject})
-                })
+        let cache
+        if (isMemoryQueue(request)) {
+            cache = cacheMap.get(cacheKey)
+            if (cache) {
+                return event.respondWith(
+                    new Promise((resolve, reject) => {
+                        cacheMap.get(cacheKey).push(arg => arg.body ? resolve(arg) : reject(arg))
+                    })
+                )
+            }
+            cacheMap.set(cacheKey, cache = [])
+        }
+        /** 处理拉取 */
+        const handleFetch = promise => {
+            event.respondWith(
+                cache ? promise.then(response => {
+                    for (let item of cache) {
+                        item(response.clone())
+                    }
+                }).catch(err => {
+                    for (let item of cache) {
+                        item(err)
+                    }
+                }).then(() => {
+                    cacheMap.delete(cacheKey)
+                    return promise
+                }) : promise
             )
         }
-        cacheMap.set(cacheKey, cache = [])
-        /** 处理拉取 */
-        const handleFetch = promise => event.respondWith(
-            promise.then(response => {
-                for (let item of cache) {
-                    item.s(response.clone())
-                }
-            }).catch(err => {
-                for (let item of cache) {
-                    item.e(err)
-                }
-            }).then(() => {
-                cacheMap.delete(cacheKey)
-                return promise
-            })
-        )
         const cacheRule = findCache(url)
         if (cacheRule) {
             let key = `https://${url.host}${url.pathname}`
@@ -139,10 +144,9 @@
         // [debug message]
         if (event.data === 'update')
             updateJson().then(info => {
-                    info.type = 'update'
-                    event.source.postMessage(info)
-                }
-            )
+                info.type = 'update'
+                event.source.postMessage(info)
+            })
     })
 
     /**
@@ -155,7 +159,7 @@
     const fetchWithCors = (request, banCache, optional) => {
         if (!optional) optional = {}
         optional.cache = banCache ? 'no-store' : 'default'
-        if (request.headers.get('Content-Type')?.startsWith('image/')) {
+        if (isCors(request)) {
             optional.mode = 'cors'
             optional.credentials = 'same-origin'
         }
