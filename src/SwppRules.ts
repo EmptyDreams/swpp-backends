@@ -42,7 +42,7 @@ export function loadRules(root: string, fileName: string, selects: string[]): Sw
     }
     for (let key in defRules) {
         if (!(key in rootRules))
-            rootRules[key] = defRules
+            rootRules[key] = defRules[key]
     }
     return writeVariant('swppRules', deepFreeze(rootRules))
 }
