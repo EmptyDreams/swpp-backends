@@ -188,6 +188,6 @@ export interface EjectValue {
 const defRules: SwppRules = {
     config: {},
     // @ts-ignore
-    isCors: request => !request.headers.get('Content-Type').startsWith('image/'),
+    isCors: request => !request.headers.get('Accept')?.startsWith('image/'),
     isMemoryQueue: () => false
 }
