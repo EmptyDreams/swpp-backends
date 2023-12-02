@@ -45,7 +45,7 @@
     self.addEventListener('activate', event => event.waitUntil(clients.claim()))
 
     // noinspection JSFileReferences
-    const { cacheRules, fetchFile, getSpareUrls, skipRequest } = require('../sw-rules')
+    const { cacheRules, fetchFile, getSpareUrls } = require('../sw-rules')
 
     // 检查请求是否成功
     // noinspection JSUnusedLocalSymbols
@@ -152,14 +152,15 @@
      * @param optional {RequestInit?} 额外的配置项
      * @return {Promise<Response>}
      */
-    const fetchWithCors = (request, banCache, optional) => fetch(
-        request,
-        Object.assign({
-            cache: optional ? "no-store" : "default",
-            mode: 'cors',
-            credentials: 'same-origin'
-        }, optional || {})
-    )
+    const fetchWithCors = (request, banCache, optional) => {
+        if (!optional) optional = {}
+        optional.cache = banCache ? 'no-store' : 'default'
+        if (request.headers.get('Content-Type')?.startsWith('image/')) {
+            optional.mode = 'cors'
+            optional.credentials = 'same-origin'
+        }
+        return fetch(request, optional)
+    }
 
     /**
      * 判断指定 url 击中了哪一种缓存，都没有击中则返回 null
