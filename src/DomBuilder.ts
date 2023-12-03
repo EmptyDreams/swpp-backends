@@ -16,6 +16,9 @@ export function buildDomJs(): string {
     }
     let template = fs.readFileSync(nodePath.resolve('./', module.path, 'resources/sw-dom.js'), 'utf-8')
     if (config.onsuccess)
-        template = template.replaceAll('// ${onSuccess}', `(${config.onsuccess.toString()})()`)
+        template = template.replaceAll(
+            'const {onSuccess} = require(\'../config\')',
+            `const onSuccess = ${config.onsuccess.toString()};`
+        )
     return template
 }

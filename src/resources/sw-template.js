@@ -28,13 +28,16 @@
             readVersion().then(async oldVersion => {
                 // noinspection JSIncompatibleTypesComparison
                 if (oldVersion && oldVersion.escape !== escape) {
-                    // noinspection JSValidateTypes
-                    oldVersion.escape = escape
+                    const list = await caches.open(CACHE_NAME)
+                        .then(cache => cache.keys())
+                        .then(keys => keys?.map(it => it.url))
                     await caches.delete(CACHE_NAME)
-                    await writeVersion(oldVersion)
+                    const info = await updateJson()
+                    info.type = 'escape'
+                    info.list = list
                     // noinspection JSUnresolvedReference
-                    const list = await clients.matchAll()
-                    list.forEach(client => client.postMessage({type: 'escape'}))
+                    const clientList = await clients.matchAll()
+                    clientList.forEach(client => client.postMessage(info))
                 }
             })
         }

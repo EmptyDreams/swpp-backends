@@ -19,26 +19,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     const SESSION_KEY = 'updated'
+    // noinspection JSFileReferences
+    const {onSuccess} = require('../config')
     if (sessionStorage.getItem(SESSION_KEY)) {
+        onSuccess()
         sessionStorage.removeItem(SESSION_KEY);
-        // ${onSuccess}
     } else postMessage2SW('update')
     navigator.serviceWorker.addEventListener('message', event => {
-        sessionStorage.setItem(SESSION_KEY, '1')
         const data = event.data
-        switch (data.type) {
-            case 'update':
-                const list = data.list
-                // noinspection JSUnresolvedVariable,JSUnresolvedFunction
-                if (list && window.Pjax?.isSupported()) {
-                    list.filter(url => /\.(js|css)$/.test(url))
-                        .forEach(pjaxUpdate)
-                }
-                location.reload()
-                break
-            case 'escape':
-                location.reload()
-                break
+        sessionStorage.setItem(SESSION_KEY, data.type)
+        let list = data.list?.filter(url => /\.(js|css)$/.test(url))
+        if (list) {
+            // noinspection JSUnresolvedReference
+            if (window.Pjax?.isSupported?.())
+                list.forEach(pjaxUpdate)
+            location.reload()
+        } else {
+            const newVersion = data.new, oldVersion = data.old
+            if (oldVersion && (newVersion.global !== oldVersion.global || newVersion.local !== oldVersion.local)) {
+                onSuccess()
+            }
         }
     })
 })
