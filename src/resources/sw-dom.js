@@ -23,12 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const {onSuccess} = require('../config')
     if (sessionStorage.getItem(SESSION_KEY)) {
         onSuccess()
-        sessionStorage.removeItem(SESSION_KEY);
+        sessionStorage.removeItem(SESSION_KEY)
     } else postMessage2SW('update')
     navigator.serviceWorker.addEventListener('message', event => {
         const data = event.data
         sessionStorage.setItem(SESSION_KEY, data.type)
-        let list = data.list?.filter(url => /\.(js|css)$/.test(url))
+        const list = data.list?.filter(url => /\.(js|css)$/.test(url))
         if (list) {
             // noinspection JSUnresolvedReference
             if (window.Pjax?.isSupported?.())
@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (oldVersion && (newVersion.global !== oldVersion.global || newVersion.local !== oldVersion.local)) {
                 onSuccess()
             }
+            sessionStorage.removeItem(SESSION_KEY)
         }
     })
 })
