@@ -66,7 +66,7 @@ export function buildServiceWorker(): string {
         .replaceAll("'@$$[escape]'", (serviceWorkerConfig.escape).toString())
         .replaceAll("'@$$[cacheName]'", `'${serviceWorkerConfig.cacheName}'`)
     if (fetchFileReplaced) {
-        content.replaceAll('[] // [spareUrls or raceUrls call]', fetchFileReplaced)
+        content = content.replaceAll('[] // [spareUrls or raceUrls call]', fetchFileReplaced)
     }
     if (modifyRequest) {
         content = content.replaceAll('// [modifyRequest call]', `
