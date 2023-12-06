@@ -48,7 +48,7 @@
     self.addEventListener('activate', event => event.waitUntil(clients.claim()))
 
     // noinspection JSFileReferences
-    const { cacheRules, fetchFile, getSpareUrls, isCors, isMemoryQueue } = require('../sw-rules')
+    const { cacheRules, fetchFile, isCors, isMemoryQueue } = require('../sw-rules')
 
     // 检查请求是否成功
     // noinspection JSUnusedLocalSymbols
@@ -136,8 +136,8 @@
                 )
             )
         } else {
-            const spare = getSpareUrls(request.url)
-            if (spare) handleFetch(fetchFile(request, false, spare))
+            const urls = [] // [spareUrls or raceUrls call]
+            if (urls) handleFetch(fetchFile(request, false, urls))
             // [modifyRequest else-if]
             else handleFetch(fetchWithCache(request).catch(err => new Response(err, {status: 499})))
         }

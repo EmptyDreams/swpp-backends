@@ -150,9 +150,9 @@ export interface SwppRules {
      *
      * @param request 请求信息
      * @param banCache 是否禁用缓存
-     * @param spare 备用 URL
+     * @param urls 备用 URL 或 URL 竞速的 URL 列表，为空表示需要手动获取
      */
-    fetchFile?: (request: Request, banCache: boolean, spare?: SpareURLs) => Promise<Response>
+    fetchFile?: (request: Request, banCache: boolean, urls?: SpareURLs|string[]) => Promise<Response>
     /** 第三方添加的值 */
     [propName: string]: any
 }

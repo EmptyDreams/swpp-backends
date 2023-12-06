@@ -39,19 +39,25 @@ export function buildServiceWorker(): string {
             JS_CODE_GET_SPARE_URLS,
             JS_CODE_DEF_FETCH_FILE
         } = require('./resources/sw-fetch.js')
-        if (getRaceUrls)
-            cache += JS_CODE_GET_CDN_LIST
-        else if (getSpareUrls)
-            cache += JS_CODE_GET_SPARE_URLS
-        else
-            cache += JS_CODE_DEF_FETCH_FILE
+        let selected, replaced
+        if (getRaceUrls) {
+            selected = JS_CODE_GET_CDN_LIST
+            replaced = 'getRaceUrls(request.url)'
+        } else if (getSpareUrls) {
+            selected = JS_CODE_GET_SPARE_URLS
+            replaced = 'getSpareUrls(request.url)'
+        } else {
+            selected = JS_CODE_DEF_FETCH_FILE
+            replaced = 'null'
+        }
+        cache = cache.replaceAll('[] // [spareUrls or raceUrls] call', replaced) + selected
     }
     if (!getSpareUrls) cache += `\nconst getSpareUrls = _ => {}`
     if ('afterJoin' in rules)
         cache += `(${getSource(rules['afterJoin'])})()\n`
     if ('afterTheme' in rules)
         cache += `(${getSource(rules['afterTheme'])})()\n`
-    const keyword = "const { cacheRules, fetchFile, getSpareUrls, isCors, isMemoryQueue } = require('../sw-rules')"
+    const keyword = "const { cacheRules, fetchFile, isCors, isMemoryQueue } = require('../sw-rules')"
     // noinspection JSUnresolvedVariable
     let content = fs.readFileSync(templatePath, 'utf8')
         .replaceAll("// [insertion site] values", eject?.strValue ?? '')
