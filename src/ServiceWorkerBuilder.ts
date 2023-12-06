@@ -40,7 +40,7 @@ export function buildServiceWorker(): string {
             JS_CODE_GET_SPARE_URLS,
             JS_CODE_DEF_FETCH_FILE
         } = require('./resources/sw-fetch.js')
-        let selected, replaced
+        let selected
         if (getRaceUrls) {
             selected = JS_CODE_GET_CDN_LIST
             fetchFileReplaced = 'getRaceUrls(request.url)'
