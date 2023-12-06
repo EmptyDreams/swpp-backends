@@ -33,6 +33,7 @@ export function buildServiceWorker(): string {
         'cacheRules', 'modifyRequest', 'getRaceUrls', 'getSpareUrls', 'blockRequest', 'fetchFile', 'skipRequest', 'isCors', 'isMemoryQueue',
         ...('external' in rules && Array.isArray(rules.external) ? rules.external : [])
     ], true) + '\n'
+    let fetchFileReplaced
     if (!fetchFile) {
         const {
             JS_CODE_GET_CDN_LIST,
@@ -42,15 +43,15 @@ export function buildServiceWorker(): string {
         let selected, replaced
         if (getRaceUrls) {
             selected = JS_CODE_GET_CDN_LIST
-            replaced = 'getRaceUrls(request.url)'
+            fetchFileReplaced = 'getRaceUrls(request.url)'
         } else if (getSpareUrls) {
             selected = JS_CODE_GET_SPARE_URLS
-            replaced = 'getSpareUrls(request.url)'
+            fetchFileReplaced = 'getSpareUrls(request.url)'
         } else {
             selected = JS_CODE_DEF_FETCH_FILE
-            replaced = 'null'
+            fetchFileReplaced = 'null'
         }
-        cache = cache.replaceAll('[] // [spareUrls or raceUrls call]', replaced) + selected
+        cache += selected
     }
     if (!getSpareUrls) cache += `\nconst getSpareUrls = _ => {}`
     if ('afterJoin' in rules)
@@ -64,6 +65,9 @@ export function buildServiceWorker(): string {
         .replaceAll(keyword, cache)
         .replaceAll("'@$$[escape]'", (serviceWorkerConfig.escape).toString())
         .replaceAll("'@$$[cacheName]'", `'${serviceWorkerConfig.cacheName}'`)
+    if (fetchFileReplaced) {
+        content.replaceAll('[] // [spareUrls or raceUrls call]', fetchFileReplaced)
+    }
     if (modifyRequest) {
         content = content.replaceAll('// [modifyRequest call]', `
                 const modify = modifyRequest(request)
