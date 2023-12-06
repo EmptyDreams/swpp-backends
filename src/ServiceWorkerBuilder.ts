@@ -50,7 +50,7 @@ export function buildServiceWorker(): string {
             selected = JS_CODE_DEF_FETCH_FILE
             replaced = 'null'
         }
-        cache = cache.replaceAll('[] // [spareUrls or raceUrls] call', replaced) + selected
+        cache = cache.replaceAll('[] // [spareUrls or raceUrls call]', replaced) + selected
     }
     if (!getSpareUrls) cache += `\nconst getSpareUrls = _ => {}`
     if ('afterJoin' in rules)

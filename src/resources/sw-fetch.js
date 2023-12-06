@@ -4,10 +4,13 @@ let getRaceUrls, checkResponse, getSpareUrls, fetchWithCors
 module.exports.JS_CODE_DEF_FETCH_FILE = 'const fetchFile = fetchWithCors;'
 
 module.exports.JS_CODE_GET_CDN_LIST= 'const fetchFile = ' + (
-    (request, banCache) => {
-        const list = getRaceUrls(request.url)
-        if (!list || !Promise.any) return fetchWithCors(request, banCache)
-        const res = list.map(url => new Request(url, request))
+    (request, banCache, urls) => {
+        if (!urls) {
+            urls = getRaceUrls(request.url)
+            if (!urls) return fetchWithCors(request, banCache)
+        }
+        if (!urls || !Promise.any) return fetchWithCors(request, banCache)
+        const res = urls.map(url => new Request(url, request))
         const controllers = []
         // noinspection JSCheckFunctionSignatures
         return Promise.any(
@@ -25,16 +28,15 @@ module.exports.JS_CODE_GET_CDN_LIST= 'const fetchFile = ' + (
 ).toString()
 
 module.exports.JS_CODE_GET_SPARE_URLS = 'const fetchFile = ' + (
-    (request, banCache, spare = null) => {
-        if (!spare) {
-            spare = getSpareUrls(request.url)
-            if (!spare) return fetchWithCors(request, banCache)
+    (request, banCache, urls = null) => {
+        if (!urls) {
+            urls = getSpareUrls(request.url)
+            if (!urls) return fetchWithCors(request, banCache)
         }
-        const list = spare.list
+        const list = urls.list
         const controllers = new Array(list.length)
         // noinspection JSCheckFunctionSignatures
-        const startFetch =
-            index => fetchWithCors(
+        const startFetch = index => fetchWithCors(
                 new Request(list[index], request),
                 banCache,
                 {signal: (controllers[index] = new AbortController()).signal}
@@ -56,7 +58,7 @@ module.exports.JS_CODE_GET_SPARE_URLS = 'const fetchFile = ' + (
                     resolve(res.r)
                 }).catch(() => reject(`请求 ${request.url} 失败`))
             }
-            const id = setTimeout(startAll, spare.timeout)
+            const id = setTimeout(startAll, urls.timeout)
             const first = startFetch(0)
                 .then(res => {
                     if (flag) {
