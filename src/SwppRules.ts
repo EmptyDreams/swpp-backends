@@ -52,7 +52,7 @@ function mergeConfig(dist: any, that: any): any {
     for (let key in that) {
         const distValue = dist[key]
         const thatValue = that[key]
-        if (!thatValue) continue
+        if (thatValue === undefined || thatValue === null) continue
         switch (typeof distValue) {
             case "undefined":
                 dist[key] = thatValue
