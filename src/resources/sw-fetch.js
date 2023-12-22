@@ -7,11 +7,10 @@ module.exports.JS_CODE_GET_CDN_LIST= 'const fetchFile = ' + (
     (request, banCache, urls) => {
         if (!urls) {
             urls = getRaceUrls(request.url)
-            if (!urls) return fetchWithCors(request, banCache)
         }
         if (!urls || !Promise.any) return fetchWithCors(request, banCache)
         const res = urls.map(url => new Request(url, request))
-        const controllers = []
+        const controllers = new Array(res.length)
         // noinspection JSCheckFunctionSignatures
         return Promise.any(
             res.map((it, index) => fetchWithCors(
