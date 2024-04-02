@@ -22,7 +22,7 @@ export function buildDomJs(): string {
         )
     } else {
         template = template.replaceAll(
-            key, ''
+            key, 'const onSuccess = () => {}'
         )
     }
     return template
