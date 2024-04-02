@@ -15,10 +15,15 @@ export function buildDomJs(): string {
         throw '功能未开启'
     }
     let template = fs.readFileSync(nodePath.resolve('./', module.path, 'resources/sw-dom.js'), 'utf-8')
-    if (config.onsuccess)
+    const key = 'const {onSuccess} = require(\'../config\')'
+    if (config.onsuccess) {
         template = template.replaceAll(
-            'const {onSuccess} = require(\'../config\')',
-            `const onSuccess = ${config.onsuccess.toString()};`
+            key, `const onSuccess = ${config.onsuccess.toString()};`
         )
+    } else {
+        template = template.replaceAll(
+            key, ''
+        )
+    }
     return template
 }
