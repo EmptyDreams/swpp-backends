@@ -47,6 +47,56 @@
     // noinspection JSUnresolvedReference
     self.addEventListener('activate', event => event.waitUntil(clients.claim()))
 
+    /**
+     * 基础 fetch
+     * @param request {Request|string}
+     * @param banCache {boolean} 是否禁用缓存
+     * @param cors {boolean} 是否启用 cors
+     * @param optional {RequestInit?} 额外的配置项
+     * @return {Promise<Response>}
+     */
+    const baseFetcher = (request, banCache, cors, optional) => {
+        if (!optional) optional = {}
+        optional.cache = banCache ? 'no-store' : 'default'
+        if (cors) {
+            optional.mode = 'cors'
+            optional.credentials = 'same-origin'
+        }
+        return fetch(request, optional)
+    }
+
+    /**
+     * 添加 cors 配置请求指定资源
+     * @param request {Request}
+     * @param optional {RequestInit?} 额外的配置项
+     * @return {Promise<Response>}
+     */
+    const fetchWithCache = (request, optional) =>
+        baseFetcher(request, false, isCors(request), optional)
+
+    // noinspection JSUnusedLocalSymbols
+    /**
+     * 添加 cors 配置请求指定资源
+     * @param request {Request}
+     * @param banCache {boolean} 是否禁用 HTTP 缓存
+     * @param optional {RequestInit?} 额外的配置项
+     * @return {Promise<Response>}
+     */
+    const fetchWithCors = (request, banCache, optional) =>
+        baseFetcher(request, banCache, true, optional)
+
+    /**
+     * 判断指定 url 击中了哪一种缓存，都没有击中则返回 null
+     * @param url {URL}
+     */
+    const findCache = url => {
+        if (url.hostname === 'localhost') return
+        for (let key in cacheRules) {
+            const value = cacheRules[key]
+            if (value.match(url)) return value
+        }
+    }
+
     // noinspection JSFileReferences
     const { cacheRules, fetchFile, isCors, isMemoryQueue } = require('../sw-rules')
 
@@ -151,56 +201,6 @@
                 event.source.postMessage(info)
             })
     })
-
-    /**
-     * 基础 fetch
-     * @param request {Request|string}
-     * @param banCache {boolean} 是否禁用缓存
-     * @param cors {boolean} 是否启用 cors
-     * @param optional {RequestInit?} 额外的配置项
-     * @return {Promise<Response>}
-     */
-    const baseFetcher = (request, banCache, cors, optional) => {
-        if (!optional) optional = {}
-        optional.cache = banCache ? 'no-store' : 'default'
-        if (cors) {
-            optional.mode = 'cors'
-            optional.credentials = 'same-origin'
-        }
-        return fetch(request, optional)
-    }
-
-    /**
-     * 添加 cors 配置请求指定资源
-     * @param request {Request}
-     * @param optional {RequestInit?} 额外的配置项
-     * @return {Promise<Response>}
-     */
-    const fetchWithCache = (request, optional) =>
-        baseFetcher(request, false, isCors(request), optional)
-
-    // noinspection JSUnusedLocalSymbols
-    /**
-     * 添加 cors 配置请求指定资源
-     * @param request {Request}
-     * @param banCache {boolean} 是否禁用 HTTP 缓存
-     * @param optional {RequestInit?} 额外的配置项
-     * @return {Promise<Response>}
-     */
-    const fetchWithCors = (request, banCache, optional) =>
-        baseFetcher(request, banCache, true, optional)
-
-    /**
-     * 判断指定 url 击中了哪一种缓存，都没有击中则返回 null
-     * @param url {URL}
-     */
-    const findCache = url => {
-        if (url.hostname === 'localhost') return
-        for (let key in cacheRules) {
-            const value = cacheRules[key]
-            if (value.match(url)) return value
-        }
-    }
 
     /**
      * 根据JSON删除缓存
