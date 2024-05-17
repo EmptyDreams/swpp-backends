@@ -1,27 +1,48 @@
-// noinspection JSIgnoredPromiseFromCall
+let CACHE_NAME, VERSION_PATH
+
+/**
+ * 插入一段 JS 代码
+ * @param flag {string}
+ * @private
+ */
+function _insertJsCode(flag) {}
+
+/**
+ * 标记一段区域的起点
+ * @param flag {string}
+ * @private
+ */
+function _markRangeStart(flag) {}
+
+/* 代码区起点 */
 
 (() => {
-    /** 缓存库名称 */
-    const CACHE_NAME = '@$$[cacheName]'
-    /** 控制信息存储地址（必须以`/`结尾） */
-    const CTRL_PATH = 'https://id.v3/'
+    // 变量/常亮池区域
+    _markRangeStart('var')
 
-// [insertion site] values
+    // 在这里插入环境变量
+    _insertJsCode('values')
+
+    /* var 结束 */
+
+    // 无前置依赖的工具函数区域
+    _markRangeStart('no_deps_fun')
 
     /**
      * 读取本地版本号
      * @return {Promise<BrowserVersion|undefined>}
      */
-    const readVersion = () => caches.match(CTRL_PATH).then(response => response?.json())
+    const readVersion = () => caches.match(VERSION_PATH).then(response => response?.json())
     /**
      * 写入版本号
      * @param version {BrowserVersion}
      * @return {Promise<void>}
      */
     const writeVersion = version => caches.open(CACHE_NAME)
-        .then(cache => cache.put(CTRL_PATH, new Response(JSON.stringify(version))))
+        .then(cache => cache.put(VERSION_PATH, new Response(JSON.stringify(version))))
 
     self.addEventListener('install', () => {
+        // noinspection JSIgnoredPromiseFromCall
         self.skipWaiting()
         const escape = '@$$[escape]'
         if (escape) {
@@ -113,7 +134,7 @@
         .then(keys => Promise.all(
             keys.map(async it => {
                 const url = it.url
-                if (url !== CTRL_PATH && list.match(url)) {
+                if (url !== VERSION_PATH && list.match(url)) {
                     // [debug delete]
                     // noinspection ES6MissingAwait,JSCheckFunctionSignatures
                     cache.delete(it)
@@ -308,7 +329,7 @@
     // noinspection SpellCheckingInspection
     /**
      * 缓存更新匹配规则表达式
-     * @param json 格式{"flag": ..., "value": ...}
+     * @param json 格式{"flag": ..., "getter": ...}
      * @see https://kmar.top/posts/bcfe8408/#23bb4130
      * @constructor
      */
@@ -316,7 +337,7 @@
         /**
          * 遍历所有value
          * @param action {function(string): boolean} 接受value并返回bool的函数
-         * @return {boolean} 如果value只有一个则返回`action(value)`，否则返回所有运算的或运算（带短路）
+         * @return {boolean} 如果value只有一个则返回`action(getter)`，否则返回所有运算的或运算（带短路）
          */
         const forEachValues = action => {
             const value = json.value
@@ -346,3 +367,5 @@
         this.match = getMatch()
     }
 })()
+
+/* 代码区终点 */

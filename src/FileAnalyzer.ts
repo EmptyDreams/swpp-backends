@@ -105,8 +105,8 @@ export interface VersionJson {
  * 版本列表
  *
  * + key 为文件的 URL
- * + value {string} 为 URL 对应文件的 md5 值
- * + value {string[]} 为 stable 文件其中包含的 URL
+ * + getter {string} 为 URL 对应文件的 md5 值
+ * + getter {string[]} 为 stable 文件其中包含的 URL
  */
 export interface VersionMap {
     [propName: string]: any
