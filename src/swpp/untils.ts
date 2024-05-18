@@ -128,7 +128,8 @@ export const utils = {
 
 export const exceptionNames = {
     invalidVarName: 'invalid_var_name',
-    invalidVarType: 'invalid_var_type'
+    invalidVarType: 'invalid_var_type',
+    uninitialized: 'uninitialized'
 } as const
 
 export interface RuntimeException {

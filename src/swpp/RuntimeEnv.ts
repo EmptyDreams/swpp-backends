@@ -37,11 +37,13 @@ export const runtimeEnv = {
         runtimeEnvMap[key] = env
     },
 
-    /** 遍历所有环境变量的键 */
-    forEachKeys(consumer: (key: string) => void) {
+    /** 获取所有键值对 */
+    entries(): {[p: string]: any} {
+        const result: {[p: string]: any} = {}
         for (let key in runtimeEnvMap) {
-            consumer(key)
+            result[key] = this.read(key)
         }
+        return result
     }
 
 }

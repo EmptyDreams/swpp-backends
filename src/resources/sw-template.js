@@ -1,18 +1,6 @@
-import {runtimeEnv} from '../swpp/RuntimeEnv'
+import {_inlineCodes} from '../swpp/SwCompiler'
 
 let CACHE_NAME, VERSION_PATH
-
-export const _inlineCodes = {
-
-    /** 插入环境变量 */
-    _insertRuntimeEnv() {
-        runtimeEnv.forEachKeys(key => {
-            const value = runtimeEnv.read(key)
-
-        })
-    }
-
-}
 
 /**
  * 标记一段区域的起点
