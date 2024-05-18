@@ -35,6 +35,13 @@ export const runtimeEnv = {
         if (key in runtimeEnvMap)
             throw {key, value: runtimeEnvMap[key], message: 'key 重复'}
         runtimeEnvMap[key] = env
+    },
+
+    /** 遍历所有环境变量的键 */
+    forEachKeys(consumer: (key: string) => void) {
+        for (let key in runtimeEnvMap) {
+            consumer(key)
+        }
     }
 
 }

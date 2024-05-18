@@ -1,11 +1,18 @@
+import {runtimeEnv} from '../swpp/RuntimeEnv'
+
 let CACHE_NAME, VERSION_PATH
 
-/**
- * 插入一段 JS 代码
- * @param flag {string}
- * @private
- */
-function _insertJsCode(flag) {}
+export const _inlineCodes = {
+
+    /** 插入环境变量 */
+    _insertRuntimeEnv() {
+        runtimeEnv.forEachKeys(key => {
+            const value = runtimeEnv.read(key)
+
+        })
+    }
+
+}
 
 /**
  * 标记一段区域的起点
@@ -21,7 +28,7 @@ function _markRangeStart(flag) {}
     _markRangeStart('var')
 
     // 在这里插入环境变量
-    _insertJsCode('values')
+    _inlineCodes._insertRuntimeEnv()
 
     /* var 结束 */
 
