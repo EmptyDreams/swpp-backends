@@ -127,8 +127,15 @@ export const utils = {
 }
 
 export const exceptionNames = {
+    /** 无效的变量名 */
     invalidVarName: 'invalid_var_name',
+    /** 无效的变量类型 */
     invalidVarType: 'invalid_var_type',
+    /** 无效的插入键 */
+    invalidInjectKey: 'invalid_inject_key',
+    /** 插入键重复 */
+    repeatInjectKey: 'repeat_inject_key',
+    /** 未初始化 */
     uninitialized: 'uninitialized'
 } as const
 

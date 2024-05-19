@@ -7,13 +7,13 @@ let CACHE_NAME, VERSION_PATH
  * @param flag {string}
  * @private
  */
-function _markRangeStart(flag) {}
+function $$inject_mark_range_start(flag) {}
 
 /* 代码区起点 */
 
 (() => {
     // 变量/常亮池区域
-    _markRangeStart('var')
+    $$inject_mark_range_start('var')
 
     // 在这里插入环境变量
     _inlineCodes._insertRuntimeEnv()
@@ -21,7 +21,7 @@ function _markRangeStart(flag) {}
     /* var 结束 */
 
     // 无前置依赖的工具函数区域
-    _markRangeStart('no_deps_fun')
+    $$inject_mark_range_start('no_deps_fun')
 
     /**
      * 读取本地版本号
