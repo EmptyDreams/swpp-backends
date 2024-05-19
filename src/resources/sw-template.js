@@ -1,6 +1,6 @@
 import {_inlineCodes} from '../swpp/SwCompiler'
 
-let CACHE_NAME, VERSION_PATH
+let CACHE_NAME, VERSION_PATH, INVALID_KEY
 
 /**
  * 标记一段区域的起点
@@ -20,21 +20,57 @@ function $$inject_mark_range_start(flag) {}
 
     /* var 结束 */
 
-    // 无前置依赖的工具函数区域
+    // 无外部依赖的工具函数区域（允许内部依赖）
     $$inject_mark_range_start('no_deps_fun')
+
+    /**
+     * 尝试匹配一个 cache
+     * @param request {RequestInfo | URL}
+     * @return {Promise<Response | undefined>}
+     */
+    const matchFromCaches = request => caches.match(request, {cacheName: CACHE_NAME})
+
+    /**
+     * 将一个 response 写入到 cache
+     * @param request {RequestInfo | URL}
+     * @param response {Response} 注意需要自己克隆 response
+     * @return {Promise<void>}
+     */
+    const writeResponseToCache = (request, response) =>
+        caches.open(CACHE_NAME).then(cache => cache.put(request, response))
+
+    /**
+     * 标记一个缓存为废弃缓存
+     * @param request {RequestInfo | URL}
+     * @return {Promise<void>}
+     */
+    const markCacheInvalid = request => matchFromCaches(request).then(response => {
+        if (!response) return
+        const headers = new Headers(response.headers)
+        headers.set(INVALID_KEY, '1')
+        return writeResponseToCache(
+            request, new Response(response.body, {status: response.status, headers})
+        )
+    })
 
     /**
      * 读取本地版本号
      * @return {Promise<BrowserVersion|undefined>}
      */
-    const readVersion = () => caches.match(VERSION_PATH).then(response => response?.json())
+    const readVersion = () => matchFromCaches(VERSION_PATH)
+        .then(response => response?.json?.())
+
     /**
      * 写入版本号
      * @param version {BrowserVersion}
      * @return {Promise<void>}
      */
-    const writeVersion = version => caches.open(CACHE_NAME)
-        .then(cache => cache.put(VERSION_PATH, new Response(JSON.stringify(version))))
+    const writeVersion = version => writeResponseToCache(VERSION_PATH, new Response(JSON.stringify(version)))
+
+    /* no_deps_fun 结束 */
+
+    // 事件注册区域
+    $$inject_mark_range_start('event')
 
     self.addEventListener('install', () => {
         // noinspection JSIgnoredPromiseFromCall

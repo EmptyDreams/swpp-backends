@@ -17,6 +17,15 @@ export class RuntimeEnv {
                 }
                 return false
             }
+        }),
+        INVALID_KEY: buildEnv({
+            default: 'X-Invalid',
+            checker(value) {
+                if (!/^[a-zA-Z0-9-]+$/.test(value)) {
+                    return {value, message: '填写的 key 值是非法的 header 名称'}
+                }
+                return false
+            }
         })
     }
 
