@@ -3,9 +3,7 @@ import {utils} from './untils'
 export class RuntimeEnv {
 
     private runtimeEnvMap: { [p: string]: RuntimeEnvValue<any> } = {
-        CACHE_NAME: buildEnv({
-            default: 'kmarBlogCache'
-        }),
+        CACHE_NAME: buildEnv({default: 'kmarBlogCache'}),
         VERSION_PATH: buildEnv({
             default: 'https://id.v3/',
             checker(value) {
@@ -26,7 +24,8 @@ export class RuntimeEnv {
                 }
                 return false
             }
-        })
+        }),
+        ESCAPE: buildEnv({default: 0})
     }
 
     /**

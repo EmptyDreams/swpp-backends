@@ -1,6 +1,9 @@
 import {_inlineCodes} from '../swpp/SwCompiler'
 
+/** @type {string} */
 let CACHE_NAME, VERSION_PATH, INVALID_KEY
+/** @type {number} */
+let ESCAPE
 
 /**
  * 标记一段区域的起点
@@ -75,11 +78,10 @@ function $$inject_mark_range_start(flag) {}
     self.addEventListener('install', () => {
         // noinspection JSIgnoredPromiseFromCall
         self.skipWaiting()
-        const escape = '@$$[escape]'
-        if (escape) {
+        if (ESCAPE) {
             readVersion().then(async oldVersion => {
                 // noinspection JSIncompatibleTypesComparison
-                if (oldVersion && oldVersion.escape !== escape) {
+                if (oldVersion && oldVersion.escape !== ESCAPE) {
                     const list = await caches.open(CACHE_NAME)
                         .then(cache => cache.keys())
                         .then(keys => keys?.map(it => it.url))
