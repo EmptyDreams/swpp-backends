@@ -1,13 +1,31 @@
 import {utils} from './untils'
 
-export const runtimeEnv = {
+export class RuntimeEnv {
+
+    private runtimeEnvMap: { [p: string]: RuntimeEnvValue<any> } = {
+        CACHE_NAME: buildEnv({
+            default: 'kmarBlogCache'
+        }),
+        VERSION_PATH: buildEnv({
+            default: 'https://id.v3/',
+            checker(value) {
+                if (!utils.checkUrl(value)) {
+                    return {value, message: '填写的 URL 不合法'}
+                }
+                if (!value.endsWith('/')) {
+                    return {value, message: '填写的 URL 应当以“/”结尾'}
+                }
+                return false
+            }
+        })
+    }
 
     /**
      * 读取环境变量的值
      * @throws RuntimeEnvException
      */
     read(key: string) {
-        const item = runtimeEnvMap[key]
+        const item = this.runtimeEnvMap[key]
         if (!item) throw {key, message: 'key 不存在'}
         const value = item.getter?.() ?? item.default
         if (typeof value != typeof item.default)
@@ -15,56 +33,37 @@ export const runtimeEnv = {
         const checkResult = item.checker?.(value)
         if (checkResult) throw {key, ...checkResult}
         return value
-    },
+    }
 
     /**
      * 设置环境变量的值
      * @throws RuntimeEnvException
      */
     update(key: string, valueGetter: () => any) {
-        const item = runtimeEnvMap[key]
+        const item = this.runtimeEnvMap[key]
         if (!item) throw {key, value: null, message: 'key 不存在'} as RuntimeEnvException<any>
         item.getter = valueGetter
-    },
+    }
 
     /**
      * 追加环境变量
      * @throws RuntimeEnvException
      */
     append<T>(key: string, env: RuntimeEnvValue<T>) {
-        if (key in runtimeEnvMap)
-            throw {key, value: runtimeEnvMap[key], message: 'key 重复'}
-        runtimeEnvMap[key] = env
-    },
+        if (key in this.runtimeEnvMap)
+            throw {key, value: this.runtimeEnvMap[key], message: 'key 重复'}
+        this.runtimeEnvMap[key] = env
+    }
 
     /** 获取所有键值对 */
     entries(): {[p: string]: any} {
         const result: {[p: string]: any} = {}
-        for (let key in runtimeEnvMap) {
+        for (let key in this.runtimeEnvMap) {
             result[key] = this.read(key)
         }
         return result
     }
 
-}
-
-/** 环境变量 */
-const runtimeEnvMap: { [p: string]: RuntimeEnvValue<any> } = {
-    CACHE_NAME: buildEnv({
-        default: 'kmarBlogCache'
-    }),
-    VERSION_PATH: buildEnv({
-        default: 'https://id.v3/',
-        checker(value) {
-            if (!utils.checkUrl(value)) {
-                return {value, message: '填写的 URL 不合法'}
-            }
-            if (!value.endsWith('/')) {
-                return {value, message: '填写的 URL 应当以“/”结尾'}
-            }
-            return false
-        }
-    })
 }
 
 function buildEnv<T>(env: RuntimeEnvValue<T>): RuntimeEnvValue<T> {

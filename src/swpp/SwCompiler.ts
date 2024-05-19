@@ -1,7 +1,7 @@
 import fs from 'fs'
 import nodePath from 'path'
-import {runtimeEnv} from './RuntimeEnv'
-import {InjectKey, isInjectKey, SwCodeInject} from './SwCodeInject'
+import {RuntimeEnv} from './RuntimeEnv'
+import {SwCodeInject} from './SwCodeInject'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
 export class SwCompiler {
@@ -18,6 +18,7 @@ export class SwCompiler {
      * 3. 处理内联代码
      * 4. 插入用户代码
      *
+     * @param runtimeEnv 环境变量
      * @param inject 需要插入的代码
      * @param path 文件路径
      * @param encoding 文件编码
@@ -27,6 +28,7 @@ export class SwCompiler {
      * @throws RuntimeException 若存在重复的 inject key / {code: 'repeat_inject_key'}
      */
     readSwCode(
+        runtimeEnv: RuntimeEnv,
         inject: SwCodeInject,
         path: string = nodePath.join(__dirname, '..', 'resources', 'sw-template.js'),
         encoding: BufferEncoding = 'utf-8'
@@ -36,7 +38,7 @@ export class SwCompiler {
         const startIndex = content.indexOf('/* 代码区起点 */') + 12
         const endIndex = content.lastIndexOf('/* 代码区终点 */')
         this.swCode = content.substring(startIndex, endIndex)
-        this.swCode = handleInlineCode(this.swCode)
+        this.swCode = handleInlineCode(runtimeEnv, this.swCode)
         this.swCode = inject.handleCode(this.swCode)
         return this.swCode
     }
@@ -44,7 +46,7 @@ export class SwCompiler {
 }
 
 /** 处理内联代码片段 */
-function handleInlineCode(swCode: string): string {
+function handleInlineCode(runtimeEnv: RuntimeEnv, swCode: string): string {
     if (!swCode) throw {
         code: exceptionNames.uninitialized,
         message: '未执行 init 函数初始化 sw 模板'
@@ -52,16 +54,16 @@ function handleInlineCode(swCode: string): string {
     for (let funName in _inlineCodes) {
         const fun = _inlineCodes[funName]
         const replaceKey = `_inlineCodes.${funName}()`
-        const replaceValue = fun()
+        const replaceValue = fun(runtimeEnv)
         swCode = swCode.replaceAll(replaceKey, replaceValue)
     }
     return swCode
 }
 
-export const _inlineCodes: { [p: string]: () => string } = {
+export const _inlineCodes: { [p: string]: (runtimeEnv: RuntimeEnv) => string } = {
 
     /** 插入环境变量 */
-    _insertRuntimeEnv() {
+    _insertRuntimeEnv(runtimeEnv: RuntimeEnv) {
         return utils.anyToSource(runtimeEnv.entries(), true, 'const')
     }
 
