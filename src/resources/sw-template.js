@@ -1,9 +1,14 @@
 import {_inlineCodes} from '../swpp/SwCompiler'
 
 /** @type {string} */
-let CACHE_NAME, VERSION_PATH, INVALID_KEY
+let CACHE_NAME, VERSION_PATH, INVALID_KEY, STORAGE_TIMESTAMP
 /** @type {number} */
 let ESCAPE
+/**
+ * 缓存规则
+ * @type {(url: URL) => undefined | null | false | number}
+ */
+let matchCacheRule
 
 /**
  * 标记一段区域的起点
@@ -11,6 +16,13 @@ let ESCAPE
  * @private
  */
 function $$inject_mark_range_start(flag) {}
+
+/**
+ * 判断是否存在指定的环境变量
+ * @param key {string}
+ * @return {boolean}
+ */
+function $$has_runtime_env(key) {}
 
 /* 代码区起点 */
 
@@ -37,10 +49,20 @@ function $$inject_mark_range_start(flag) {}
      * 将一个 response 写入到 cache
      * @param request {RequestInfo | URL}
      * @param response {Response} 注意需要自己克隆 response
+     * @param date {boolean?} 是否写入时间戳
      * @return {Promise<void>}
      */
-    const writeResponseToCache = (request, response) =>
-        caches.open(CACHE_NAME).then(cache => cache.put(request, response))
+    const writeResponseToCache = (request, response, date) => {
+        if (date) {
+            const headers = new Headers(response.headers)
+            headers.set(STORAGE_TIMESTAMP, new Date().toISOString())
+            response = new Response(response.body, {
+                status: response.status,
+                headers
+            })
+        }
+        return caches.open(CACHE_NAME).then(cache => cache.put(request, response))
+    }
 
     /**
      * 标记一个缓存为废弃缓存
@@ -57,6 +79,24 @@ function $$inject_mark_range_start(flag) {}
     })
 
     /**
+     * 判断指定的缓存是否是有效缓存
+     * @param response {Response}
+     * @return {boolean}
+     */
+    const isValidCache = response => {
+        const headers = response.headers
+        if (headers.has(INVALID_KEY)) return false
+        const rule = matchCacheRule(new URL(response.url))
+        if (!rule) return false
+        if (rule < 0) return true
+        const storage = headers.get(STORAGE_TIMESTAMP)
+        if (!storage) return true
+        const storageDate = new Date(storage).getTime()
+        const nowTimestamp = Date.now()
+        return nowTimestamp - storageDate < rule
+    }
+
+    /**
      * 读取本地版本号
      * @return {Promise<BrowserVersion|undefined>}
      */
@@ -70,335 +110,96 @@ function $$inject_mark_range_start(flag) {}
      */
     const writeVersion = version => writeResponseToCache(VERSION_PATH, new Response(JSON.stringify(version)))
 
-    /* no_deps_fun 结束 */
-
-    // 事件注册区域
-    $$inject_mark_range_start('event')
-
-    self.addEventListener('install', () => {
-        // noinspection JSIgnoredPromiseFromCall
-        self.skipWaiting()
-        if (ESCAPE) {
-            readVersion().then(async oldVersion => {
-                // noinspection JSIncompatibleTypesComparison
-                if (oldVersion && oldVersion.escape !== ESCAPE) {
-                    const list = await caches.open(CACHE_NAME)
-                        .then(cache => cache.keys())
-                        .then(keys => keys?.map(it => it.url))
-                    await caches.delete(CACHE_NAME)
-                    const info = await updateJson()
-                    info.type = 'escape'
-                    info.list = list
-                    // noinspection JSUnresolvedReference
-                    const clientList = await clients.matchAll()
-                    clientList.forEach(client => client.postMessage(info))
-                }
-            })
+    /**
+     * 向指定客户端发送消息
+     * @param type {string} 消息类型
+     * @param data {any} 消息体
+     * @param goals {Client} 客户端对象，留空表示所有客户端
+     * @return {Promise<void>}
+     */
+    const postMessage = async (type, data, ...goals) => {
+        if (!goals.length) {
+            // noinspection JSUnresolvedReference
+            goals = await clients.matchAll()
         }
-    })
-
-    // sw 激活后立即对所有页面生效，而非等待刷新
-    // noinspection JSUnresolvedReference
-    self.addEventListener('activate', event => event.waitUntil(clients.claim()))
+        const body = {type, data}
+        for (let client of goals) {
+            client.postMessage(body)
+        }
+    }
 
     /**
-     * 基础 fetch
-     * @param request {Request|string}
+     * 检查请求是否成功
+     * @param response {Response}
+     * @return {boolean}
+     */
+    const isFetchSuccessful = response => response.ok || [301, 302, 307, 308].includes(response.status)
+
+    /**
+     * @param request {RequestInfo | URL}
      * @param banCache {boolean} 是否禁用缓存
      * @param cors {boolean} 是否启用 cors
      * @param optional {RequestInit?} 额外的配置项
      * @return {Promise<Response>}
      */
-    const baseFetcher = (request, banCache, cors, optional) => {
-        if (!optional) optional = {}
-        optional.cache = banCache ? 'no-store' : 'default'
+    const fetchWrapper = (request, banCache, cors, optional) => {
+        const init = {...optional}
+        init.cache = banCache ? 'no-store' : 'default'
         if (cors) {
-            optional.mode = 'cors'
-            optional.credentials = 'same-origin'
+            init.mode = 'cors'
+            init.credentials = 'same-origin'
         }
-        return fetch(request, optional)
+        return fetch(request, init)
     }
 
-    /**
-     * 添加 cors 配置请求指定资源
-     * @param request {Request}
-     * @param optional {RequestInit?} 额外的配置项
-     * @return {Promise<Response>}
-     */
-    const fetchWithCache = (request, optional) =>
-        baseFetcher(request, false, isCors(request), optional)
+    /* no_deps_fun 结束 */
 
-    // noinspection JSUnusedLocalSymbols
-    /**
-     * 添加 cors 配置请求指定资源
-     * @param request {Request}
-     * @param banCache {boolean} 是否禁用 HTTP 缓存
-     * @param optional {RequestInit?} 额外的配置项
-     * @return {Promise<Response>}
-     */
-    const fetchWithCors = (request, banCache, optional) =>
-        baseFetcher(request, banCache, true, optional)
+    // 核心功能区域
+    $$inject_mark_range_start('core')
+
+    /** 处理逃生门 */
+    const handleEscape = () => readVersion()
+        .then(async oldVersion => {
+            // noinspection JSIncompatibleTypesComparison
+            if (oldVersion && oldVersion.escape !== ESCAPE) {
+                const list = await caches.open(CACHE_NAME)
+                    .then(cache => cache.keys())
+                    .then(keys => keys?.map(it => it.url))
+                await caches.delete(CACHE_NAME)
+                const info = await updateJson()
+                info.type = 'escape'
+                info.list = list
+                await postMessage('escape', list)
+            }
+        })
 
     /**
-     * 判断指定 url 击中了哪一种缓存，都没有击中则返回 null
-     * @param url {URL}
+     * 处理 fetch 事件
+     * @param event {FetchEvent}
      */
-    const findCache = url => {
-        if (url.hostname === 'localhost') return
-        for (let key in cacheRules) {
-            const value = cacheRules[key]
-            if (value.match(url)) return value
-        }
+    const handleFetchEvent = event => {
+
     }
 
-    // noinspection JSFileReferences
-    const { cacheRules, fetchFile, isCors, isMemoryQueue } = require('../sw-rules')
+    /* core 结束 */
 
-    // 检查请求是否成功
-    // noinspection JSUnusedLocalSymbols
-    const checkResponse = response => response.ok || [301, 302, 307, 308].includes(response.status)
+    // 事件注册区域
+    $$inject_mark_range_start('event')
 
-    /**
-     * 删除指定缓存
-     * @param list 要删除的缓存列表
-     * @return {Promise<string[]>} 删除的缓存的URL列表
-     */
-    const deleteCache = list => caches.open(CACHE_NAME).then(cache => cache.keys()
-        .then(keys => Promise.all(
-            keys.map(async it => {
-                const url = it.url
-                if (url !== VERSION_PATH && list.match(url)) {
-                    // [debug delete]
-                    // noinspection ES6MissingAwait,JSCheckFunctionSignatures
-                    cache.delete(it)
-                    return url
-                }
-                return null
-            })
-        )).then(list => list.filter(it => it))
+    self.addEventListener(
+        'install',
+        () => Promise.all([self.skipWaiting(), handleEscape()])
     )
 
-    /**
-     * 缓存列表
-     * @type {Map<string, function(any)[]>}
-     */
-    const cacheMap = new Map()
+    // sw 激活后立即对所有页面生效，而非等待刷新
+    // noinspection JSUnresolvedReference
+    self.addEventListener('activate', event => event.waitUntil(clients.claim()))
 
-    self.addEventListener('fetch', event => {
-        let request = event.request
-        let url = new URL(request.url)
-        // [blockRequest call]
-        if (request.method !== 'GET' || !request.url.startsWith('http')) return
-        // [modifyRequest call]
-        // [skipRequest call]
-        let cacheKey = url.hostname + url.pathname + url.search
-        let cache
-        if (isMemoryQueue(request)) {
-            cache = cacheMap.get(cacheKey)
-            if (cache) {
-                return event.respondWith(
-                    new Promise((resolve, reject) => {
-                        cacheMap.get(cacheKey).push(arg => arg.body ? resolve(arg) : reject(arg))
-                    })
-                )
-            }
-            cacheMap.set(cacheKey, cache = [])
-        }
-        /** 处理拉取 */
-        const handleFetch = promise => {
-            event.respondWith(
-                cache ? promise.then(response => {
-                    for (let item of cache) {
-                        item(response.clone())
-                    }
-                }).catch(err => {
-                    for (let item of cache) {
-                        item(err)
-                    }
-                }).then(() => {
-                    cacheMap.delete(cacheKey)
-                    return promise
-                }) : promise
-            )
-        }
-        const cacheRule = findCache(url)
-        if (cacheRule) {
-            let key = `https://${url.host}${url.pathname}`
-            if (key.endsWith('/index.html')) key = key.substring(0, key.length - 10)
-            if (cacheRule.search) key += url.search
-            handleFetch(
-                caches.match(key).then(
-                    cache => cache ?? fetchFile(request, true)
-                        .then(response => {
-                            if (checkResponse(response)) {
-                                const clone = response.clone()
-                                caches.open(CACHE_NAME).then(it => it.put(key, clone))
-                                // [debug put]
-                            }
-                            return response
-                        })
-                )
-            )
-        } else {
-            const urls = [] // [spareUrls or raceUrls call]
-            if (urls) handleFetch(fetchFile(request, false, urls))
-            // [modifyRequest else-if]
-            else handleFetch(fetchWithCache(request).catch(err => new Response(err, {status: 499})))
-        }
-    })
+    self.addEventListener('fetch', handleFetchEvent)
 
     self.addEventListener('message', event => {
-        // [debug message]
-        if (event.data === 'update')
-            updateJson().then(info => {
-                info.type = 'update'
-                event.source.postMessage(info)
-            })
+
     })
-
-    /**
-     * 根据JSON删除缓存
-     * @returns {Promise<UpdateInfo>}
-     */
-    const updateJson = async () => {
-        /**
-         * 解析elements，并把结果输出到list中
-         * @return boolean 是否刷新全站缓存
-         */
-        const parseChange = (list, elements, ver) => {
-            for (let element of elements) {
-                const {version, change} = element
-                if (version === ver) return false
-                if (change) {
-                    for (let it of change)
-                        list.push(new CacheChangeExpression(it))
-                }
-            }
-            // 跨版本幅度过大，直接清理全站
-            return true
-        }
-        /**
-         * 解析字符串
-         * @return {Promise<{
-         *     list?: VersionList,
-         *     new: BrowserVersion,
-         *     old: BrowserVersion
-         * }>}
-         */
-        const parseJson = json => readVersion().then(oldVersion => {
-            const {info, global} = json
-            /** @type {BrowserVersion} */
-            const newVersion = {global, local: info[0].version, escape: oldVersion?.escape ?? 0}
-            // 新用户和刚进行过逃逸操作的用户不进行更新操作
-            if (!oldVersion) {
-                // noinspection JSValidateTypes
-                newVersion.escape = '@$$[escape]'
-                writeVersion(newVersion)
-                return {new: newVersion, old: oldVersion}
-            }
-            let list = new VersionList()
-            let refresh = parseChange(list, info, oldVersion.local)
-            writeVersion(newVersion)
-            // [debug escape]
-            // 如果需要清理全站
-            if (refresh) {
-                if (global !== oldVersion.global) list.force = true
-                else list.refresh = true
-            }
-            return {list, new: newVersion, old: oldVersion}
-        })
-        const response = await fetchFile(new Request('/update.json'), false)
-        if (!checkResponse(response))
-            throw `加载 update.json 时遇到异常，状态码：${response.status}`
-        const json = await response.json()
-        const result = await parseJson(json)
-        if (result.list) {
-            const list = await deleteCache(result.list)
-            result.list = list?.length ? list : null
-        }
-        // noinspection JSValidateTypes
-        return result
-    }
-
-    /**
-     * 版本列表
-     * @constructor
-     */
-    function VersionList() {
-
-        const list = []
-
-        /**
-         * 推送一个表达式
-         * @param element {CacheChangeExpression} 要推送的表达式
-         */
-        this.push = element => {
-            list.push(element)
-        }
-
-        /**
-         * 判断指定 URL 是否和某一条规则匹配
-         * @param url {string} URL
-         * @return {boolean}
-         */
-        this.match = url => {
-            if (this.force) return true
-            // noinspection JSValidateTypes
-            url = new URL(url)
-            if (this.refresh) {
-                // noinspection JSCheckFunctionSignatures
-                return findCache(url).clean
-            }
-            else {
-                for (let it of list) {
-                    if (it.match(url)) return true
-                }
-            }
-            return false
-        }
-
-    }
-
-    // noinspection SpellCheckingInspection
-    /**
-     * 缓存更新匹配规则表达式
-     * @param json 格式{"flag": ..., "getter": ...}
-     * @see https://kmar.top/posts/bcfe8408/#23bb4130
-     * @constructor
-     */
-    function CacheChangeExpression(json) {
-        /**
-         * 遍历所有value
-         * @param action {function(string): boolean} 接受value并返回bool的函数
-         * @return {boolean} 如果value只有一个则返回`action(getter)`，否则返回所有运算的或运算（带短路）
-         */
-        const forEachValues = action => {
-            const value = json.value
-            if (Array.isArray(value)) {
-                for (let it of value) {
-                    if (action(it)) return true
-                }
-                return false
-            } else return action(value)
-        }
-        const getMatch = () => {
-            switch (json['flag']) {
-                case 'html':
-                    return url => url.pathname.match(/(\/|\.html)$/)
-                case 'end':
-                    return url => forEachValues(value => url.href.endsWith(value))
-                case 'begin':
-                    return url => forEachValues(value => url.pathname.startsWith(value))
-                case 'str':
-                    return url => forEachValues(value => url.href.includes(value))
-                case 'reg':
-                    // noinspection JSCheckFunctionSignatures
-                    return url => forEachValues(value => url.href.match(new RegExp(value, 'i')))
-                default: throw `未知表达式：${JSON.stringify(json)}`
-            }
-        }
-        this.match = getMatch()
-    }
 })()
 
 /* 代码区终点 */

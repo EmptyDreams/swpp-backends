@@ -131,12 +131,12 @@ export const exceptionNames = {
     invalidVarName: 'invalid_var_name',
     /** 无效的变量类型 */
     invalidVarType: 'invalid_var_type',
+    /** 无效的内联代码键 */
+    invalidInlineCodeKey: 'invalid_inline_code_key',
     /** 无效的插入键 */
     invalidInjectKey: 'invalid_inject_key',
     /** 插入键重复 */
-    repeatInjectKey: 'repeat_inject_key',
-    /** 未初始化 */
-    uninitialized: 'uninitialized'
+    repeatInjectKey: 'repeat_inject_key'
 } as const
 
 export interface RuntimeException {

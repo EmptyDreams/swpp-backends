@@ -47,17 +47,17 @@ export class SwCompiler {
 
 /** 处理内联代码片段 */
 function handleInlineCode(runtimeEnv: RuntimeEnv, swCode: string): string {
-    if (!swCode) throw {
-        code: exceptionNames.uninitialized,
-        message: '未执行 init 函数初始化 sw 模板'
-    } as RuntimeException
-    for (let funName in _inlineCodes) {
-        const fun = _inlineCodes[funName]
-        const replaceKey = `_inlineCodes.${funName}()`
-        const replaceValue = fun(runtimeEnv)
-        swCode = swCode.replaceAll(replaceKey, replaceValue)
-    }
-    return swCode
+    return swCode.replaceAll(/\$\$has_runtime_env\('(.*?)'\)/g, (_, key) => {
+        return runtimeEnv.has(key) ? 'true' : 'false'
+    }).replaceAll(/_inlineCodes\.(.*?)\(\)/g, (_, key) => {
+        if (!(key in _inlineCodes)) {
+            throw {
+                code: exceptionNames.invalidInlineCodeKey,
+                message: `SW 模板中的内联代码键[_inlineCodes.${key}]不存在`
+            } as RuntimeException
+        }
+        return _inlineCodes[key](runtimeEnv)
+    })
 }
 
 export const _inlineCodes: { [p: string]: (runtimeEnv: RuntimeEnv) => string } = {
@@ -68,3 +68,10 @@ export const _inlineCodes: { [p: string]: (runtimeEnv: RuntimeEnv) => string } =
     }
 
 } as const
+
+export interface IMessage {
+
+    type: string,
+    data: any
+
+}

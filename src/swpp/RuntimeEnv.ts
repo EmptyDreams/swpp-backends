@@ -3,7 +3,9 @@ import {utils} from './untils'
 export class RuntimeEnv {
 
     private runtimeEnvMap: { [p: string]: RuntimeEnvValue<any> } = {
+        /** 缓存库名称 */
         CACHE_NAME: buildEnv({default: 'kmarBlogCache'}),
+        /** 存储版本号的 URL */
         VERSION_PATH: buildEnv({
             default: 'https://id.v3/',
             checker(value) {
@@ -16,16 +18,32 @@ export class RuntimeEnv {
                 return false
             }
         }),
+        /** 逃生门版本号 */
+        ESCAPE: buildEnv({default: 0}),
+        /** 存储失效信息的头名称 */
         INVALID_KEY: buildEnv({
-            default: 'X-Invalid',
+            default: 'X-Swpp-Invalid',
             checker(value) {
-                if (!/^[a-zA-Z0-9-]+$/.test(value)) {
+                if (!isLegalHeaderName(value)) {
                     return {value, message: '填写的 key 值是非法的 header 名称'}
                 }
                 return false
             }
         }),
-        ESCAPE: buildEnv({default: 0})
+        /** 存储入库时间的头名称 */
+        STORAGE_TIMESTAMP: buildEnv({
+            default: 'X-Swpp-Time',
+            checker(value) {
+                if (!isLegalHeaderName(value)) {
+                    return {value, message: '填写的 key 值是非法的 header 名称'}
+                }
+                return false
+            }
+        }),
+        /** 缓存规则 */
+        matchCacheRule: buildEnv({
+            default: (() => undefined) as (url: URL) => undefined | null | false | number
+        })
     }
 
     /**
@@ -63,6 +81,11 @@ export class RuntimeEnv {
         this.runtimeEnvMap[key] = env
     }
 
+    /** 判断是否存在指定的环境变量 */
+    has(key: string): boolean {
+        return key in this.runtimeEnvMap
+    }
+
     /** 获取所有键值对 */
     entries(): {[p: string]: any} {
         const result: {[p: string]: any} = {}
@@ -76,6 +99,10 @@ export class RuntimeEnv {
 
 function buildEnv<T>(env: RuntimeEnvValue<T>): RuntimeEnvValue<T> {
     return env
+}
+
+function isLegalHeaderName(name: string): boolean {
+    return /^[a-zA-Z0-9-]+$/.test(name)
 }
 
 /** 运行时环境变量包含非法值时的警告 */
