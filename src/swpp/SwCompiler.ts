@@ -1,6 +1,6 @@
 import fs from 'fs'
 import nodePath from 'path'
-import {RuntimeEnv} from './RuntimeEnv'
+import {RuntimeEnv} from './KeyValueDataBase'
 import {SwCodeInject} from './SwCodeInject'
 import {exceptionNames, RuntimeException, utils} from './untils'
 

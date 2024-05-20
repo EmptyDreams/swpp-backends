@@ -1,4 +1,4 @@
-import {RuntimeEnvErrorTemplate} from './RuntimeEnv'
+import {RuntimeEnvErrorTemplate} from './KeyValueDataBase'
 
 export type ValuesOf<T> = T[keyof T]
 
