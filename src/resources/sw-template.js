@@ -152,6 +152,8 @@ function $$has_runtime_env(key) {}
         return fetch(request, init)
     }
 
+    _inlineCodes._insertDepCode()
+
     /* no_deps_fun 结束 */
 
     // 核心功能区域

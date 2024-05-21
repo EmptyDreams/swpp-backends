@@ -1,5 +1,6 @@
 import fs from 'fs'
 import nodePath from 'path'
+import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {RuntimeEnv} from './database/RuntimeEnv'
 import {SwCodeInject} from './SwCodeInject'
 import {exceptionNames, RuntimeException, utils} from './untils'
@@ -28,7 +29,7 @@ export class SwCompiler {
      * @throws RuntimeException 若存在重复的 inject key / {code: 'repeat_inject_key'}
      */
     readSwCode(
-        runtimeEnv: RuntimeEnv,
+        runtime: RuntimeData,
         inject: SwCodeInject,
         path: string = nodePath.join(__dirname, '..', 'resources', 'sw-template.js'),
         encoding: BufferEncoding = 'utf-8'
@@ -38,33 +39,46 @@ export class SwCompiler {
         const startIndex = content.indexOf('/* 代码区起点 */') + 12
         const endIndex = content.lastIndexOf('/* 代码区终点 */')
         this.swCode = content.substring(startIndex, endIndex)
-        this.swCode = handleInlineCode(runtimeEnv, this.swCode)
+        this.swCode = handleInlineCode(runtime, this.swCode)
         this.swCode = inject.handleCode(this.swCode)
         return this.swCode
     }
 
 }
 
+export interface RuntimeData {
+
+    env: RuntimeEnv,
+    dep: RuntimeDepCode
+
+}
+
 /** 处理内联代码片段 */
-function handleInlineCode(runtimeEnv: RuntimeEnv, swCode: string): string {
-    return swCode.replaceAll(/\$\$has_runtime_env\('(.*?)'\)/g, (_, key) => {
-        return runtimeEnv.has(key) ? 'true' : 'false'
-    }).replaceAll(/_inlineCodes\.(.*?)\(\)/g, (_, key) => {
+function handleInlineCode(runtime: RuntimeData, swCode: string): string {
+    return swCode.replaceAll(/_inlineCodes\.(.*?)\(\)/g, (_, key) => {
         if (!(key in _inlineCodes)) {
             throw {
                 code: exceptionNames.invalidInlineCodeKey,
                 message: `SW 模板中的内联代码键[_inlineCodes.${key}]不存在`
             } as RuntimeException
         }
-        return _inlineCodes[key](runtimeEnv)
+        // @ts-ignore
+        return _inlineCodes[key](runtime)
+    }).replaceAll(/\$\$has_runtime_env\('(.*?)'\)/g, (_, key) => {
+        return runtime.env.has(key) ? 'true' : 'false'
     })
 }
 
-export const _inlineCodes: { [p: string]: (runtimeEnv: RuntimeEnv) => string } = {
+export const _inlineCodes = {
 
     /** 插入环境变量 */
-    _insertRuntimeEnv(runtimeEnv: RuntimeEnv) {
-        return utils.anyToSource(runtimeEnv.entries(), true, 'const')
+    _insertRuntimeEnv(runtime?: RuntimeData) {
+        return utils.anyToSource(runtime!.env.entries(), true, 'const')
+    },
+
+    /** 插入运行时依赖函数 */
+    _insertDepCode(runtime?: RuntimeData) {
+        return utils.anyToSource(runtime!.dep.entries(), false, 'const')
     }
 
 } as const

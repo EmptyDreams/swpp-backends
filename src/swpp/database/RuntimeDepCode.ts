@@ -1,4 +1,3 @@
-import {fetchFile} from '../../Utils'
 import {KeyValueDataBase, RuntimeEnvErrorTemplate} from './KeyValueDataBase'
 
 /** 仅在浏览器端执行的函数 */
@@ -17,10 +16,22 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
         super({
             /** 是否启用 cors */
             isCors: {
-                default: (request: Request) => true
+                default: (() => true) as (request: Request) => boolean
             },
             /** 获取竞速列表 */
             getFastestUrls: {
+                default: null,
+                checker(value) {
+                    if (value != null && typeof value != 'function') {
+                        return {
+                            value, message: '传入的对象应当为 function 或 null'
+                        } as RuntimeEnvErrorTemplate<FunctionInBrowser<any[], any>>
+                    }
+                    return false
+                }
+            },
+            /** 获取备用 URL 列表 */
+            getStandbyUrls: {
                 default: null,
                 checker(value) {
                     if (value != null && typeof value != 'function') {
