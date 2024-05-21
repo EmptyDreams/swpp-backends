@@ -5,9 +5,11 @@ export type FunctionInBrowser<Args extends any[], R> = (...args: Args) => R
 
 let fetchWrapper: (request: RequestInfo | URL, banCache: boolean, cors: boolean, optional?: RequestInit) => Promise<Response>
 let isCors: (request: Request) => boolean
-let getFastestUrls: (request: Request) => Request[]
-let getStandbyUrls: (request: Request) => {t: number, l: Request[]}
+let getFastestRequests: (request: Request) => Request[]
+let getStandbyRequests: (request: Request) => {t: number, l: Request[]}
 let isFetchSuccessful: (response: Response) => boolean
+let fetchStandby: (request: Request, standbyRequests: {t: number, l: Request[]}, optional?: RequestInit) => Promise<Response>
+let fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
 
 /** 运行时依赖代码 */
 export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], any> | null> {
@@ -19,7 +21,7 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
                 default: (() => true) as (request: Request) => boolean
             },
             /** 获取竞速列表 */
-            getFastestUrls: {
+            getFastestRequests: {
                 default: null,
                 checker(value) {
                     if (value != null && typeof value != 'function') {
@@ -31,7 +33,7 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
                 }
             },
             /** 获取备用 URL 列表 */
-            getStandbyUrls: {
+            getStandbyRequests: {
                 default: null,
                 checker(value) {
                     if (value != null && typeof value != 'function') {
@@ -44,14 +46,13 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
             },
             /** URL 竞速拉取 */
             fetchFastest: {
-                default: async (request: Request, optional?: RequestInit): Promise<Response> => {
+                default: async (list: Request[], optional?: RequestInit): Promise<Response> => {
                     const fallbackFetch = (request: Request, controller?: AbortController) => {
                         return fetchWrapper(request, true, isCors(request), {
                             ...optional,
                             signal: controller?.signal
                         })
                     }
-                    const list = getFastestUrls(request)
                     const controllers = Array.from({length: list.length}, () => new AbortController())
                     try {
                         const {i: index, r: response} = await Promise.any(list.map(
@@ -70,15 +71,13 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
             },
             /** 备用 URL */
             fetchStandby: {
-                default: async (request: Request, optional?: RequestInit): Promise<Response> => {
+                default: async (request: Request, standbyRequests: {t: number, l: Request[]}, optional?: RequestInit): Promise<Response> => {
                     const fallbackFetch = (request: Request, controller?: AbortController) => {
                         return fetchWrapper(request, true, isCors(request), {
                             ...optional,
                             signal: controller?.signal
                         })
                     }
-                    const standbyRequests = getStandbyUrls(request)
-                    if (!standbyRequests) return fallbackFetch(request)
                     // 需要用到的一些字段，未初始化的后面会进行初始化
                     let id: any, standbyResolve: Function, standbyReject: Function
                     // 尝试封装 response
@@ -133,4 +132,53 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
         })
     }
 
+    /** 修正函数 */
+    fixDepFunction() {
+        const emptyLambda = () => null
+        const hasFastestRequests = this.hasValue('getFastestRequests')
+        const hasStandbyRequests = this.hasValue('getStandbyRequests')
+        const hasFetchFile = this.hasValue('fetchFile')
+        if (!hasFastestRequests) {
+            this.update('fetchFastest', emptyLambda)
+        }
+        if (!hasStandbyRequests) {
+            this.update('fetchStandby', emptyLambda)
+        }
+        if (!hasFetchFile) {
+            if (hasFastestRequests && hasStandbyRequests) {
+                this.update('fetchFile', () => fetchFastestAndStandbyRequests)
+            } else if (hasFastestRequests) {
+                this.update('fetchFile', () => fetchFastestRequests)
+            } else if (hasStandbyRequests) {
+                this.update('fetchFile', () => fetchStandbyRequests)
+            }
+        }
+    }
+
+}
+
+const fetchFastestAndStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
+    // @ts-ignore
+    const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
+    const standbyList = getStandbyRequests(request)
+    if (standbyList) return fetchStandby(request, standbyList, optional)
+    const fastestList = getFastestRequests(request)
+    if (fastestList) return fetchFastest(fastestList, optional)
+    return fetchWrapper(request, true, isCors(request), optional)
+}
+
+const fetchFastestRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
+    // @ts-ignore
+    const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
+    const fastestList = getFastestRequests(request)
+    if (fastestList) return fetchFastest(fastestList, optional)
+    return fetchWrapper(request, true, isCors(request), optional)
+}
+
+const fetchStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
+    // @ts-ignore
+    const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
+    const standbyList = getStandbyRequests(request)
+    if (standbyList) return fetchStandby(request, standbyList, optional)
+    return fetchWrapper(request, true, isCors(request), optional)
 }

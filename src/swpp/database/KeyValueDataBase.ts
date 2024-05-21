@@ -49,6 +49,11 @@ export class KeyValueDataBase<T> {
         return key in this.runtimeEnvMap
     }
 
+    /** 判断指定键对应的环境变量是否存在用户设置的值 */
+    hasValue(key: string): boolean {
+        return this.has(key) && !!this.runtimeEnvMap[key].getter
+    }
+
     /** 获取所有键值对 */
     entries(): {[p: string]: T} {
         const result: {[p: string]: any} = {}

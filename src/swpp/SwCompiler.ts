@@ -35,6 +35,7 @@ export class SwCompiler {
         encoding: BufferEncoding = 'utf-8'
     ): string {
         if (this.swCode) return this.swCode
+        runtime.dep.fixDepFunction()
         const content = fs.readFileSync(path, encoding)
         const startIndex = content.indexOf('/* 代码区起点 */') + 12
         const endIndex = content.lastIndexOf('/* 代码区终点 */')
