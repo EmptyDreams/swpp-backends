@@ -9,6 +9,10 @@ let ESCAPE
  * @type {(url: URL) => undefined | null | false | number}
  */
 let matchCacheRule
+/**
+ * @type {(request: RequestInfo | URL, optional?: RequestInit) => Promise<Response>}
+ */
+let fetchFile
 
 /**
  * 标记一段区域的起点
@@ -175,6 +179,11 @@ function $$has_runtime_env(key) {}
             }
         })
 
+    /** 处理缓存更新 */
+    const handleUpdate = () => {
+
+    }
+
     /**
      * 处理 fetch 事件
      * @param event {FetchEvent}
@@ -199,9 +208,16 @@ function $$has_runtime_env(key) {}
 
     self.addEventListener('fetch', handleFetchEvent)
 
+    self.addEventListener('periodicSync', event => {
+        if (event.tag === 'update') {
+            handleUpdate()
+        }
+    })
+
     self.addEventListener('message', event => {
 
     })
+
 })()
 
 /* 代码区终点 */
