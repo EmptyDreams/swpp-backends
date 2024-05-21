@@ -66,27 +66,33 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
                             signal: controller?.signal
                         })
                     }
-                    const standbyUrls = getStandbyUrls(request)
-                    if (!standbyUrls) return fallbackFetch(request)
-                    let id: any = 0, standbyResolve: Function, standbyReject: Function
-                    const {t: time, l: list} = standbyUrls
+                    const standbyRequests = getStandbyUrls(request)
+                    if (!standbyRequests) return fallbackFetch(request)
+                    // 需要用到的一些字段，未初始化的后面会进行初始化
+                    let id: any, standbyResolve: Function, standbyReject: Function
+                    // 尝试封装 response
+                    const resolveResponse = (index: number, response: Response) =>
+                        isFetchSuccessful(response) ? {i: index, r: response} : Promise.reject(response)
+                    const {t: time, l: list} = standbyRequests
                     const controllers = new Array<AbortController>(list.length + 1)
+                    // 尝试同时拉取 standbyRequests 中的所有 Request
                     const task = () => Promise.any(list.map(
                         (it, index) =>
                             fallbackFetch(it, controllers[index + 1] = new AbortController())
-                                .then(response => isFetchSuccessful(response) ? {
-                                    i: index + 1, r: response
-                                } : Promise.reject(response))
+                                .then(response => resolveResponse(index + 1, response))
                     )).then(obj => standbyResolve(obj))
                         .catch(() => standbyReject())
+                    // 尝试拉取初始 request
                     const firstFetch = fallbackFetch(request, controllers[0] = new AbortController())
-                        .then(response => isFetchSuccessful(response) ? {i: 0, r: response} : Promise.reject(response))
+                        .then(response => resolveResponse(0, response))
                         .catch(err => {
+                            // 如果失败则跳过等待
                             clearTimeout(id)
                             // noinspection JSIgnoredPromiseFromCall
                             task()
-                            return Promise.reject(err)
+                            return Promise.reject(err)  // 保留当前错误
                         })
+                    // 延时拉取其它 request
                     const standby = new Promise((resolve1, reject1) => {
                         standbyResolve = resolve1
                         standbyReject = reject1
@@ -94,6 +100,7 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
                     })
                     try {
                         const {i: index, r: response} = await Promise.any([firstFetch, standby]) as any
+                        // 中断未完成的请求
                         for (let k = 0; controllers[k]; k++) {
                             if (k != index) controllers[k].abort()
                         }
