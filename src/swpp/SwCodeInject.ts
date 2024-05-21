@@ -1,4 +1,3 @@
-import {it} from 'node:test'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
 export class SwCodeInject {
