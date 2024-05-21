@@ -16,6 +16,10 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
 
     constructor() {
         super({
+            /** 缓存规则 */
+            matchCacheRule: {
+                default: (() => undefined) as (url: URL) => undefined | null | false | number
+            },
             /** 是否启用 cors */
             isCors: {
                 default: (() => true) as (request: Request) => boolean
@@ -157,6 +161,7 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
 
 }
 
+// @ts-ignore
 const fetchFastestAndStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
@@ -164,21 +169,20 @@ const fetchFastestAndStandbyRequests = (requestOrUrl: RequestInfo | URL, optiona
     if (standbyList) return fetchStandby(request, standbyList, optional)
     const fastestList = getFastestRequests(request)
     if (fastestList) return fetchFastest(fastestList, optional)
-    return fetchWrapper(request, true, isCors(request), optional)
 }
 
+// @ts-ignore
 const fetchFastestRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const fastestList = getFastestRequests(request)
     if (fastestList) return fetchFastest(fastestList, optional)
-    return fetchWrapper(request, true, isCors(request), optional)
 }
 
+// @ts-ignore
 const fetchStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const standbyList = getStandbyRequests(request)
     if (standbyList) return fetchStandby(request, standbyList, optional)
-    return fetchWrapper(request, true, isCors(request), optional)
 }

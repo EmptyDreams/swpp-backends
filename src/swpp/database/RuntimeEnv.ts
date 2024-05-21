@@ -50,10 +50,6 @@ export class RuntimeEnv extends KeyValueDataBase<any> {
                     }
                     return false
                 }
-            }),
-            /** 缓存规则 */
-            matchCacheRule: buildEnv({
-                default: (() => undefined) as (url: URL) => undefined | null | false | number
             })
         })
     }
