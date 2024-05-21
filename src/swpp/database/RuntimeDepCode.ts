@@ -132,6 +132,25 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
                     if (!request.url) request = new Request(request)
                     return fetchWrapper(request, true, isCors(request as Request), optional)
                 }
+            },
+            /** 归一化 URL */
+            normalizeUrl: {
+                default: (url: string): string => {
+                    if (url.endsWith('/index.html'))
+                        return url.substring(0, url.length - 10)
+                    if (url.endsWith('.html'))
+                        return url.substring(0, url.length - 5)
+                    else
+                        return url
+                }
+            },
+            /** 是否阻断请求 */
+            isBlockRequest: {
+                default: (() => false) as (request: Request) => boolean
+            },
+            /** 修改请求 */
+            modifyRequest: {
+                default: (() => null) as (request: Request) => Request | null | undefined
             }
         })
     }
@@ -161,7 +180,6 @@ export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], an
 
 }
 
-// @ts-ignore
 const fetchFastestAndStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
@@ -169,20 +187,21 @@ const fetchFastestAndStandbyRequests = (requestOrUrl: RequestInfo | URL, optiona
     if (standbyList) return fetchStandby(request, standbyList, optional)
     const fastestList = getFastestRequests(request)
     if (fastestList) return fetchFastest(fastestList, optional)
+    return fetchWrapper(request, true, isCors(request), optional)
 }
 
-// @ts-ignore
 const fetchFastestRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const fastestList = getFastestRequests(request)
     if (fastestList) return fetchFastest(fastestList, optional)
+    return fetchWrapper(request, true, isCors(request), optional)
 }
 
-// @ts-ignore
 const fetchStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const standbyList = getStandbyRequests(request)
     if (standbyList) return fetchStandby(request, standbyList, optional)
+    return fetchWrapper(request, true, isCors(request), optional)
 }

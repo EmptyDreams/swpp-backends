@@ -9,10 +9,16 @@ let ESCAPE
  * @type {(url: URL) => undefined | null | false | number}
  */
 let matchCacheRule
-/**
- * @type {(request: RequestInfo | URL, optional?: RequestInit) => Promise<Response>}
- */
+/** @type {(request: RequestInfo | URL, optional?: RequestInit) => Promise<Response>} */
 let fetchFile
+/** @type {(request: Request) => boolean} */
+let isBlockRequest
+/** @type {(request: Request) => Request | null | undefined} */
+let modifyRequest
+/** @type {(url: string) => string} */
+let normalizeUrl
+/** @type {(request: Request) => boolean} */
+let isCors
 
 /**
  * 标记一段区域的起点
@@ -85,12 +91,13 @@ function $$has_runtime_env(key) {}
     /**
      * 判断指定的缓存是否是有效缓存
      * @param response {Response}
+     * @param rule {?(number | false | null | undefined)}
      * @return {boolean}
      */
-    const isValidCache = response => {
+    const isValidCache = (response, rule) => {
         const headers = response.headers
         if (headers.has(INVALID_KEY)) return false
-        const rule = matchCacheRule(new URL(response.url))
+        if (!rule) rule = matchCacheRule(new URL(response.url))
         if (!rule) return false
         if (rule < 0) return true
         const storage = headers.get(STORAGE_TIMESTAMP)
@@ -147,7 +154,11 @@ function $$has_runtime_env(key) {}
      * @return {Promise<Response>}
      */
     const fetchWrapper = (request, banCache, cors, optional) => {
-        const init = {...optional}
+        /** @type {RequestInit} */
+        const init = {
+            referrerPolicy: request.referrerPolicy ?? '',
+            ...optional
+        }
         init.cache = banCache ? 'no-store' : 'default'
         if (cors) {
             init.mode = 'cors'
@@ -189,7 +200,32 @@ function $$has_runtime_env(key) {}
      * @param event {FetchEvent}
      */
     const handleFetchEvent = event => {
-
+        let request = event.request
+        if (isBlockRequest(request)) return event.respondWith(new Response(null, {status: 204}))
+        const newRequest = modifyRequest(request)
+        if (newRequest) request = newRequest
+        const cacheKey = new URL(normalizeUrl(request.url))
+        const cacheRule = matchCacheRule(cacheKey)
+        if (cacheRule) {
+            event.respondWith(
+                matchFromCaches(cacheKey).then(cacheResponse => {
+                    if (cacheResponse && isValidCache(cacheResponse, cacheRule))
+                        return cacheResponse
+                    const responsePromise = fetchFile(request)
+                        .then(response => {
+                            if (isFetchSuccessful(response)) {
+                                // noinspection JSIgnoredPromiseFromCall
+                                writeResponseToCache(cacheKey, response.clone())
+                                return response
+                            }
+                            return cacheResponse ?? response
+                        })
+                    return cacheResponse ? responsePromise.catch(() => cacheResponse) : responsePromise
+                })
+            )
+        } else if (newRequest) {
+            event.respondWith(fetchWrapper(request, false, isCors(request)))
+        }
     }
 
     /* core 结束 */
