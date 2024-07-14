@@ -179,11 +179,8 @@ function $$has_runtime_env(key) {}
         .then(async oldVersion => {
             // noinspection JSIncompatibleTypesComparison
             if (oldVersion && oldVersion.escape !== ESCAPE) {
-                const list = await caches.open(CACHE_NAME)
-                    .then(cache => cache.keys())
-                    .then(keys => keys?.map(it => it.url))
                 await caches.delete(CACHE_NAME)
-                await postMessage('escape', list)
+                await postMessage('escape', null)
             }
         })
 
