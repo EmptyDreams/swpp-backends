@@ -3,7 +3,7 @@ import {_inlineCodes} from '../swpp/SwCompiler'
 /** @type {string} */
 let CACHE_NAME, VERSION_PATH, INVALID_KEY, STORAGE_TIMESTAMP, UPDATE_JSON_URL
 /** @type {number} */
-let ESCAPE
+let ESCAPE, UPDATE_CD
 /**
  * 缓存规则
  * @type {(url: URL) => undefined | null | false | number}
@@ -119,7 +119,10 @@ function $$has_runtime_env(key) {}
      * @param version {BrowserVersion}
      * @return {Promise<void>}
      */
-    const writeVersion = version => writeResponseToCache(VERSION_PATH, new Response(JSON.stringify(version)))
+    const writeVersion = version => {
+        version.tp = Date.now()
+        return writeResponseToCache(VERSION_PATH, new Response(JSON.stringify(version)))
+    }
 
     /**
      * 向指定客户端发送消息
@@ -186,13 +189,15 @@ function $$has_runtime_env(key) {}
 
     /**
      * 处理缓存更新
+     * @param force {boolean?} 是否强制更新
      * @return {Promise<-1|1|2|undefined|null>} 标记缓存是否更新，-1 - 新访客，1 - 仅更新版本号，2 - 更新了缓存，否则 - 没有进行任何更新
      */
-    const handleUpdate = async () => {
-        const [response, oldVersion] = await Promise.all([fetch(UPDATE_JSON_URL, {priority: 'high'}), readVersion()])
+    const handleUpdate = async force => {
+        const oldVersion = await readVersion()
+        if (!force && Date.now() - oldVersion.tp < UPDATE_CD) return
         // noinspection JSUnresolvedReference
         /** @type {{global: number, info: {version: number, change?: any[]}[]}}  */
-        const json = await response.json()
+        const json = await (await fetch(UPDATE_JSON_URL, {priority: 'high'})).json()
         const {global, info} = json
         const newVersion = {global, local: info[0].version, escape: ESCAPE}
         // 新访客或触发了逃生门
@@ -316,9 +321,10 @@ function $$has_runtime_env(key) {}
 
     self.addEventListener('fetch', handleFetchEvent)
 
+    // 后台检查更新
     self.addEventListener('periodicSync', event => {
         if (event.tag === 'update') {
-            event.waitUntil(handleUpdate())
+            event.waitUntil(handleUpdate(true))
         }
     })
 

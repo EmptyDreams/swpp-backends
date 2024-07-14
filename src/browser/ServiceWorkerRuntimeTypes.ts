@@ -4,7 +4,9 @@ interface BrowserVersion {
     /** 静态版本号 */
     global: number,
     /** 动态版本号 */
-    local: number
+    local: number,
+    /** 时间戳 */
+    tp?: number
 }
 
 interface UpdateInfo {

@@ -54,6 +54,10 @@ export class RuntimeEnv extends KeyValueDataBase<any> {
             /** 版本文件所在目录 */
             UPDATE_JSON_URL: buildEnv({
                 default: '/update.json'
+            }),
+            /** 检查更新的最短时间间隔 */
+            UPDATE_CD: buildEnv({
+                default: 600000
             })
         })
     }
