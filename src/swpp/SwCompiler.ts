@@ -19,7 +19,7 @@ export class SwCompiler {
      * 3. 处理内联代码
      * 4. 插入用户代码
      *
-     * @param runtimeEnv 环境变量
+     * @param runtime 环境变量
      * @param inject 需要插入的代码
      * @param path 文件路径
      * @param encoding 文件编码
@@ -83,10 +83,3 @@ export const _inlineCodes = {
     }
 
 } as const
-
-export interface IMessage {
-
-    type: string,
-    data: any
-
-}
