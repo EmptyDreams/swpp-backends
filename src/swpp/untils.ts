@@ -1,8 +1,7 @@
-import {RuntimeEnvErrorTemplate} from './database/KeyValueDataBase'
 
 export type ValuesOf<T> = T[keyof T]
 
-export const utils = {
+export const utils = Object.freeze({
 
     /** 将一个值封装为 lambda */
     package<T>(value: T): () => T {
@@ -116,7 +115,7 @@ export const utils = {
         return writeAsVar ? resultList.join(';\n') : '{\n' + resultList.join(',\n') + '\n};'
     }
 
-}
+})
 
 export const exceptionNames = {
     /** 无效的变量名 */
