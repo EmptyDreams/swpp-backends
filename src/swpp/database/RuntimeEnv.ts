@@ -1,10 +1,15 @@
 import {utils} from '../untils'
-import {DatabaseValue, KeyValueDataBase, RuntimeEnvErrorTemplate} from './KeyValueDataBase'
+import {DatabaseValue, KeyValueDataBase} from './KeyValueDataBase'
 
+/**
+ * 为优化 IDE 的类型推断提供的函数，直接返回传入的值
+ * @param env
+ */
 function buildEnv<T>(env: DatabaseValue<T>): DatabaseValue<T> {
     return env
 }
 
+/** 判断是否是一个合法的 HTTP header 名称 */
 function isLegalHeaderName(name: string): boolean {
     return /^[a-zA-Z0-9-]+$/.test(name)
 }
