@@ -1,7 +1,7 @@
 import {_inlineCodes} from '../swpp/SwCompiler'
 
 /** @type {string} */
-let CACHE_NAME, VERSION_PATH, INVALID_KEY, STORAGE_TIMESTAMP
+let CACHE_NAME, VERSION_PATH, INVALID_KEY, STORAGE_TIMESTAMP, UPDATE_JSON_URL
 /** @type {number} */
 let ESCAPE
 /**
@@ -183,16 +183,91 @@ function $$has_runtime_env(key) {}
                     .then(cache => cache.keys())
                     .then(keys => keys?.map(it => it.url))
                 await caches.delete(CACHE_NAME)
-                const info = await updateJson()
-                info.type = 'escape'
-                info.list = list
                 await postMessage('escape', list)
             }
         })
 
-    /** 处理缓存更新 */
-    const handleUpdate = () => {
-
+    /**
+     * 处理缓存更新
+     * @return {Promise<-1|1|2|undefined|null>} 标记缓存是否更新，-1 - 新访客，1 - 仅更新版本号，2 - 更新了缓存，否则 - 没有进行任何更新
+     */
+    const handleUpdate = async () => {
+        const [response, oldVersion] = await Promise.all([fetch(UPDATE_JSON_URL, {priority: 'high'}), readVersion()])
+        // noinspection JSUnresolvedReference
+        /** @type {{global: number, info: {version: number, change?: any[]}[]}}  */
+        const json = await response.json()
+        const {global, info} = json
+        const newVersion = {global, local: info[0].version, escape: ESCAPE}
+        // 新访客或触发了逃生门
+        if (!oldVersion || (ESCAPE && ESCAPE !== oldVersion.escape)) {
+            await writeVersion(newVersion)
+            return oldVersion ? 2 : -1
+        }
+        // 已是最新版本时跳过剩余步骤
+        if (oldVersion.global === global && oldVersion.local === newVersion.local) return
+        /**
+         * 尝试匹配一个规则
+         * @return {function(url: string): boolean|undefined|null}
+         */
+        function matchRule(change) {
+            /**
+             * 遍历所有value
+             * @param action {function(string): boolean} 接受value并返回bool的函数
+             * @return {boolean} 如果 value 只有一个则返回 `action(value)`，否则返回所有运算的或运算（带短路）
+             */
+            const forEachValues = action => {
+                const value = change.value
+                if (Array.isArray(value)) {
+                    for (let it of value) {
+                        if (action(it)) return true
+                    }
+                    return false
+                } else return action(value)
+            }
+            switch (change.flag) {
+                case 'html':
+                    return url => /\/$|\.html$/.test(url)
+                case 'end': case 'suf':
+                    return url => forEachValues(value => url.endsWith(value))
+                case 'begin': case 'pre':
+                    return url => forEachValues(value => url.startsWith(value))
+                case 'str':
+                    return url => forEachValues(value => url.includes(value))
+                case 'reg':
+                    return url => forEachValues(value => new RegExp(value, 'i').test(url))
+                default:
+                    throw change
+            }
+        }
+        // 按版本顺序更新缓存，直到找到当前版本
+        const expressionList = []
+        for (let infoElement of info) {
+            if (infoElement.version === oldVersion.local) {
+                const urlList = []
+                await caches.open(CACHE_NAME)
+                    .then(cache => cache.keys())
+                    .then(async keys => {
+                        for (let request of keys) {
+                            const url = request.url
+                            if (url !== VERSION_PATH && expressionList.find(it => it(url))) {
+                                await markCacheInvalid(request)
+                                urlList.push(url)
+                            }
+                        }
+                    })
+                return postMessage('update', urlList)
+            }
+            const changeList = infoElement.change
+            if (changeList) {
+                for (let change of changeList) {
+                    expressionList.push(matchRule(change))
+                }
+            }
+        }
+        // 运行到这里说明版本号丢失
+        await caches.delete(CACHE_NAME)
+            .then(() => writeVersion(newVersion))
+        return postMessage('reset', null)
     }
 
     /**
@@ -246,13 +321,15 @@ function $$has_runtime_env(key) {}
 
     self.addEventListener('periodicSync', event => {
         if (event.tag === 'update') {
-            handleUpdate()
+            event.waitUntil(handleUpdate())
         }
     })
 
     self.addEventListener('message', event => {
 
     })
+
+    /* event 结束 */
 
 })()
 

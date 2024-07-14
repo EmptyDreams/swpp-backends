@@ -50,6 +50,10 @@ export class RuntimeEnv extends KeyValueDataBase<any> {
                     }
                     return false
                 }
+            }),
+            /** 版本文件所在目录 */
+            UPDATE_JSON_URL: buildEnv({
+                default: '/update.json'
             })
         })
     }
