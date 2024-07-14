@@ -329,7 +329,13 @@ function $$has_runtime_env(key) {}
     })
 
     self.addEventListener('message', event => {
-
+        const data = event.data
+        switch (data.type) {
+            case 'update':
+                // noinspection JSIgnoredPromiseFromCall
+                handleUpdate()
+                break
+        }
     })
 
     /* event 结束 */
