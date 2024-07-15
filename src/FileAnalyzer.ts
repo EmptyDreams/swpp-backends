@@ -334,7 +334,7 @@ async function eachAllLinkInHtml(
 }
 
 async function eachAllLinkInCss(
-    domain: string, url: string, content: string, result: VersionMap, event?: (url: string) => void
+    host: string, url: string, content: string, result: VersionMap, event?: (url: string) => void
 ): Promise<void[]> {
     const root = url.substring(0, url.lastIndexOf('/'))
     const urls = new Set<string>()
@@ -394,7 +394,7 @@ async function eachAllLinkInCss(
             })?.forEach(it => urls.add(it))
     }
     return Promise.all(
-        Array.from(urls).map(it => eachAllLinkInUrl(domain, it, result, event))
+        Array.from(urls).map(it => eachAllLinkInUrl(host, it, result, event))
     )
 }
 

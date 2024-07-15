@@ -65,6 +65,14 @@ export class KeyValueDataBase<T> {
 
 }
 
+/**
+ * 为优化 IDE 的类型推断提供的函数，直接返回传入的值
+ * @param env
+ */
+export function buildEnv<T>(env: DatabaseValue<T>): DatabaseValue<T> {
+    return env
+}
+
 export interface DatabaseValue<T> {
 
     /** 缺省值 */

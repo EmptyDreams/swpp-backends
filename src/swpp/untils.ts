@@ -1,3 +1,4 @@
+import {RuntimeEnvErrorTemplate} from './database/KeyValueDataBase'
 
 export type ValuesOf<T> = T[keyof T]
 
@@ -113,6 +114,19 @@ export const utils = Object.freeze({
             }
         }
         return writeAsVar ? resultList.join(';\n') : '{\n' + resultList.join(',\n') + '\n};'
+    },
+
+    /** 判断指定链接的 host 是否为指定的 host */
+    isSameHost(path: string, host: string): boolean {
+        try {
+            const url = new URL(path, `https://${host}`)
+            return url.host === host
+        } catch (_) {
+            throw {
+                value: `path: ${path}; host: ${host}`,
+                message: '传入的 path 或 host 不合法'
+            } as RuntimeEnvErrorTemplate<string>
+        }
     }
 
 })
