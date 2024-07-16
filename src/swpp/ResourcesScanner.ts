@@ -51,7 +51,7 @@ export class ResourcesScanner {
                     data.tracker.update(url, utils.calcHash(content))
                 }))
                 .then(urls => urls.forEach(it => appendedUrls.add(it)))
-                .catch(err => console.error(err))
+                .catch(err => utils.printError('SCAN NETWORK FILE', err))
         }
         await Promise.all(taskList)
         if (appendedUrls.size !== 0)

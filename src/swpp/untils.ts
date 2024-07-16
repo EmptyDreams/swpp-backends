@@ -1,4 +1,5 @@
 import * as crypto from 'node:crypto'
+import {warn} from '../Utils'
 import {RuntimeEnvErrorTemplate} from './database/KeyValueDataBase'
 
 export type ValuesOf<T> = T[keyof T]
@@ -135,6 +136,26 @@ export const utils = Object.freeze({
         const hash = crypto.createHash('md5')
         hash.update(content)
         return hash.digest('hex')
+    },
+
+    time(): string {
+        const now = new Date()
+        const hours = String(now.getHours()).padStart(2, '0')
+        const minutes = String(now.getMinutes()).padStart(2, '0')
+        const seconds = String(now.getSeconds()).padStart(2, '0')
+        return `${hours}:${minutes}:${seconds}`
+    },
+
+    printError(title: string, err: any) {
+        console.error(`[${this.time()}] [ERR] [SWPP] [${title}]: ${JSON.stringify(err, null, 2)}`)
+    },
+
+    printInfo(title: string, info: any) {
+        console.info(`[${this.time()}] [INFO] [SWPP] [${title}]: ${JSON.stringify(info, null, 2)}`)
+    },
+
+    printWarning(title: string, warning: any) {
+        console.warn(`[${this.time()}] [WARN] [SWPP] [${title}]: ${JSON.stringify(warning, null, 2)}`)
     }
 
 })

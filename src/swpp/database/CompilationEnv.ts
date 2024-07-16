@@ -1,7 +1,7 @@
 import {HTMLElement} from 'fast-html-parser'
 import fs from 'fs'
 import {buildFileParser, FileParserRegistry} from '../FileParser'
-import {FiniteConcurrencyFetcher, NetworkFileHandler} from '../NetworkFileHandler'
+import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {utils} from '../untils'
 import {buildEnv, KeyValueDataBase, RuntimeEnvErrorTemplate} from './KeyValueDataBase'
 import * as HTMLParser from 'fast-html-parser'
@@ -111,10 +111,7 @@ export class CompilationEnv extends KeyValueDataBase<any> {
                     try {
                         await handleItem(item)
                     } catch (e) {
-                        console.error({
-                            info: 'swpp 在处理 HTML 时遇到了错误',
-                            exception: e
-                        })
+                        utils.printError('PARSER HTML', e)
                     }
                 } while (queue.length > 0)
                 return result
