@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto'
 import nodePath from 'path'
 import {CompilationEnv} from './database/CompilationEnv'
 
@@ -29,7 +30,7 @@ export class FileParserRegistry {
     }
 
     /** 解析网络文件 */
-    async parserNetworkFile(response: Response): Promise<Set<string>> {
+    async parserNetworkFile(response: Response, callback?: (content: crypto.BinaryLike) => Promise<any> | any): Promise<Set<string>> {
         const url = response.url
         let contentType: string
         if (url.endsWith('/')) {
@@ -46,6 +47,7 @@ export class FileParserRegistry {
         const parser = this.map.get(contentType)
         if (!parser) return new Set<string>()
         const content = await parser.readFromNetwork(this.env, response)
+        if (callback) await callback(content)
         return parser.extractUrls(this.env, content)
     }
 
@@ -58,7 +60,7 @@ export class FileParserRegistry {
 
 }
 
-export interface FileParser<T> {
+export interface FileParser<T extends crypto.BinaryLike> {
 
     /**
      * 从本地读取一个文件
@@ -83,6 +85,6 @@ export interface FileParser<T> {
 
 }
 
-export function buildFileParser<T>(parser: FileParser<T>): FileParser<T> {
+export function buildFileParser<T extends crypto.BinaryLike>(parser: FileParser<T>): FileParser<T> {
     return parser
 }

@@ -47,13 +47,9 @@ export class ResourcesScanner {
         let i = 0
         for (let url of urls) {
             taskList[i++] = fetcher.fetch(url)
-                .then(async response => {
-                    const cpy = response.clone()
-                    const array = await cpy.body!.getReader().read()
-                    data.tracker.update(url, utils.calcHash(array.value!))
-                    return response
-                })
-                .then(response => registry.parserNetworkFile(response))
+                .then(response => registry.parserNetworkFile(response, content => {
+                    data.tracker.update(url, utils.calcHash(content))
+                }))
                 .then(urls => urls.forEach(it => appendedUrls.add(it)))
                 .catch(err => console.error(err))
         }
