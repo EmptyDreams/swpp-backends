@@ -40,12 +40,33 @@ export class CompilationEnv extends KeyValueDataBase<any> {
                         })
                     })
                 }
+            }),
+            /** 拉取网络文件 */
+            FETCH_NETWORK_FILE: buildEnv({
+                default: {
+                    referer: 'swpp-backends',
+                    userAgent: 'swpp-backends',
+                    headers: {},
+                    fetch(url: RequestInfo | URL): Promise<Response> {
+                        return fetch(url, {
+                            referrer: this.referer,
+                            headers: {
+                                ...this.headers,
+                                'User-Agent': this.userAgent
+                            }
+                        })
+                    }
+                } as NetworkFileHandler
             })
         })
+        /** 解析文件内容 */
         const register = new FileParserRegistry(this)
         register.registry('html', buildFileParser({
             readFromLocal(env: CompilationEnv, path: string): Promise<string> {
                 return env.read('LOCAL_FILE_READER')(path)
+            },
+            readFromNetwork(_: CompilationEnv, response: Response): Promise<string> {
+                return response.text()
             },
             async extractUrls(env: CompilationEnv, content: string): Promise<Set<string>> {
                 const host = env.read("DOMAIN_HOST") as string
@@ -115,6 +136,9 @@ export class CompilationEnv extends KeyValueDataBase<any> {
             readFromLocal(env: CompilationEnv, path: string): Promise<string> {
                 return env.read('LOCAL_FILE_READER')(path)
             },
+            readFromNetwork(_: CompilationEnv, response: Response): Promise<string> {
+                return response.text()
+            },
             async extractUrls(env: CompilationEnv, content: string): Promise<Set<string>> {
                 const host = env.read('DOMAIN_HOST') as string
                 const urls = new Set<string>()
@@ -166,5 +190,19 @@ export class CompilationEnv extends KeyValueDataBase<any> {
         }))
         this.append('FILE_PARSER', buildEnv({default: register}))
     }
+
+}
+
+export interface NetworkFileHandler {
+
+    /** 拉取文件时使用的 referer */
+    referer: string
+    /** 拉取文件时使用的 ua */
+    userAgent: string
+    /** 需要额外写入的 header（不包含 ua） */
+    headers: { [name: string]: string }
+
+    /** 拉取文件 */
+    fetch(request: RequestInfo | URL): Promise<Response>
 
 }

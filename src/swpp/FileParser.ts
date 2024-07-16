@@ -45,8 +45,25 @@ export class FileParserRegistry {
 
 export interface FileParser<T> {
 
-    readFromLocal(env: CompilationEnv, path: string): Promise<T>;
+    /**
+     * 从本地读取一个文件
+     * @param env 环境变量
+     * @param path 文件路径
+     */
+    readFromLocal(env: CompilationEnv, path: string): Promise<T>
 
+    /**
+     * 从网络读取一个文件
+     * @param env 环境变量
+     * @param response 拉取的结果
+     */
+    readFromNetwork(env: CompilationEnv, response: Response): Promise<T>
+
+    /**
+     * 从文件内容中提取 URL
+     * @param env 环境变量
+     * @param content 文件内容
+     */
     extractUrls(env: CompilationEnv, content: T): Promise<Set<string>>
 
 }
