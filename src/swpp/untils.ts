@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto'
 import {RuntimeEnvErrorTemplate} from './database/KeyValueDataBase'
 
 export type ValuesOf<T> = T[keyof T]
@@ -127,6 +128,13 @@ export const utils = Object.freeze({
                 message: '传入的 path 或 host 不合法'
             } as RuntimeEnvErrorTemplate<string>
         }
+    },
+
+    /** 计算字符串的哈希值 */
+    calcStringHash(content: string): string {
+        const hash = crypto.createHash('md5')
+        hash.update(content)
+        return hash.digest('hex')
     }
 
 })
