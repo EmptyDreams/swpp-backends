@@ -1,6 +1,7 @@
 import {HTMLElement} from 'fast-html-parser'
 import fs from 'fs'
 import {buildFileParser, FileParserRegistry} from '../FileParser'
+import {FiniteConcurrencyFetcher, NetworkFileHandler} from '../NetworkFileHandler'
 import {utils} from '../untils'
 import {buildEnv, KeyValueDataBase, RuntimeEnvErrorTemplate} from './KeyValueDataBase'
 import * as HTMLParser from 'fast-html-parser'
@@ -43,20 +44,7 @@ export class CompilationEnv extends KeyValueDataBase<any> {
             }),
             /** 拉取网络文件 */
             FETCH_NETWORK_FILE: buildEnv({
-                default: {
-                    referer: 'swpp-backends',
-                    userAgent: 'swpp-backends',
-                    headers: {},
-                    fetch(url: RequestInfo | URL): Promise<Response> {
-                        return fetch(url, {
-                            referrer: this.referer,
-                            headers: {
-                                ...this.headers,
-                                'User-Agent': this.userAgent
-                            }
-                        })
-                    }
-                } as NetworkFileHandler
+                default: new FiniteConcurrencyFetcher()
             })
         })
         /** 解析文件内容 */
@@ -190,19 +178,5 @@ export class CompilationEnv extends KeyValueDataBase<any> {
         }))
         this.append('FILE_PARSER', buildEnv({default: register}))
     }
-
-}
-
-export interface NetworkFileHandler {
-
-    /** 拉取文件时使用的 referer */
-    referer: string
-    /** 拉取文件时使用的 ua */
-    userAgent: string
-    /** 需要额外写入的 header（不包含 ua） */
-    headers: { [name: string]: string }
-
-    /** 拉取文件 */
-    fetch(request: RequestInfo | URL): Promise<Response>
 
 }

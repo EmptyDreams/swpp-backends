@@ -131,7 +131,7 @@ export const utils = Object.freeze({
     },
 
     /** 计算字符串的哈希值 */
-    calcStringHash(content: string): string {
+    calcHash(content: crypto.BinaryLike): string {
         const hash = crypto.createHash('md5')
         hash.update(content)
         return hash.digest('hex')

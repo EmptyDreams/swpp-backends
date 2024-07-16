@@ -23,21 +23,36 @@ export class FileParserRegistry {
     /** 解析本地文件 */
     async parserLocalFile(path: string): Promise<Set<string>> {
         const parser = this.map.get(nodePath.extname(path))
-        if (parser == null) throw {
-            value: path,
-            message: '不支持解析指定类型的文件'
-        }
+        if (!parser) return new Set<string>()
         const content = await parser.readFromLocal(this.env, path)
+        return parser.extractUrls(this.env, content)
+    }
+
+    /** 解析网络文件 */
+    async parserNetworkFile(response: Response): Promise<Set<string>> {
+        const url = response.url
+        let contentType: string
+        if (url.endsWith('/')) {
+            contentType = 'html'
+        } else {
+            contentType = nodePath.extname(url)
+        }
+        if (!contentType) {
+            if (contentType.startsWith('text/'))
+                contentType = contentType.substring(5)
+            if (contentType === 'javascript')
+                contentType = 'script'
+        }
+        const parser = this.map.get(contentType)
+        if (!parser) return new Set<string>()
+        const content = await parser.readFromNetwork(this.env, response)
         return parser.extractUrls(this.env, content)
     }
 
     /** 解析指定类型的文件内容 */
     async parserContent(type: string, content: string): Promise<Set<string>> {
         const parser = this.map.get(type)
-        if (parser == null) throw {
-            value: type,
-            message: '不支持解析指定类型的文件'
-        }
+        if (!parser) return new Set<string>()
         return parser.extractUrls(this.env, content)
     }
 

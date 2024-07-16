@@ -3,6 +3,8 @@ import * as crypto from 'node:crypto'
 import nodePath from 'path'
 import {CompilationEnv} from './database/CompilationEnv'
 import {FileParserRegistry} from './FileParser'
+import {NetworkFileHandler} from './NetworkFileHandler'
+import {utils} from './untils'
 
 /**
  * 资源文件扫描器
@@ -34,6 +36,30 @@ export class ResourcesScanner {
             })
         })
         return {urls, tracker}
+    }
+
+    /** 扫描网络文件 */
+    async scanNetworkFile(data: LocalFileScanResult, urls: Iterable<string> = data.urls) {
+        const fetcher = this.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
+        const registry = this.env.read('FILE_PARSER') as FileParserRegistry
+        const appendedUrls = new Set<string>()
+        const taskList = new Array<Promise<void>>(data.urls.size)
+        let i = 0
+        for (let url of urls) {
+            taskList[i++] = fetcher.fetch(url)
+                .then(async response => {
+                    const cpy = response.clone()
+                    const array = await cpy.body!.getReader().read()
+                    data.tracker.update(url, utils.calcHash(array.value!))
+                    return response
+                })
+                .then(response => registry.parserNetworkFile(response))
+                .then(urls => urls.forEach(it => appendedUrls.add(it)))
+                .catch(err => console.error(err))
+        }
+        await Promise.all(taskList)
+        if (appendedUrls.size !== 0)
+            await this.scanNetworkFile(data, appendedUrls)
     }
 
 }

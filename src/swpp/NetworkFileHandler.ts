@@ -1,0 +1,63 @@
+export interface NetworkFileHandler {
+
+    /** 最大并发量 */
+    limit: number
+    /** 拉取文件时使用的 referer */
+    referer: string
+    /** 拉取文件时使用的 ua */
+    userAgent: string
+    /** 需要额外写入的 header（不包含 ua） */
+    headers: { [name: string]: string }
+
+    /** 拉取文件 */
+    fetch(request: RequestInfo | URL): Promise<Response>
+
+}
+
+/** 支持并发控制的网络文件拉取工具 */
+export class FiniteConcurrencyFetcher implements NetworkFileHandler {
+
+    private fetchingCount = 0
+    private waitList = [] as {
+        request: RequestInfo | URL,
+        resolve: (response: Response) => void,
+        reject: (error: any) => void
+    }[]
+
+    limit = 100
+    referer = 'swpp-backends'
+    userAgent = 'swpp-backends'
+    headers = {}
+
+    fetch(request: RequestInfo | URL): Promise<Response> {
+        if (this.fetchingCount !== this.limit) {
+            return this.createFetchTask(request)
+        } else {
+            return new Promise((resolve, reject) => {
+                this.waitList.push({request, resolve, reject})
+            })
+        }
+    }
+
+    private async createFetchTask(url: RequestInfo | URL): Promise<Response> {
+        ++this.fetchingCount
+        try {
+            return await fetch(url, {
+                referrer: this.referer,
+                headers: {
+                    ...this.headers,
+                    'User-Agent': this.userAgent
+                }
+            })
+        } finally {
+            --this.fetchingCount
+            if (this.waitList.length !== 0) {
+                const item = this.waitList.pop()!
+                this.createFetchTask(item.request)
+                    .then(response => item.resolve(response))
+                    .catch(err => item.reject(err))
+            }
+        }
+    }
+
+}
