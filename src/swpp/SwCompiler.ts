@@ -36,7 +36,7 @@ export class SwCompiler {
         encoding: BufferEncoding = 'utf-8'
     ): string {
         if (this.swCode) return this.swCode
-        runtime.dep.fixDepFunction()
+        runtime.runtimeDep.fixDepFunction()
         const content = fs.readFileSync(path, encoding)
         const startIndex = content.indexOf('/* 代码区起点 */') + 12
         const endIndex = content.lastIndexOf('/* 代码区终点 */')
@@ -50,8 +50,8 @@ export class SwCompiler {
 
 export interface RuntimeData {
 
-    env: RuntimeEnv,
-    dep: RuntimeDepCode,
+    runtimeEnv: RuntimeEnv,
+    runtimeDep: RuntimeDepCode,
     crossDep: CrossDepCode
 
 }
@@ -68,7 +68,7 @@ function handleInlineCode(runtime: RuntimeData, swCode: string): string {
         // @ts-ignore
         return _inlineCodes[key](runtime)
     }).replaceAll(/\$\$has_runtime_env\('(.*?)'\)/g, (_, key) => {
-        return runtime.env.has(key) ? 'true' : 'false'
+        return runtime.runtimeEnv.has(key) ? 'true' : 'false'
     })
 }
 
@@ -80,7 +80,7 @@ export const _inlineCodes = {
             code: exceptionNames.nullPoint,
             message: 'runtime 不应当为空'
         } as RuntimeException
-        return utils.anyToSource(runtime!.env.entries(), true, 'const')
+        return utils.anyToSource(runtime!.runtimeEnv.entries(), true, 'const')
     },
 
     /** 插入运行时依赖函数 */
@@ -90,7 +90,7 @@ export const _inlineCodes = {
             message: 'runtime 不应当为空'
         } as RuntimeException
         const map = utils.objMap(runtime.crossDep.entries(), item => item.runOnBrowser)
-        Object.assign(map, runtime.dep.entries())
+        Object.assign(map, runtime.runtimeDep.entries())
         return utils.anyToSource(map, false, 'const')
     }
 
