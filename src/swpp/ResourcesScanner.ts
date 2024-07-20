@@ -14,7 +14,7 @@ export class ResourcesScanner {
     constructor(private compilation: CompilationData) { }
 
     /** 扫描指定目录下的所有文件 */
-    async scanLocalFile(path: string): Promise<LocalFileScanResult> {
+    async scanLocalFile(path: string): Promise<FileUpdateTracker> {
         const register = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation)
@@ -35,27 +35,31 @@ export class ResourcesScanner {
                 stream.on('error', err => reject(err))
             })
         })
-        return {urls, tracker}
+        await this.scanNetworkFile(tracker, urls)
+        return tracker
     }
 
     /** 扫描网络文件 */
-    async scanNetworkFile(data: LocalFileScanResult, urls: Iterable<string> = data.urls) {
+    private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
         const fetcher = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
         const registry = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const appendedUrls = new Set<string>()
-        const taskList = new Array<Promise<void>>(data.urls.size)
+        const taskList = new Array<Promise<void>>(urls.size)
         let i = 0
         for (let url of urls) {
-            taskList[i++] = fetcher.fetch(url)
+            const normalizeUri = tracker.normalizeUri(url)
+            if (record.has(normalizeUri)) continue
+            record.add(normalizeUri)
+            taskList[i++] = fetcher.fetch(normalizeUri)
                 .then(response => registry.parserNetworkFile(response, content => {
-                    data.tracker.update(url, utils.calcHash(content))
+                    tracker.update(normalizeUri, utils.calcHash(content))
                 }))
                 .then(urls => urls.forEach(it => appendedUrls.add(it)))
                 .catch(err => utils.printError('SCAN NETWORK FILE', err))
         }
         await Promise.all(taskList)
         if (appendedUrls.size !== 0)
-            await this.scanNetworkFile(data, appendedUrls)
+            await this.scanNetworkFile(tracker, appendedUrls, record)
     }
 
 }
@@ -95,7 +99,6 @@ export class FileUpdateTracker {
 
     /** 更新一个文件的标识符 */
     update(uri: string, value: string) {
-        uri = this.normalizeUri(uri)
         this.map.set(uri, value)
     }
 
@@ -106,24 +109,12 @@ export class FileUpdateTracker {
     }
 
     /** 归一化 uri */
-    private normalizeUri(uri: string): string {
+    normalizeUri(uri: string): string {
         if (uri.startsWith('http:'))
             uri = `https:${uri.substring(5)}`
         const domain = this.compilation.env.read('DOMAIN_HOST') as string
         const url = new URL(uri, `https://${domain}`)
         return url.href
     }
-
-}
-
-/**
- * 本地文件扫描结果
- */
-export interface LocalFileScanResult {
-
-    /** 外部 URL 列表 */
-    urls: Set<string>
-
-    tracker: FileUpdateTracker
 
 }
