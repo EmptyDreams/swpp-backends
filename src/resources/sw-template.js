@@ -91,13 +91,12 @@ function $$has_runtime_env(key) {}
     /**
      * 判断指定的缓存是否是有效缓存
      * @param response {Response}
-     * @param rule {?(number | false | null | undefined)}
+     * @param rule {number | false | null | undefined}
      * @return {boolean}
      */
     const isValidCache = (response, rule) => {
         const headers = response.headers
         if (headers.has(INVALID_KEY)) return false
-        if (!rule) rule = matchCacheRule(new URL(response.url))
         if (!rule) return false
         if (rule < 0) return true
         const storage = headers.get(STORAGE_TIMESTAMP)

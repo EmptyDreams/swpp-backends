@@ -26,7 +26,9 @@ export class FileParserRegistry {
         const parser = this.map.get(nodePath.extname(path))
         if (!parser) return new Set<string>()
         const content = await parser.readFromLocal(this.compilation, path)
-        return parser.extractUrls(this.compilation, content)
+        const urls = await parser.extractUrls(this.compilation, content)
+        this.filterUrl(urls)
+        return urls
     }
 
     /** 解析网络文件 */
@@ -48,14 +50,31 @@ export class FileParserRegistry {
         if (!parser) return new Set<string>()
         const content = await parser.readFromNetwork(this.compilation, response)
         if (callback) await callback(content)
-        return parser.extractUrls(this.compilation, content)
+        const urls = await parser.extractUrls(this.compilation, content)
+        this.filterUrl(urls)
+        return urls
     }
 
     /** 解析指定类型的文件内容 */
     async parserContent(type: string, content: string): Promise<Set<string>> {
         const parser = this.map.get(type)
         if (!parser) return new Set<string>()
-        return parser.extractUrls(this.compilation, content)
+        const urls = await parser.extractUrls(this.compilation, content)
+        this.filterUrl(urls)
+        return urls
+    }
+
+    /** 过滤 URL，仅保留永久缓存的 URL */
+    private filterUrl(urls: Set<string>) {
+        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
+            .runOnNode as (url: URL) => undefined | null | false | number
+        urls.forEach(value => {
+            const url = new URL(value)
+            const cacheRule = matchCacheRule(url)
+            if (typeof cacheRule !== 'number' || cacheRule >= 0) {
+                urls.delete(value)
+            }
+        })
     }
 
 }
