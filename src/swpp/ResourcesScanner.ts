@@ -4,7 +4,7 @@ import nodePath from 'path'
 import {FileParserRegistry} from './FileParser'
 import {NetworkFileHandler} from './NetworkFileHandler'
 import {CompilationData} from './SwCompiler'
-import {utils} from './untils'
+import {exceptionNames, RuntimeException, utils} from './untils'
 
 /**
  * 资源文件扫描器
@@ -92,6 +92,8 @@ async function traverseDirectory(dir: string, callback: (file: string) => Promis
  */
 export class FileUpdateTracker {
 
+    /** 附加信息 */
+    private headers = new Map<string, any>()
     /** 存储列表，key 为文件路径，value 为文件的唯一标识符 */
     private map = new Map<string, string>()
 
@@ -115,6 +117,64 @@ export class FileUpdateTracker {
         const domain = this.compilation.env.read('DOMAIN_HOST') as string
         const url = new URL(uri, `https://${domain}`)
         return url.href
+    }
+
+    /**
+     * 将数据序列化为 JSON
+     *
+     * 具体格式为：
+     *
+     * ```json
+     * {
+     *   "version": 4,
+     *   "headers": {
+     *     [key: string]: any
+     *   },
+     *   "tracker" {
+     *     [uri: string]: string
+     *   }
+     * }
+     * ```
+     */
+    json(): string {
+        const result = {
+            version: 4,
+            tracker: {} as { [key: string]: string }
+        }
+        this.map.forEach((value, key) => {
+            result.tracker[key] = value
+        })
+        return JSON.stringify(result.tracker)
+    }
+
+    /** 解序列化数据 */
+    static unJson(compilation: CompilationData, jsonStr: string): FileUpdateTracker {
+        const tracker = new FileUpdateTracker(compilation)
+        const json = JSON.parse(jsonStr)
+        switch (json.version) {
+            case 4:
+                for (let key in json.headers) {
+                    tracker.headers.set(key, json.headers[key])
+                }
+                for (let key in json.tracker) {
+                    tracker.map.set(key, json.tracker[key])
+                }
+                break
+            case 3:
+                for (let key in json.external) {
+                    tracker.headers.set(key, json.external[key])
+                }
+                for (let key in json.list) {
+                    const value = json.list[key]
+                    tracker.map.set(key, value.length === 32 ? value : '')
+                }
+                break
+            default: throw {
+                code: exceptionNames.unsupportedVersion,
+                message: `不支持 ${json.version}`,
+            } as RuntimeException
+        }
+        return tracker
     }
 
 }

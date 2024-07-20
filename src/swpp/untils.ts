@@ -182,6 +182,8 @@ export const exceptionNames = {
     invalidInlineCodeKey: 'invalid_inline_code_key',
     /** 无效的插入键 */
     invalidInjectKey: 'invalid_inject_key',
+    /** 不支持的版本号 */
+    unsupportedVersion: 'unsupported_version',
     /** 插入键重复 */
     repeatInjectKey: 'repeat_inject_key',
     /** 空指针 */
