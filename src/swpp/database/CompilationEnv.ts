@@ -2,7 +2,9 @@ import {HTMLElement} from 'fast-html-parser'
 import fs from 'fs'
 import {buildFileParser, FileParserRegistry} from '../FileParser'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
+import {CompilationData} from '../SwCompiler'
 import {utils} from '../untils'
+import {CrossDepCode} from './CrossDepCode'
 import {buildEnv, KeyValueDataBase, RuntimeEnvErrorTemplate} from './KeyValueDataBase'
 import * as HTMLParser from 'fast-html-parser'
 
@@ -11,7 +13,7 @@ import * as HTMLParser from 'fast-html-parser'
  */
 export class CompilationEnv extends KeyValueDataBase<any> {
 
-    constructor() {
+    constructor(env: CompilationEnv, cross: CrossDepCode) {
         super({
             DOMAIN_HOST: buildEnv({
                 default: 'www.example.com',
@@ -48,16 +50,16 @@ export class CompilationEnv extends KeyValueDataBase<any> {
             })
         })
         /** 解析文件内容 */
-        const register = new FileParserRegistry(this)
+        const register = new FileParserRegistry({env, crossDep: cross})
         register.registry('html', buildFileParser({
-            readFromLocal(env: CompilationEnv, path: string): Promise<string> {
-                return env.read('LOCAL_FILE_READER')(path)
+            readFromLocal(compilation: CompilationData, path: string): Promise<string> {
+                return compilation.env.read('LOCAL_FILE_READER')(path)
             },
-            readFromNetwork(_: CompilationEnv, response: Response): Promise<string> {
+            readFromNetwork(_: CompilationData, response: Response): Promise<string> {
                 return response.text()
             },
-            async extractUrls(env: CompilationEnv, content: string): Promise<Set<string>> {
-                const host = env.read("DOMAIN_HOST") as string
+            async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
+                const host = compilation.env.read("DOMAIN_HOST") as string
                 const html = HTMLParser.parse(content, {
                     script: true, style: true
                 })
@@ -118,14 +120,14 @@ export class CompilationEnv extends KeyValueDataBase<any> {
             }
         }))
         register.registry('css', buildFileParser({
-            readFromLocal(env: CompilationEnv, path: string): Promise<string> {
-                return env.read('LOCAL_FILE_READER')(path)
+            readFromLocal(compilation: CompilationData, path: string): Promise<string> {
+                return compilation.env.read('LOCAL_FILE_READER')(path)
             },
-            readFromNetwork(_: CompilationEnv, response: Response): Promise<string> {
+            readFromNetwork(_: CompilationData, response: Response): Promise<string> {
                 return response.text()
             },
-            async extractUrls(env: CompilationEnv, content: string): Promise<Set<string>> {
-                const host = env.read('DOMAIN_HOST') as string
+            async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
+                const host = compilation.env.read('DOMAIN_HOST') as string
                 const urls = new Set<string>()
                 /** 从指定位置开始查询注释 */
                 const findComment = (tag: string, start: number) => {

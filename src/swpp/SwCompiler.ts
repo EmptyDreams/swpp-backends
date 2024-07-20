@@ -1,5 +1,6 @@
 import fs from 'fs'
 import nodePath from 'path'
+import {CompilationEnv} from './database/CompilationEnv'
 import {CrossDepCode} from './database/CrossDepCode'
 import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {RuntimeEnv} from './database/RuntimeEnv'
@@ -52,6 +53,13 @@ export interface RuntimeData {
 
     runtimeEnv: RuntimeEnv,
     runtimeDep: RuntimeDepCode,
+    crossDep: CrossDepCode
+
+}
+
+export interface CompilationData {
+
+    env: CompilationEnv,
     crossDep: CrossDepCode
 
 }

@@ -1,9 +1,9 @@
 import fs from 'fs'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
-import {CompilationEnv} from './database/CompilationEnv'
 import {FileParserRegistry} from './FileParser'
 import {NetworkFileHandler} from './NetworkFileHandler'
+import {CompilationData} from './SwCompiler'
 import {utils} from './untils'
 
 /**
@@ -11,13 +11,13 @@ import {utils} from './untils'
  */
 export class ResourcesScanner {
 
-    constructor(private env: CompilationEnv) { }
+    constructor(private compilation: CompilationData) { }
 
     /** 扫描指定目录下的所有文件 */
     async scanLocalFile(path: string): Promise<LocalFileScanResult> {
-        const register = this.env.read('FILE_PARSER') as FileParserRegistry
+        const register = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const urls = new Set<string>()
-        const tracker = new FileUpdateTracker(this.env)
+        const tracker = new FileUpdateTracker(this.compilation)
         await traverseDirectory(path, async file => {
             const stream = fs.createReadStream(path)
             const hash = crypto.createHash('md5')
@@ -40,8 +40,8 @@ export class ResourcesScanner {
 
     /** 扫描网络文件 */
     async scanNetworkFile(data: LocalFileScanResult, urls: Iterable<string> = data.urls) {
-        const fetcher = this.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
-        const registry = this.env.read('FILE_PARSER') as FileParserRegistry
+        const fetcher = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
+        const registry = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(data.urls.size)
         let i = 0
@@ -91,7 +91,7 @@ export class FileUpdateTracker {
     /** 存储列表，key 为文件路径，value 为文件的唯一标识符 */
     private map = new Map<string, string>()
 
-    constructor(private env: CompilationEnv) { }
+    constructor(private compilation: CompilationData) { }
 
     /** 更新一个文件的标识符 */
     update(uri: string, value: string) {
@@ -109,7 +109,7 @@ export class FileUpdateTracker {
     private normalizeUri(uri: string): string {
         if (uri.startsWith('http:'))
             uri = `https:${uri.substring(5)}`
-        const domain = this.env.read('DOMAIN_HOST') as string
+        const domain = this.compilation.env.read('DOMAIN_HOST') as string
         const url = new URL(uri, `https://${domain}`)
         return url.href
     }
