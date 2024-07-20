@@ -12,14 +12,10 @@ let fetchStandby: (request: Request, standbyRequests: {t: number, l: Request[]},
 let fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
 
 /** 运行时依赖代码 */
-export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any[], any> | null> {
+export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any, any> | null> {
 
     constructor() {
         super({
-            /** 缓存规则 */
-            matchCacheRule: {
-                default: (() => undefined) as (url: URL) => undefined | null | false | number
-            },
             /** 是否启用 cors */
             isCors: {
                 default: (() => true) as (request: Request) => boolean

@@ -1,5 +1,6 @@
 import fs from 'fs'
 import nodePath from 'path'
+import {CrossDepCode} from './database/CrossDepCode'
 import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {RuntimeEnv} from './database/RuntimeEnv'
 import {SwCodeInject} from './SwCodeInject'
@@ -50,7 +51,8 @@ export class SwCompiler {
 export interface RuntimeData {
 
     env: RuntimeEnv,
-    dep: RuntimeDepCode
+    dep: RuntimeDepCode,
+    crossDep: CrossDepCode
 
 }
 
@@ -74,12 +76,22 @@ export const _inlineCodes = {
 
     /** 插入环境变量 */
     _insertRuntimeEnv(runtime?: RuntimeData) {
+        if (runtime == null) throw {
+            code: exceptionNames.nullPoint,
+            message: 'runtime 不应当为空'
+        } as RuntimeException
         return utils.anyToSource(runtime!.env.entries(), true, 'const')
     },
 
     /** 插入运行时依赖函数 */
     _insertDepCode(runtime?: RuntimeData) {
-        return utils.anyToSource(runtime!.dep.entries(), false, 'const')
+        if (runtime == null) throw {
+            code: exceptionNames.nullPoint,
+            message: 'runtime 不应当为空'
+        } as RuntimeException
+        const map = utils.objMap(runtime.crossDep.entries(), item => item.runOnBrowser)
+        Object.assign(map, runtime.dep.entries())
+        return utils.anyToSource(map, false, 'const')
     }
 
 } as const

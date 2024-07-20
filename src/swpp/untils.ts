@@ -155,6 +155,20 @@ export const utils = Object.freeze({
 
     printWarning(title: string, warning: any) {
         console.warn(`[${this.time()}] [WARN] [SWPP] [${title}]: ${JSON.stringify(warning, null, 2)}`)
+    },
+
+    /**
+     * 将一个对象中的值都映射为另一个类型的值
+     * @param obj
+     * @param transfer
+     */
+    objMap<T, R>(obj: { [key: string]: T }, transfer: (item: T) => R): { [key: string]: R } {
+        const result: any = {}
+        for (let key in obj) {
+            const value = obj[key]
+            result[key] = transfer(value)
+        }
+        return result
     }
 
 })
@@ -169,7 +183,9 @@ export const exceptionNames = {
     /** 无效的插入键 */
     invalidInjectKey: 'invalid_inject_key',
     /** 插入键重复 */
-    repeatInjectKey: 'repeat_inject_key'
+    repeatInjectKey: 'repeat_inject_key',
+    /** 空指针 */
+    nullPoint: 'null_point'
 } as const
 
 export interface RuntimeException {
