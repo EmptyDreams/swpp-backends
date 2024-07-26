@@ -1,7 +1,7 @@
 import fs from 'fs'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
-import {FileParserRegistry} from './FileParser'
+import {FileMark, FileParserRegistry} from './FileParser'
 import {NetworkFileHandler} from './NetworkFileHandler'
 import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
@@ -41,7 +41,6 @@ export class ResourcesScanner {
 
     /** 扫描网络文件 */
     private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
-        const fetcher = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
         const registry = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(urls.size)
@@ -50,12 +49,11 @@ export class ResourcesScanner {
             const normalizeUri = tracker.normalizeUri(url)
             if (record.has(normalizeUri)) continue
             record.add(normalizeUri)
-            taskList[i++] = fetcher.fetch(normalizeUri)
-                .then(response => registry.parserNetworkFile(response, content => {
-                    tracker.update(normalizeUri, utils.calcHash(content))
-                }))
-                .then(urls => urls.forEach(it => appendedUrls.add(it)))
-                .catch(err => utils.printError('SCAN NETWORK FILE', err))
+            taskList[i++] = registry.parserUrlFile(normalizeUri)
+                .then(value => {
+                    tracker.update(value.file, value.mark)
+                    value.urls.forEach(it => appendedUrls.add(it))
+                }).catch(err => utils.printError('SCAN NETWORK FILE', err))
         }
         await Promise.all(taskList)
         if (appendedUrls.size !== 0)

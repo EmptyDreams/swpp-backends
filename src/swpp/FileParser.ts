@@ -1,6 +1,8 @@
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
+import {NetworkFileHandler} from './NetworkFileHandler'
 import {CompilationData} from './SwCompiler'
+import {utils} from './untils'
 
 export class FileParserRegistry {
 
@@ -31,19 +33,7 @@ export class FileParserRegistry {
 
     /** 解析网络文件 */
     async parserNetworkFile(response: Response, callback?: (content: crypto.BinaryLike) => Promise<any> | any): Promise<Set<string>> {
-        const url = response.url
-        let contentType: string
-        if (url.endsWith('/')) {
-            contentType = 'html'
-        } else {
-            contentType = nodePath.extname(url)
-        }
-        if (!contentType) {
-            if (contentType.startsWith('text/'))
-                contentType = contentType.substring(5)
-            if (contentType === 'javascript')
-                contentType = 'script'
-        }
+        const contentType = FileParserRegistry.getUrlType(response.url, response)
         const parser = this.map.get(contentType)
         if (!parser) return new Set<string>()
         const content = await parser.readFromNetwork(this.compilation, response)
@@ -51,11 +41,51 @@ export class FileParserRegistry {
         return await parser.extractUrls(this.compilation, content)
     }
 
+    /** 解析指定的 URL */
+    async parserUrlFile(url: string): Promise<FileMark> {
+        const contentType = FileParserRegistry.getUrlType(url)
+        const parser = this.map.get(contentType)
+        if (contentType && parser?.calcUrl) {
+            const result = await parser.calcUrl(url)
+            if (result) return {
+                file: url,
+                ...result
+            }
+        }
+        const fetcher = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
+        const urls = new Set<string>()
+        let mark = ''
+        await fetcher.fetch(url)
+            .then(response => this.parserNetworkFile(response, content => {
+                mark = utils.calcHash(content)
+            }))
+            .then(urls => urls.forEach(it => urls.add(it)))
+        return { file: url, mark, urls }
+    }
+
     /** 解析指定类型的文件内容 */
     async parserContent(type: string, content: string): Promise<Set<string>> {
         const parser = this.map.get(type)
         if (!parser) return new Set<string>()
         return await parser.extractUrls(this.compilation, content)
+    }
+
+    private static getUrlType(url: string, response?: Response): string {
+        let contentType: string
+        if (url.endsWith('/')) {
+            contentType = 'html'
+        } else {
+            contentType = nodePath.extname(url)
+        }
+        if (!contentType) {
+            if (response)
+                contentType = response.headers.get('content-type') ?? ''
+            if (contentType.startsWith('text/'))
+                contentType = contentType.substring(5)
+            if (contentType === 'javascript')
+                contentType = 'script'
+        }
+        return contentType
     }
 
     // /** 过滤 URL，仅保留永久缓存的 URL */
@@ -95,6 +125,23 @@ export interface FileParser<T extends crypto.BinaryLike> {
      * @param content 文件内容
      */
     extractUrls(compilation: CompilationData, content: T): Promise<Set<string>>
+
+    /**
+     * 计算一个链接对应的资源的标识符及其内部资源
+     * @return 返回 undefined/null 表示使用缺省逻辑
+     */
+    calcUrl?(url: string): Promise<Omit<FileMark, 'file'> | undefined | null>
+
+}
+
+export interface FileMark {
+
+    /** URL */
+    file: string
+    /** 文件标识符 */
+    mark: string
+    /** URL 列表 */
+    urls: Set<string>
 
 }
 
