@@ -1,4 +1,4 @@
-import {KeyValueDataBase} from './KeyValueDataBase'
+import {KeyValueDatabase} from './KeyValueDatabase'
 import {FunctionInBrowser} from './RuntimeDepCode'
 
 /**
@@ -15,7 +15,7 @@ export interface FunctionInBrowserAndNode<Args extends any[], R> {
 /**
  * 运行时和生成时都依赖的代码
  */
-export class CrossDepCode extends KeyValueDataBase<FunctionInBrowserAndNode<any, any>> {
+export class CrossDepCode extends KeyValueDatabase<FunctionInBrowserAndNode<any, any>> {
 
     constructor() {
         super({

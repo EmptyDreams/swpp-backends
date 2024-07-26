@@ -1,4 +1,4 @@
-import {KeyValueDataBase, RuntimeEnvErrorTemplate} from './KeyValueDataBase'
+import {KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 
 /** 仅在浏览器端执行的函数 */
 export type FunctionInBrowser<Args extends any[], R> = (...args: Args) => R
@@ -12,7 +12,7 @@ let fetchStandby: (request: Request, standbyRequests: {t: number, l: Request[]},
 let fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
 
 /** 运行时依赖代码 */
-export class RuntimeDepCode extends KeyValueDataBase<FunctionInBrowser<any, any> | null> {
+export class RuntimeDepCode extends KeyValueDatabase<FunctionInBrowser<any, any> | null> {
 
     constructor() {
         super({

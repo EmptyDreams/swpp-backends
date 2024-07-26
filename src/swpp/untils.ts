@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto'
-import {RuntimeEnvErrorTemplate} from './database/KeyValueDataBase'
+import {RuntimeEnvErrorTemplate} from './database/KeyValueDatabase'
 
 export type ValuesOf<T> = T[keyof T]
 

@@ -5,13 +5,13 @@ import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {CompilationData} from '../SwCompiler'
 import {utils} from '../untils'
 import {CrossDepCode} from './CrossDepCode'
-import {buildEnv, KeyValueDataBase, RuntimeEnvErrorTemplate} from './KeyValueDataBase'
+import {buildEnv, KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 import * as HTMLParser from 'fast-html-parser'
 
 /**
  * 仅在编译期生效的配置项
  */
-export class CompilationEnv extends KeyValueDataBase<any> {
+export class CompilationEnv extends KeyValueDatabase<any> {
 
     constructor(env: CompilationEnv, cross: CrossDepCode) {
         super({

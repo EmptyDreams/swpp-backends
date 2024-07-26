@@ -1,5 +1,5 @@
 /** 键值对存储器 */
-export class KeyValueDataBase<T> {
+export class KeyValueDatabase<T> {
 
     private runtimeEnvMap: { [p: string]: DatabaseValue<T> } = {}
 
