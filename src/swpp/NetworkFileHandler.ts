@@ -1,3 +1,5 @@
+import nodePath from 'path'
+
 export interface NetworkFileHandler {
 
     /** 最大并发量 */
@@ -11,6 +13,9 @@ export interface NetworkFileHandler {
 
     /** 拉取文件 */
     fetch(request: RequestInfo | URL): Promise<Response>
+
+    /** 获取指定文件的类型 */
+    getUrlContentType(url: string, response?: Response): string
 
 }
 
@@ -58,6 +63,24 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                     .catch(err => item.reject(err))
             }
         }
+    }
+
+    getUrlContentType(url: string, response?: Response): string {
+        let contentType: string
+        if (url.endsWith('/')) {
+            contentType = 'html'
+        } else {
+            contentType = nodePath.extname(url)
+        }
+        if (!contentType) {
+            if (response)
+                contentType = response.headers.get('content-type') ?? ''
+            if (contentType.startsWith('text/'))
+                contentType = contentType.substring(5)
+            if (contentType === 'javascript')
+                contentType = 'script'
+        }
+        return contentType
     }
 
 }

@@ -33,7 +33,8 @@ export class FileParserRegistry {
 
     /** 解析网络文件 */
     async parserNetworkFile(response: Response, callback?: (content: crypto.BinaryLike) => Promise<any> | any): Promise<Set<string>> {
-        const contentType = FileParserRegistry.getUrlType(response.url, response)
+        const fileHandler = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
+        const contentType = fileHandler.getUrlContentType(response.url, response)
         const parser = this.map.get(contentType)
         if (!parser) return new Set<string>()
         const content = await parser.readFromNetwork(this.compilation, response)
@@ -43,7 +44,8 @@ export class FileParserRegistry {
 
     /** 解析指定的 URL */
     async parserUrlFile(url: string): Promise<FileMark> {
-        const contentType = FileParserRegistry.getUrlType(url)
+        const fileHandler = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
+        const contentType = fileHandler.getUrlContentType(url)
         const parser = this.map.get(contentType)
         if (contentType && parser?.calcUrl) {
             const result = await parser.calcUrl(url)
@@ -68,24 +70,6 @@ export class FileParserRegistry {
         const parser = this.map.get(type)
         if (!parser) return new Set<string>()
         return await parser.extractUrls(this.compilation, content)
-    }
-
-    private static getUrlType(url: string, response?: Response): string {
-        let contentType: string
-        if (url.endsWith('/')) {
-            contentType = 'html'
-        } else {
-            contentType = nodePath.extname(url)
-        }
-        if (!contentType) {
-            if (response)
-                contentType = response.headers.get('content-type') ?? ''
-            if (contentType.startsWith('text/'))
-                contentType = contentType.substring(5)
-            if (contentType === 'javascript')
-                contentType = 'script'
-        }
-        return contentType
     }
 
     // /** 过滤 URL，仅保留永久缓存的 URL */
