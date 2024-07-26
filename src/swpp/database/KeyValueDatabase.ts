@@ -17,7 +17,7 @@ export class KeyValueDatabase<T> {
         const item = this.runtimeEnvMap[key]
         if (!item) throw {key, message: 'key 不存在'}
         const value = item.getter ? item.getter() : item.default
-        if (item.default != null && typeof value != typeof item.default)
+        if (!(value === null || value === undefined) && typeof value != typeof item.default)
             throw {key, value, message: '用户传入的值类型与缺省值类型不统一'} as RuntimeEnvException<any>
         const checkResult = item.checker?.(value)
         if (checkResult) throw {key, ...checkResult}
