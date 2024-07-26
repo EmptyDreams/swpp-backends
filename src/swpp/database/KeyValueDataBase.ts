@@ -29,9 +29,9 @@ export class KeyValueDataBase<T> {
      * @throws RuntimeEnvException
      */
     update(key: string, valueGetter: () => T) {
-        const item = this.runtimeEnvMap[key]
-        if (!item) throw {key, value: null, message: 'key 不存在'} as RuntimeEnvException<any>
-        item.getter = valueGetter
+        if (!(key in this.runtimeEnvMap))
+            throw {key, value: null, message: 'key 不存在'} as RuntimeEnvException<any>
+        this.runtimeEnvMap[key].getter = valueGetter
     }
 
     /**
