@@ -1,78 +1,17 @@
-import {utils} from './swpp/untils'
-import {readEjectData, getSource, fetchFile, replaceDevRequest, calcEjectValues, deepFreeze} from './Utils'
-import {
-    isExclude,
-    isStable,
-    loadVersionJson,
-    buildVersionJson,
-    eachAllLinkInUrl,
-    findCache,
-    findFileHandler,
-    replaceRequest,
-    submitCacheInfo,
-    submitExternalUrl,
-    registryFileHandler
-} from './FileAnalyzer'
-import {buildServiceWorker} from './ServiceWorkerBuilder'
-import {loadRules, addRulesMapEvent} from './SwppRules'
-import {loadUpdateJson, submitChange, getShorthand, buildUpdateJson} from './UpdateJsonBuilder'
-import {
-    readMergeVersionMap,
-    readNewVersionJson,
-    readOldVersionJson,
-    readRules,
-    readUpdateJson,
-    readAnalyzeResult,
-    writeVariant,
-    readVariant,
-    deleteVariant
-} from './Variant'
-import {refreshUrl, analyzeVersion} from './VersionAnalyzer'
-import {buildDomJs} from './DomBuilder'
+import {CrossDepCode} from './swpp/database/CrossDepCode'
+import {RuntimeDepCode} from './swpp/database/RuntimeDepCode'
+import {RuntimeEnv} from './swpp/database/RuntimeEnv'
+import {SwCodeInject} from './swpp/SwCodeInject'
+import {RuntimeData, SwCompiler} from './swpp/SwCompiler'
 
-// noinspection JSUnusedGlobalSymbols
-export default {
-    version: require('../package.json').version,
-    cache: {
-        readEjectData, readUpdateJson,
-        readRules, readMergeVersionMap,
-        readOldVersionJson, readNewVersionJson,
-        readAnalyzeResult
-    },
-    builder: {
-        buildServiceWorker,
-        buildDomJs,
-        buildVersionJson,
-        buildUpdateJson,
-        calcEjectValues,
-        analyzeVersion
-    },
-    loader: {
-        loadRules, loadUpdateJson, loadVersionJson
-    },
-    event: {
-        addRulesMapEvent, refreshUrl, submitChange, submitCacheInfo, submitExternalUrl, registryFileHandler
-    },
-    utils: {
-        getSource, getShorthand, findCache,
-        fetchFile, replaceDevRequest, replaceRequest,
-        isStable, isExclude, findFileHandler,
-        eachAllLinkInUrl, deepFreeze, writeVariant, readVariant, deleteVariant
-    }
+const builder = new SwCompiler()
+const runtimeData: RuntimeData = {
+    runtimeEnv: new RuntimeEnv(),
+    runtimeDep: new RuntimeDepCode(),
+    crossDep: new CrossDepCode()
 }
-
-// types
-export {EjectCache} from './Utils'
-export {VersionJson, VersionMap} from './FileAnalyzer'
-export {
-    ServiceWorkerConfig,
-    SwppConfig,
-    SwppConfigTemplate,
-    DomConfig,
-    VersionJsonConfig,
-    RegisterConfig,
-    ExternalMonitorConfig
-} from './SwppConfig'
-export {SwppRules, CacheRules, SpareURLs, EjectValue} from './SwppRules'
-export {UpdateJson, UpdateVersionInfo, FlagStr, ChangeExpression} from './UpdateJsonBuilder'
-export {AnalyzeResult} from './VersionAnalyzer'
+console.log(
+    builder.readSwCode(
+        runtimeData, new SwCodeInject()
+    )
+)
