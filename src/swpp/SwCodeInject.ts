@@ -73,8 +73,8 @@ export class SwCodeInject {
 
 }
 
-export type InjectKey = 'var' | 'no_deps_fun'
+export type InjectKey = 'var' | 'no_deps_fun' | 'core' | 'event'
 
 export function isInjectKey(value: string): value is InjectKey {
-    return ['var', 'no_deps_fun'].includes(value)
+    return ['var', 'no_deps_fun', 'core', 'event'].includes(value)
 }
