@@ -103,6 +103,11 @@ export class FileParserRegistry {
 
 }
 
+/**
+ * 文件处理器
+ *
+ * 用于处理指定类型的文件，从中提取文件的 mark 和外部链接列表
+ */
 export interface FileParser<T extends crypto.BinaryLike> {
 
     /**
@@ -134,6 +139,9 @@ export interface FileParser<T extends crypto.BinaryLike> {
 
 }
 
+/**
+ * 存储文件标识信息
+ */
 export interface FileMark {
 
     /** URL */
