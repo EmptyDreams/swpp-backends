@@ -59,4 +59,9 @@ export class RuntimeEnv extends KeyValueDatabase<any> {
         })
     }
 
+    /** 构建 JS 源代码 */
+    buildJsSource(): string {
+        return utils.anyToSource(this.entries(), true, 'const')
+    }
+
 }

@@ -40,13 +40,15 @@ export class RuntimeEventCode extends KeyValueDatabase<FunctionInBrowser<[Event]
         })
     }
 
-}
-
-export interface RuntimeEventConfig {
-
-
-
-    /** 事件处理程序 */
-    handler: FunctionInBrowser<[Event], any>
+    // noinspection JSUnusedGlobalSymbols
+    /** 构建 JS 源代码 */
+    buildJsSource(): string {
+        const result: string[] = []
+        const entries = this.entries()
+        for (let eventName in entries) {
+            result.push(`self.addEventListener('${eventName}', ${entries[eventName].toString()})`)
+        }
+        return result.join(';\n')
+    }
 
 }

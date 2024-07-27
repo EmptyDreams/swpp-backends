@@ -1,4 +1,5 @@
 import {BrowserVersion} from '../ServiceWorkerRuntimeTypes'
+import {utils} from '../untils'
 import {KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 
 /** 仅在浏览器端执行的函数 */
@@ -279,6 +280,12 @@ export class RuntimeDepCode extends KeyValueDatabase<FunctionInBrowser<any, any>
                 this.update('fetchFile', () => fetchStandbyRequests)
             }
         }
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /** 构建 JS 源代码 */
+    buildJsSource(): string {
+        return utils.anyToSource(this.entries(), true, 'const')
     }
 
 }

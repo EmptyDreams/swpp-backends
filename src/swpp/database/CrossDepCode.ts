@@ -1,3 +1,4 @@
+import {utils} from '../untils'
 import {KeyValueDatabase} from './KeyValueDatabase'
 import {FunctionInBrowser} from './RuntimeDepCode'
 
@@ -22,11 +23,18 @@ export class CrossDepCode extends KeyValueDatabase<FunctionInBrowserAndNode<any,
             /** 缓存规则 */
             matchCacheRule: {
                 default: buildFunction({
-                    runOnBrowser: (url: URL): undefined | null | false | number => false,
-                    runOnNode: (url: URL): undefined | null | false | number => false
+                    runOnBrowser: (_url: URL): undefined | null | false | number => false,
+                    runOnNode: (_url: URL): undefined | null | false | number => false
                 })
             }
         })
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /** 构建 JS 源代码 */
+    buildJsSource(): string {
+        const map = utils.objMap(this.entries(), item => item.runOnBrowser)
+        return utils.anyToSource(map, false, 'const')
     }
 
 }

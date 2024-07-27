@@ -1,4 +1,5 @@
 import {BrowserVersion} from '../ServiceWorkerRuntimeTypes'
+import {utils} from '../untils'
 import {KeyValueDatabase} from './KeyValueDatabase'
 import {FunctionInBrowser} from './RuntimeDepCode'
 
@@ -165,6 +166,12 @@ export class RuntimeCoreCode extends KeyValueDatabase<FunctionInBrowser<any, any
                 }
             }
         })
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /** 构建 JS 源代码 */
+    buildJsSource(): string {
+        return utils.anyToSource(this.entries(), true, 'const')
     }
 
 }
