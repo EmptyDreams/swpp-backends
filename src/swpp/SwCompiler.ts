@@ -15,9 +15,10 @@ export class SwCompiler {
     buildSwCode(runtime: RuntimeData): string {
         if (this.swCode) return this.swCode
         runtime.runtimeDep.fixDepFunction()
-        this.swCode = runtime.insertOrder
+        this.swCode = '(() => {' + runtime.insertOrder
             .map(it => runtime[it].buildJsSource())
             .join(';\n')
+        + '})()'
         return this.swCode
     }
 
