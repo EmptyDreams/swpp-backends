@@ -1,3 +1,4 @@
+import {BrowserVersion} from '../ServiceWorkerRuntimeTypes'
 import {KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 
 /** 仅在浏览器端执行的函数 */

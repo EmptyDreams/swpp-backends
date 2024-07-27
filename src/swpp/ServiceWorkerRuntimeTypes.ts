@@ -1,4 +1,4 @@
-interface BrowserVersion {
+export interface BrowserVersion {
     /** 逃生门版本号 */
     escape: number,
     /** 静态版本号 */
@@ -9,7 +9,7 @@ interface BrowserVersion {
     tp?: number
 }
 
-interface UpdateInfo {
+export interface UpdateInfo {
     /** 新的版本号 */
     new: BrowserVersion,
     /** 旧的版本号 */
