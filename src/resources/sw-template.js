@@ -62,33 +62,7 @@ function $$has_runtime_env(key) {}
     // 事件注册区域
     $$inject_mark_range_start('event')
 
-    self.addEventListener(
-        'install',
-        () => Promise.all([self.skipWaiting(), handleEscape()])
-    )
-
-    // sw 激活后立即对所有页面生效，而非等待刷新
-    // noinspection JSUnresolvedReference
-    self.addEventListener('activate', event => event.waitUntil(clients.claim()))
-
-    self.addEventListener('fetch', handleFetchEvent)
-
-    // 后台检查更新
-    self.addEventListener('periodicSync', event => {
-        if (event.tag === 'update') {
-            event.waitUntil(handleUpdate(true))
-        }
-    })
-
-    self.addEventListener('message', event => {
-        const data = event.data
-        switch (data.type) {
-            case 'update':
-                // noinspection JSIgnoredPromiseFromCall
-                handleUpdate()
-                break
-        }
-    })
+    _inlineCodes._insertEventCode()
 
     /* event 结束 */
 

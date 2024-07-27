@@ -129,14 +129,19 @@ export class RuntimeCoreCode extends KeyValueDatabase<FunctionInBrowser<any, any
                 }
             },
             handleFetchEvent: {
-                default: (event: any) => {
-                    let request = event.request
-                    if (isBlockRequest(request)) return event.respondWith(new Response(null, {status: 204}))
+                default: (event: Event) => {
+                    // @ts-ignore
+                    let request = event.request as Request
+                    if (isBlockRequest(request)) {
+                        // @ts-ignore
+                        return event.respondWith(new Response(null, {status: 204}))
+                    }
                     const newRequest = modifyRequest(request)
                     if (newRequest) request = newRequest
                     const cacheKey = new URL(normalizeUrl(request.url))
                     const cacheRule = matchCacheRule(cacheKey)
                     if (cacheRule) {
+                        // @ts-ignore
                         event.respondWith(
                             matchFromCaches(cacheKey).then(cacheResponse => {
                                 if (cacheResponse && isValidCache(cacheResponse, cacheRule))
@@ -154,6 +159,7 @@ export class RuntimeCoreCode extends KeyValueDatabase<FunctionInBrowser<any, any
                             })
                         )
                     } else if (newRequest) {
+                        // @ts-ignore
                         event.respondWith(fetchWrapper(request, false, isCors(request)))
                     }
                 }

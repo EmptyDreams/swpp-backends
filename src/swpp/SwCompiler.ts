@@ -5,6 +5,7 @@ import {CrossDepCode} from './database/CrossDepCode'
 import {RuntimeCoreCode} from './database/RuntimeCoreCode'
 import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {RuntimeEnv} from './database/RuntimeEnv'
+import {RuntimeEventCode} from './database/RuntimeEventCode'
 import {SwCodeInject} from './SwCodeInject'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
@@ -55,6 +56,7 @@ export interface RuntimeData {
     runtimeEnv: RuntimeEnv,
     runtimeDep: RuntimeDepCode,
     runtimeCore: RuntimeCoreCode,
+    runtimeEvent: RuntimeEventCode,
     crossDep: CrossDepCode
 
 }
@@ -111,6 +113,20 @@ export const _inlineCodes = {
             message: 'runtime 不应当为空'
         } as RuntimeException
         return utils.anyToSource(runtime.runtimeCore.entries(), true, 'const')
+    },
+
+    /** 插入事件注册代码 */
+    _insertEventCode(runtime?: RuntimeData) {
+        if (runtime == null) throw {
+            code: exceptionNames.nullPoint,
+            message: 'runtime 不应当为空'
+        } as RuntimeException
+        const result: string[] = []
+        const entries = runtime.runtimeEvent.entries()
+        for (let eventName in entries) {
+            result.push(`self.addEventListener('${eventName}', ${entries[eventName].toString()})`)
+        }
+        return result.join(';\n')
     }
 
 } as const
