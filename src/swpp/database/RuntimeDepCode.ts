@@ -1,4 +1,4 @@
-import {BrowserVersion} from '../ServiceWorkerRuntimeTypes'
+import {BrowserVersion} from '../SwCompiler'
 import {utils} from '../untils'
 import {KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 

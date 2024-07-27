@@ -1,4 +1,5 @@
-import {BrowserVersion} from '../ServiceWorkerRuntimeTypes'
+
+import {BrowserVersion} from '../SwCompiler'
 import {utils} from '../untils'
 import {KeyValueDatabase} from './KeyValueDatabase'
 import {FunctionInBrowser} from './RuntimeDepCode'
