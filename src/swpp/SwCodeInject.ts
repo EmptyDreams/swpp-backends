@@ -53,7 +53,7 @@ export class SwCodeInject {
                 if (preIndex[1] != -114514) {
                     result.push([preIndex[0], swCode.substring(preIndex[1], index)])
                 }
-                preIndex = [key, srcKey.length + index + 1]
+                preIndex = [key, srcKey.length + index]
             }
             if (preIndex[1] != -114514) {
                 result.push([preIndex[0], swCode.substring(preIndex[1])])
@@ -72,7 +72,7 @@ export class SwCodeInject {
                     break
             }
         })
-        return ranges.map(it => it[1]).join(';\n')
+        return '(() => {' + ranges.map(it => it[1]).join(';\n')
     }
 
     /** 遍历所有元素 */
