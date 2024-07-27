@@ -51,13 +51,18 @@ export class SwCompiler {
 
 }
 
-export interface RuntimeData {
+export class RuntimeData {
 
-    runtimeEnv: RuntimeEnv,
-    runtimeDep: RuntimeDepCode,
-    runtimeCore: RuntimeCoreCode,
-    runtimeEvent: RuntimeEventCode,
-    crossDep: CrossDepCode
+    /** 运行时环境变量 */
+    readonly runtimeEnv = new RuntimeEnv()
+    /** 运行时工具函数 */
+    readonly runtimeDep = new RuntimeDepCode()
+    /** 运行时核心功能函数 */
+    readonly runtimeCore = new RuntimeCoreCode()
+    /** 运行时事件注册 */
+    readonly runtimeEvent = new RuntimeEventCode()
+    /** 运行时/编译时工具函数 */
+    readonly crossDep = new CrossDepCode()
 
 }
 
