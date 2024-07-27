@@ -30,16 +30,19 @@ export class SwCodeInject {
     handleCode(swCode: string): string {
         /** 处理代码插入 */
         function splitCodeByInject(swCode: string): Array<[key: InjectKey, code: string]> {
-            const regex = /\$\$inject_mark_range_start\(['"]([^'"]+)['"]\)([^$]*)/g
+            const regex = /\$\$inject_mark_range_start\((['"])(.*?)\1\)/g
             const result: [key: InjectKey, code: string][] = []
+            let preIndex: [key: InjectKey, index: number] = ['var', -114514]
             let match = null
             while (match = regex.exec(swCode)) {
-                const key = match[1]
+                const srcKey = match[0]
+                const key = match[2]
+                const index = match.index
                 if (!isInjectKey(key)) {
                     throw {
                         code: exceptionNames.invalidInjectKey,
                         message: `输入的插入键[${match[1]}]不存在`
-                    } as RuntimeException
+                    }
                 }
                 if (result.find(it => it[0] == key)) {
                     throw {
@@ -47,7 +50,13 @@ export class SwCodeInject {
                         message: `存在两个或两个以上相同的插入键[${key}]`
                     }
                 }
-                result.push([key, match[2].trim()])
+                if (preIndex[1] != -114514) {
+                    result.push([preIndex[0], swCode.substring(preIndex[1], index)])
+                }
+                preIndex = [key, srcKey.length + index + 1]
+            }
+            if (preIndex[1] != -114514) {
+                result.push([preIndex[0], swCode.substring(preIndex[1])])
             }
             return result
         }
