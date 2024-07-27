@@ -1,5 +1,6 @@
 import fs from 'fs'
 import {CrossDepCode} from './swpp/database/CrossDepCode'
+import {RuntimeCoreCode} from './swpp/database/RuntimeCoreCode'
 import {RuntimeDepCode} from './swpp/database/RuntimeDepCode'
 import {RuntimeEnv} from './swpp/database/RuntimeEnv'
 import {SwCodeInject} from './swpp/SwCodeInject'
@@ -9,6 +10,7 @@ const builder = new SwCompiler()
 const runtimeData: RuntimeData = {
     runtimeEnv: new RuntimeEnv(),
     runtimeDep: new RuntimeDepCode(),
+    runtimeCore: new RuntimeCoreCode(),
     crossDep: new CrossDepCode()
 }
 const content = builder.readSwCode(

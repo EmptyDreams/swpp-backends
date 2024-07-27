@@ -2,6 +2,7 @@ import fs from 'fs'
 import nodePath from 'path'
 import {CompilationEnv} from './database/CompilationEnv'
 import {CrossDepCode} from './database/CrossDepCode'
+import {RuntimeCoreCode} from './database/RuntimeCoreCode'
 import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {RuntimeEnv} from './database/RuntimeEnv'
 import {SwCodeInject} from './SwCodeInject'
@@ -53,6 +54,7 @@ export interface RuntimeData {
 
     runtimeEnv: RuntimeEnv,
     runtimeDep: RuntimeDepCode,
+    runtimeCore: RuntimeCoreCode,
     crossDep: CrossDepCode
 
 }
@@ -88,7 +90,7 @@ export const _inlineCodes = {
             code: exceptionNames.nullPoint,
             message: 'runtime 不应当为空'
         } as RuntimeException
-        return utils.anyToSource(runtime!.runtimeEnv.entries(), true, 'const')
+        return utils.anyToSource(runtime.runtimeEnv.entries(), true, 'const')
     },
 
     /** 插入运行时依赖函数 */
@@ -100,6 +102,15 @@ export const _inlineCodes = {
         const map = utils.objMap(runtime.crossDep.entries(), item => item.runOnBrowser)
         Object.assign(map, runtime.runtimeDep.entries())
         return utils.anyToSource(map, false, 'const')
+    },
+
+    /** 插入运行时核心功能代码 */
+    _insertCoreCode(runtime?: RuntimeData) {
+        if (runtime == null) throw {
+            code: exceptionNames.nullPoint,
+            message: 'runtime 不应当为空'
+        } as RuntimeException
+        return utils.anyToSource(runtime.runtimeCore.entries(), true, 'const')
     }
 
 } as const

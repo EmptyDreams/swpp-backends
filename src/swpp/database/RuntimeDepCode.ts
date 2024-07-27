@@ -8,9 +8,6 @@ let CACHE_NAME: string
 let VERSION_PATH: string
 let INVALID_KEY: string
 let STORAGE_TIMESTAMP: string
-// let UPDATE_JSON_URL: string
-// let ESCAPE: number
-// let UPDATE_CD: number
 
 let matchFromCaches: (request: RequestInfo | URL) => Promise<Response | undefined>
 let writeResponseToCache: (request: RequestInfo | URL, response: Response, date?: boolean) => Promise<void>
