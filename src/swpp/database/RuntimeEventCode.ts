@@ -1,9 +1,9 @@
-import {KeyValueDatabase} from './KeyValueDatabase'
 import {FunctionInBrowser} from './RuntimeDepCode'
+import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
 let handleFetchEvent: (event: Event) => void
 
-export class RuntimeEventCode extends KeyValueDatabase<FunctionInBrowser<[Event], any>> {
+export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<[Event], any>> {
 
     constructor() {
         super({
@@ -40,7 +40,6 @@ export class RuntimeEventCode extends KeyValueDatabase<FunctionInBrowser<[Event]
         })
     }
 
-    // noinspection JSUnusedGlobalSymbols
     /** 构建 JS 源代码 */
     buildJsSource(): string {
         const result: string[] = []

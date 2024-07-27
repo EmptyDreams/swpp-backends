@@ -1,5 +1,6 @@
 import {utils} from '../untils'
-import {buildEnv, KeyValueDatabase} from './KeyValueDatabase'
+import {buildEnv} from './KeyValueDatabase'
+import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
 /** 判断是否是一个合法的 HTTP header 名称 */
 function isLegalHeaderName(name: string): boolean {
@@ -7,7 +8,7 @@ function isLegalHeaderName(name: string): boolean {
 }
 
 /** 环境变量存储器 */
-export class RuntimeEnv extends KeyValueDatabase<any> {
+export class RuntimeEnv extends RuntimeKeyValueDatabase<any> {
 
     constructor() {
         super({

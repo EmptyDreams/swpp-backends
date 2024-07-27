@@ -1,6 +1,7 @@
 import {BrowserVersion} from '../SwCompiler'
 import {utils} from '../untils'
-import {KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
+import {RuntimeEnvErrorTemplate} from './KeyValueDatabase'
+import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
 /** 仅在浏览器端执行的函数 */
 export type FunctionInBrowser<Args extends any[], R> = (...args: Args) => R
@@ -21,7 +22,7 @@ let fetchStandby: (request: Request, standbyRequests: {t: number, l: Request[]},
 let fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
 
 /** 运行时依赖代码 */
-export class RuntimeDepCode extends KeyValueDatabase<FunctionInBrowser<any, any> | null> {
+export class RuntimeDepCode extends RuntimeKeyValueDatabase<FunctionInBrowser<any, any> | null> {
 
     constructor() {
         super({
@@ -282,7 +283,6 @@ export class RuntimeDepCode extends KeyValueDatabase<FunctionInBrowser<any, any>
         }
     }
 
-    // noinspection JSUnusedGlobalSymbols
     /** 构建 JS 源代码 */
     buildJsSource(): string {
         return utils.anyToSource(this.entries(), true, 'const')

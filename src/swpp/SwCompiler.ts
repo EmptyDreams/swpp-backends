@@ -4,6 +4,8 @@ import {RuntimeCoreCode} from './database/RuntimeCoreCode'
 import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {RuntimeEnv} from './database/RuntimeEnv'
 import {RuntimeEventCode} from './database/RuntimeEventCode'
+import {RuntimeKeyValueDatabase} from './database/RuntimeKeyValueDatabase'
+import {exceptionNames} from './untils'
 
 export class SwCompiler {
 
@@ -16,7 +18,7 @@ export class SwCompiler {
         if (this.swCode) return this.swCode
         runtime.runtimeDep.fixDepFunction()
         this.swCode = '(() => {' + runtime.insertOrder
-            .map(it => runtime[it].buildJsSource())
+            .map(it => runtime.getDatabase(it).buildJsSource())
             .join(';\n')
         + '})()'
         return this.swCode
@@ -28,7 +30,7 @@ export class SwCompiler {
 export class RuntimeData {
 
     /** 控制插入顺序 */
-    readonly insertOrder: ReadonlyArray<keyof Omit<RuntimeData, 'insertOrder'>> = [
+    readonly insertOrder: (Exclude<keyof RuntimeData, 'insertOrder'> | string)[] = [
         'runtimeEnv', 'crossDep', 'runtimeDep', 'runtimeCore', 'runtimeEvent'
     ]
 
@@ -42,6 +44,19 @@ export class RuntimeData {
     readonly runtimeEvent = new RuntimeEventCode()
     /** 运行时/编译时工具函数 */
     readonly crossDep = new CrossDepCode()
+
+    getDatabase(key: string): RuntimeKeyValueDatabase<any> {
+        if (!(key in this)) throw {
+            code: exceptionNames.invalidKey,
+            message: `传入的 key [${key}] 不在当前对象中存在`
+        }
+        if (key == 'insertOrder') throw {
+            code: exceptionNames.invalidKey,
+            message: `传入的 key [${key}] 非法`
+        }
+        // @ts-ignore
+        return this[key] as RuntimeKeyValueDatabase<any>
+    }
 
 }
 

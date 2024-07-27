@@ -1,8 +1,8 @@
 
 import {BrowserVersion} from '../SwCompiler'
 import {utils} from '../untils'
-import {KeyValueDatabase} from './KeyValueDatabase'
 import {FunctionInBrowser} from './RuntimeDepCode'
+import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
 let CACHE_NAME: string
 let ESCAPE: number
@@ -29,7 +29,7 @@ let isCors: (request: Request) => boolean
 /**
  * 运行时核心功能代码
  */
-export class RuntimeCoreCode extends KeyValueDatabase<FunctionInBrowser<any, any> | null> {
+export class RuntimeCoreCode extends RuntimeKeyValueDatabase<FunctionInBrowser<any, any> | null> {
 
     constructor() {
         super({
@@ -169,7 +169,6 @@ export class RuntimeCoreCode extends KeyValueDatabase<FunctionInBrowser<any, any
         })
     }
 
-    // noinspection JSUnusedGlobalSymbols
     /** 构建 JS 源代码 */
     buildJsSource(): string {
         return utils.anyToSource(this.entries(), true, 'const')
