@@ -1,3 +1,4 @@
+import fs from 'fs'
 import {CrossDepCode} from './swpp/database/CrossDepCode'
 import {RuntimeDepCode} from './swpp/database/RuntimeDepCode'
 import {RuntimeEnv} from './swpp/database/RuntimeEnv'
@@ -10,8 +11,7 @@ const runtimeData: RuntimeData = {
     runtimeDep: new RuntimeDepCode(),
     crossDep: new CrossDepCode()
 }
-console.log(
-    builder.readSwCode(
-        runtimeData, new SwCodeInject()
-    )
+const content = builder.readSwCode(
+    runtimeData, new SwCodeInject()
 )
+fs.writeFileSync('D:/Desktop/a.txt', content, 'utf8')
