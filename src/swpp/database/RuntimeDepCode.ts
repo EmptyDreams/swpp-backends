@@ -3,6 +3,16 @@ import {KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 /** 仅在浏览器端执行的函数 */
 export type FunctionInBrowser<Args extends any[], R> = (...args: Args) => R
 
+let CACHE_NAME: string
+let VERSION_PATH: string
+let INVALID_KEY: string
+let STORAGE_TIMESTAMP: string
+// let UPDATE_JSON_URL: string
+// let ESCAPE: number
+// let UPDATE_CD: number
+
+let matchFromCaches: (request: RequestInfo | URL) => Promise<Response | undefined>
+let writeResponseToCache: (request: RequestInfo | URL, response: Response, date?: boolean) => Promise<void>
 let fetchWrapper: (request: RequestInfo | URL, banCache: boolean, cors: boolean, optional?: RequestInit) => Promise<Response>
 let isCors: (request: Request) => boolean
 let getFastestRequests: (request: Request) => Request[]
@@ -16,6 +26,105 @@ export class RuntimeDepCode extends KeyValueDatabase<FunctionInBrowser<any, any>
 
     constructor() {
         super({
+            /** 尝试匹配一个 cache */
+            matchFromCaches: {
+                default: (request: RequestInfo | URL): Promise<Response | undefined> =>
+                    caches.match(request, {cacheName: CACHE_NAME})
+            },
+            /**
+             * 将一个 response 写入到 cache 中
+             * @param request 请求信息
+             * @param response 要写入的 response，注意需要自己克隆 response
+             * @param date 是否写入时间戳
+             */
+            writeResponseToCache: {
+                default: async (request: RequestInfo | URL, response: Response, date?: boolean) => {
+                    if (date) {
+                        const headers = new Headers(response.headers)
+                        headers.set(STORAGE_TIMESTAMP, new Date().toISOString())
+                        response = new Response(response.body, {
+                            status: response.status,
+                            headers
+                        })
+                    }
+                    const cache = await caches.open(CACHE_NAME)
+                    await cache.put(request, response)
+                }
+            },
+            /** 标记一个缓存为废弃缓存 */
+            markCacheInvalid: {
+                default: (request: RequestInfo | URL) => matchFromCaches(request).then(response => {
+                    if (!response) return
+                    const headers = new Headers(response.headers)
+                    headers.set(INVALID_KEY, '1')
+                    return writeResponseToCache(
+                        request, new Response(response.body, {status: response.status, headers})
+                    )
+                })
+            },
+            /** 判断指定的缓存是否是有效缓存 */
+            isValidCache: {
+                default: (response: Response, rule: number | false | null | undefined) => {
+                    if (!rule) return false
+                    const headers = response.headers
+                    if (headers.has(INVALID_KEY)) return false
+                    if (rule < 0) return true
+                    const storage = headers.get(STORAGE_TIMESTAMP)
+                    if (!storage) return true
+                    const storageDate = new Date(storage).getTime()
+                    const nowTimestamp = Date.now()
+                    return nowTimestamp - storageDate < rule
+                }
+            },
+            /** 读取版本号 */
+            readVersion: {
+                default: (): Promise<BrowserVersion | undefined> => matchFromCaches(VERSION_PATH)
+                    .then(response => response?.json?.())
+            },
+            /** 写入版本号 */
+            writeVersion: {
+                default: (version: BrowserVersion) => {
+                    version.tp = Date.now()
+                    return writeResponseToCache(VERSION_PATH, new Response(JSON.stringify(version)))
+                }
+            },
+            /**
+             * 向指定客户端发送消息
+             * @param type 消息类型
+             * @param data 消息体
+             * @param goals 客户端对象，留空表示所有客户端
+             */
+            postMessage: {
+                default: async (type: string, data: any, ...goals) => {
+                    if (!goals.length) {
+                        // @ts-ignore
+                        goals = await clients.matchAll()
+                    }
+                    const body = {type, data}
+                    for (let client of goals) {
+                        client.postMessage(body)
+                    }
+                }
+            },
+            /** 检查请求是否成功 */
+            isFetchSuccessful: {
+                default: (response: Response) => [200, 301, 302, 307, 308].includes(response.status)
+            },
+            /** 拉取一个文件 */
+            fetchWrapper: {
+                default: (request: Request, banCache: boolean, cors: boolean, optional?: RequestInit): Promise<Response> => {
+                    const init: RequestInit = {
+                        referrerPolicy: request.referrerPolicy ?? '',
+                        ...optional
+                    }
+                    init.cache = banCache ? 'no-store' : 'default'
+                    if (cors) {
+                        init.mode = 'cors'
+                        init.credentials = 'same-origin'
+                    }
+                    return fetch(request, init)
+                }
+            },
             /** 是否启用 cors */
             isCors: {
                 default: (() => true) as (request: Request) => boolean
