@@ -89,21 +89,25 @@ export const utils = Object.freeze({
                     break
                 case "function": {
                     const text: string = value.toString()
-                    if (text.startsWith('function ')) { // function ${key}(xxx) { xxx }
+                    if (text.startsWith('function ') || text.startsWith('async function ')) { // function ${key}(xxx) { xxx }
                         if (writeAsVar) {
                             resultList.push(text)
                         } else {
                             resultList.push(text.substring(9).trimStart())
                         }
-                    } else if (/^[a-zA-Z0-9_$]+\s*\(/.test(text)) { // ${key}(xxx) { xxx }
-                        if (writeAsVar) {
-                            resultList.push('function ' + text)
+                    } else {
+                        const firstIndex = text.indexOf('{')
+                        const startIndex = text.indexOf('=>')
+                        if (startIndex > 0 && (firstIndex < 0 || startIndex < firstIndex)) {
+                            // (xxx) => {}
+                            pushToResult(key, text)
                         } else {
-                            resultList.push(text)
+                            if (writeAsVar) {
+                                resultList.push('function ' + text)
+                            } else {
+                                resultList.push(text)
+                            }
                         }
-                    } else {    // (xxx) => {}
-                        console.assert(text.includes('=>'))
-                        pushToResult(key, text)
                     }
                     break
                 }
