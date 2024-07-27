@@ -8,12 +8,3 @@ export interface BrowserVersion {
     /** 时间戳 */
     tp?: number
 }
-
-export interface UpdateInfo {
-    /** 新的版本号 */
-    new: BrowserVersion,
-    /** 旧的版本号 */
-    old?: BrowserVersion,
-    /** 刷新的 URL 列表 */
-    list?: string[]
-}
