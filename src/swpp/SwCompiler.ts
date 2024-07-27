@@ -51,6 +51,7 @@ export class SwCompiler {
 
 }
 
+/** 运行时数据 */
 export class RuntimeData {
 
     /** 运行时环境变量 */
@@ -66,6 +67,7 @@ export class RuntimeData {
 
 }
 
+/** 编译时数据 */
 export interface CompilationData {
 
     env: CompilationEnv,
