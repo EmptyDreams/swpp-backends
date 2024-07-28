@@ -2,6 +2,7 @@ import fs from 'fs'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
 import {FileParserRegistry} from './FileParser'
+import {JsonBuilder} from './JsonBuilder'
 import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
@@ -14,13 +15,20 @@ export class ResourcesScanner {
 
     /** 扫描指定目录下的所有文件 */
     async scanLocalFile(path: string): Promise<FileUpdateTracker> {
+        const domain = this.compilation.env.read('DOMAIN_HOST') as string
+        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
+            .runOnNode as (url: URL) => undefined | null | false | number
         const register = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation)
         await traverseDirectory(path, async file => {
-            const stream = fs.createReadStream(path)
+            const stream = fs.createReadStream(file)
             const hash = crypto.createHash('md5')
             stream.on('data', data => hash.update(data))
+            const localUrl = new URL(file.substring(path.length), `https://${domain}`)
+            if (matchCacheRule(localUrl)) {
+                tracker.addUrl(localUrl.href)
+            }
             const type = nodePath.extname(file)
             if (register.containsType(type)) {
                 const set = await register.parserLocalFile(file)
@@ -40,6 +48,8 @@ export class ResourcesScanner {
 
     /** 扫描网络文件 */
     private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
+        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
+            .runOnNode as (url: URL) => undefined | null | false | number
         const registry = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(urls.size)
@@ -48,7 +58,11 @@ export class ResourcesScanner {
             const normalizeUri = tracker.normalizeUri(url)
             if (record.has(normalizeUri)) continue
             record.add(normalizeUri)
-            taskList[i++] = registry.parserUrlFile(normalizeUri)
+            const isCached = matchCacheRule(new URL(normalizeUri))
+            if (isCached) {
+                tracker.addUrl(normalizeUri)
+            }
+            taskList[i++] = registry.parserUrlFile(normalizeUri, !!isCached)
                 .then(value => {
                     tracker.update(value.file, value.mark)
                     value.urls.forEach(it => appendedUrls.add(it))
@@ -93,6 +107,8 @@ export class FileUpdateTracker {
     protected headers = new Map<string, any>()
     /** 存储列表，key 为文件路径，value 为文件的唯一标识符 */
     protected map = new Map<string, string>()
+    /** 存储所有存在的 URL */
+    protected allUrl = new Set<string>()
 
     constructor(protected compilation: CompilationData) { }
 
@@ -108,7 +124,7 @@ export class FileUpdateTracker {
     }
 
     /** 设置一个 header */
-    putHeader(key: string, value: string) {
+    putHeader(key: string, value: any) {
         this.headers.set(key, value)
     }
 
@@ -126,6 +142,11 @@ export class FileUpdateTracker {
         return url.href
     }
 
+    /** 添加一个 URL */
+    addUrl(url: string) {
+        this.allUrl.add(url)
+    }
+
     /**
      * 判断两个 tracker 的差异
      * 
@@ -134,8 +155,8 @@ export class FileUpdateTracker {
      * + 在新旧 tracker 中都存在且唯一标识符发生变化
      * + 在新 tracker 中不存在且在旧 tracker 中存在
      */
-    diff(oldTracker: FileUpdateTracker): FileUpdateTrackerDiff {
-        const diff = new FileUpdateTrackerDiff(this.compilation)
+    diff(oldTracker: FileUpdateTracker): JsonBuilder {
+        const diff = new JsonBuilder(this.compilation, this.allUrl)
         oldTracker.map.forEach((value, key) => {
             if (this.map.has(key)) {
                 if (this.get(key) !== value)
@@ -144,7 +165,12 @@ export class FileUpdateTracker {
                 diff.update(key, value)
             }
         })
-        this.headers.forEach((value, key) => diff.putHeader(key, value))
+        this.headers.forEach((value, key) => {
+            diff.putHeader(key, {
+                oldValue: oldTracker.getHeader(key),
+                newValue: value
+            })
+        })
         return diff
     }
 
@@ -190,8 +216,8 @@ export class FileUpdateTracker {
                 }
                 break
             case 3:
-                for (let key in json.external) {
-                    tracker.headers.set(key, json.external[key])
+                for (let key in json['external']) {
+                    tracker.headers.set(key, json['external'][key])
                 }
                 for (let key in json.list) {
                     const value = json.list[key]
@@ -204,22 +230,6 @@ export class FileUpdateTracker {
             } as RuntimeException
         }
         return tracker
-    }
-
-}
-
-export class FileUpdateTrackerDiff extends FileUpdateTracker {
-
-    constructor(compilation: CompilationData) {
-        super(compilation)
-    }
-
-    forEachHeaders(consumer: (key: string, value: any) => void) {
-        this.headers.forEach((value, key) => consumer(key, value))
-    }
-
-    forEachFile(consumer: (uri: string, value: string) => void) {
-        this.map.forEach((value, key) => consumer(key, value))
     }
 
 }

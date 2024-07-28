@@ -42,12 +42,17 @@ export class FileParserRegistry {
         return await parser.extractUrls(this.compilation, content)
     }
 
-    /** 解析指定的 URL */
-    async parserUrlFile(url: string): Promise<FileMark> {
+    /**
+     * 解析指定的 URL
+     * @param url 链接
+     * @param isCached 该链接指向的资源是否需要缓存
+     */
+    async parserUrlFile(url: string, isCached: boolean): Promise<FileMark> {
         const fileHandler = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
         const contentType = fileHandler.getUrlContentType(url)
+        if (!contentType && !isCached) return { file: url, mark: '', urls: new Set<string>() }
         const parser = this.map.get(contentType)
-        if (contentType && parser?.calcUrl) {
+        if (parser?.calcUrl) {
             const result = await parser.calcUrl(url)
             if (result) return {
                 file: url,

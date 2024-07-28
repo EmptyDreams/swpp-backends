@@ -1,4 +1,5 @@
 
+import {UpdateJson} from '../JsonBuilder'
 import {BrowserVersion} from '../SwCompiler'
 import {utils} from '../untils'
 import {FunctionInBrowser} from './RuntimeDepCode'
@@ -52,13 +53,13 @@ export class RuntimeCoreCode extends RuntimeKeyValueDatabase<FunctionInBrowser<a
                 default: async (force?: boolean): Promise<1 | -1 | 2 | undefined | null | void> => {
                     const oldVersion = await readVersion()
                     if (!force && oldVersion && Date.now() - oldVersion.tp! < UPDATE_CD) return
-                    const json: {global: number, info: {version: number, change?: any[]}[]} =
+                    const json: UpdateJson =
                         await (await fetch(UPDATE_JSON_URL, {
                             // @ts-ignore
                             priority: 'high'
                         })).json()
                     const {global, info} = json
-                    const newVersion = {global, local: info[0].version, escape: ESCAPE}
+                    const newVersion: BrowserVersion = {global, local: info[0].version, escape: ESCAPE}
                     // 新访客或触发了逃生门
                     if (!oldVersion || (ESCAPE && ESCAPE !== oldVersion.escape)) {
                         await writeVersion(newVersion)
@@ -87,9 +88,9 @@ export class RuntimeCoreCode extends RuntimeKeyValueDatabase<FunctionInBrowser<a
                         switch (change.flag) {
                             case 'html':
                                 return url => /\/$|\.html$/.test(url)
-                            case 'end': case 'suf':
+                            case 'suf':
                                 return url => forEachValues(value => url.endsWith(value))
-                            case 'begin': case 'pre':
+                            case 'pre':
                                 return url => forEachValues(value => url.startsWith(value))
                             case 'str':
                                 return url => forEachValues(value => url.includes(value))
