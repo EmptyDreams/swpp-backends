@@ -16,7 +16,6 @@ export class ResourcesScanner {
 
     /** 扫描指定目录下的所有文件 */
     async scanLocalFile(path: string): Promise<FileUpdateTracker> {
-        const domain = this.compilation.env.read('DOMAIN_HOST') as string
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule') as
             FunctionInBrowserAndNode<[URL], undefined | null | false | number>
         const register = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
