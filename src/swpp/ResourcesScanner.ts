@@ -1,6 +1,7 @@
 import fs from 'fs'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
+import {FunctionInBrowserAndNode} from './database/CrossDepCode'
 import {FileParserRegistry} from './FileParser'
 import {JsonBuilder} from './JsonBuilder'
 import {CompilationData} from './SwCompiler'
@@ -16,8 +17,8 @@ export class ResourcesScanner {
     /** 扫描指定目录下的所有文件 */
     async scanLocalFile(path: string): Promise<FileUpdateTracker> {
         const domain = this.compilation.env.read('DOMAIN_HOST') as string
-        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
-            .runOnNode as (url: URL) => undefined | null | false | number
+        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule') as
+            FunctionInBrowserAndNode<[URL], undefined | null | false | number>
         const register = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation)
@@ -26,7 +27,7 @@ export class ResourcesScanner {
             const hash = crypto.createHash('md5')
             stream.on('data', data => hash.update(data))
             const localUrl = new URL(file.substring(path.length), `https://${domain}`)
-            if (matchCacheRule(localUrl)) {
+            if (matchCacheRule.runOnNode(localUrl)) {
                 tracker.addUrl(localUrl.href)
             }
             const type = nodePath.extname(file)
@@ -48,8 +49,8 @@ export class ResourcesScanner {
 
     /** 扫描网络文件 */
     private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
-        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
-            .runOnNode as (url: URL) => undefined | null | false | number
+        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule') as
+            FunctionInBrowserAndNode<[URL], undefined | null | false | number>
         const registry = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(urls.size)
@@ -58,7 +59,7 @@ export class ResourcesScanner {
             const normalizeUri = tracker.normalizeUri(url)
             if (record.has(normalizeUri)) continue
             record.add(normalizeUri)
-            const isCached = matchCacheRule(new URL(normalizeUri))
+            const isCached = matchCacheRule.runOnNode(new URL(normalizeUri))
             if (isCached) {
                 tracker.addUrl(normalizeUri)
             }

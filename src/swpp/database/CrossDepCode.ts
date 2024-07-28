@@ -24,7 +24,9 @@ export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNo
             matchCacheRule: {
                 default: buildFunction({
                     runOnBrowser: (_url: URL): undefined | null | false | number => false,
-                    runOnNode: (_url: URL): undefined | null | false | number => false
+                    runOnNode(_url: URL): undefined | null | false | number {
+                        return this.runOnBrowser(_url)
+                    }
                 })
             }
         })
