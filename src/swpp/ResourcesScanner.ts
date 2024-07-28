@@ -1,8 +1,7 @@
 import fs from 'fs'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
-import {FileMark, FileParserRegistry} from './FileParser'
-import {NetworkFileHandler} from './NetworkFileHandler'
+import {FileParserRegistry} from './FileParser'
 import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
@@ -91,11 +90,11 @@ async function traverseDirectory(dir: string, callback: (file: string) => Promis
 export class FileUpdateTracker {
 
     /** 附加信息 */
-    private headers = new Map<string, any>()
+    protected headers = new Map<string, any>()
     /** 存储列表，key 为文件路径，value 为文件的唯一标识符 */
-    private map = new Map<string, string>()
+    protected map = new Map<string, string>()
 
-    constructor(private compilation: CompilationData) { }
+    constructor(protected compilation: CompilationData) { }
 
     /** 更新一个文件的标识符 */
     update(uri: string, value: string) {
@@ -108,6 +107,16 @@ export class FileUpdateTracker {
         return this.map.get(uri)
     }
 
+    /** 设置一个 header */
+    putHeader(key: string, value: string) {
+        this.headers.set(key, value)
+    }
+
+    /** 读取一个 header */
+    getHeader(key: string): any | undefined {
+        return this.headers.get(key)
+    }
+
     /** 归一化 uri */
     normalizeUri(uri: string): string {
         if (uri.startsWith('http:'))
@@ -115,6 +124,28 @@ export class FileUpdateTracker {
         const domain = this.compilation.env.read('DOMAIN_HOST') as string
         const url = new URL(uri, `https://${domain}`)
         return url.href
+    }
+
+    /**
+     * 判断两个 tracker 的差异
+     * 
+     * 当一个文件满足下列条件任意一条时将会被放入到返回值当中：
+     *
+     * + 在新旧 tracker 中都存在且唯一标识符发生变化
+     * + 在新 tracker 中不存在且在旧 tracker 中存在
+     */
+    diff(oldTracker: FileUpdateTracker): FileUpdateTrackerDiff {
+        const diff = new FileUpdateTrackerDiff(this.compilation)
+        oldTracker.map.forEach((value, key) => {
+            if (this.map.has(key)) {
+                if (this.get(key) !== value)
+                    diff.update(key, value)
+            } else {
+                diff.update(key, value)
+            }
+        })
+        this.headers.forEach((value, key) => diff.putHeader(key, value))
+        return diff
     }
 
     /**
@@ -173,6 +204,22 @@ export class FileUpdateTracker {
             } as RuntimeException
         }
         return tracker
+    }
+
+}
+
+export class FileUpdateTrackerDiff extends FileUpdateTracker {
+
+    constructor(compilation: CompilationData) {
+        super(compilation)
+    }
+
+    forEachHeaders(consumer: (key: string, value: any) => void) {
+        this.headers.forEach((value, key) => consumer(key, value))
+    }
+
+    forEachFile(consumer: (uri: string, value: string) => void) {
+        this.map.forEach((value, key) => consumer(key, value))
     }
 
 }
