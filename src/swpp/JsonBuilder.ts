@@ -17,6 +17,32 @@ export class JsonBuilder {
         this.headers.set(key, value)
     }
 
+    private buildSrcJson(): UpdateJson {
+        const meta = {
+            version: -1,
+            change: []
+        }
+        const json = {
+            global: 0,
+            info: [meta]
+        }
+
+        return json
+    }
+
+}
+
+function xxx(urls: Set<string>, refresh: Set<string>): UpdateChangeExp[] {
+    return [
+        {
+            flag: 'pre',
+            value: 'https://asdf'
+        },
+        {
+            flag: 'suf',
+            value: 'a.js'
+        }
+    ]
 }
 
 export interface TrackerHeaderDiff {
