@@ -26,7 +26,7 @@ export class ResourcesScanner {
             const stream = fs.createReadStream(file)
             const hash = crypto.createHash('md5')
             stream.on('data', data => hash.update(data))
-            const localUrl = new URL(file.substring(path.length), `https://${domain}`)
+            const localUrl = tracker.normalizeUri(file.substring(path.length))
             if (matchCacheRule.runOnNode(localUrl)) {
                 tracker.addUrl(localUrl.href)
             }
@@ -57,13 +57,13 @@ export class ResourcesScanner {
         let i = 0
         for (let url of urls) {
             const normalizeUri = tracker.normalizeUri(url)
-            if (record.has(normalizeUri)) continue
-            record.add(normalizeUri)
-            const isCached = matchCacheRule.runOnNode(new URL(normalizeUri))
+            if (record.has(normalizeUri.href)) continue
+            record.add(normalizeUri.href)
+            const isCached = matchCacheRule.runOnNode(normalizeUri)
             if (isCached) {
-                tracker.addUrl(normalizeUri)
+                tracker.addUrl(normalizeUri.href)
             }
-            taskList[i++] = registry.parserUrlFile(normalizeUri, !!isCached)
+            taskList[i++] = registry.parserUrlFile(normalizeUri.href, !!isCached)
                 .then(value => {
                     tracker.update(value.file, value.mark)
                     value.urls.forEach(it => appendedUrls.add(it))
@@ -120,8 +120,7 @@ export class FileUpdateTracker {
 
     /** 读取一个文件的标识符 */
     get(uri: string) {
-        uri = this.normalizeUri(uri)
-        return this.map.get(uri)
+        return this.map.get(this.normalizeUri(uri).href)
     }
 
     /** 设置一个 header */
@@ -135,12 +134,11 @@ export class FileUpdateTracker {
     }
 
     /** 归一化 uri */
-    normalizeUri(uri: string): string {
+    normalizeUri(uri: string): URL {
         if (uri.startsWith('http:'))
             uri = `https:${uri.substring(5)}`
         const domain = this.compilation.env.read('DOMAIN_HOST') as string
-        const url = new URL(uri, `https://${domain}`)
-        return url.href
+        return new URL(uri, `https://${domain}`)
     }
 
     /** 添加一个 URL */
