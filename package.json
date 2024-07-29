@@ -20,7 +20,8 @@
     "typescript": "^5.1.6"
   },
   "dependencies": {
-    "fast-html-parser": "^1.0.1"
+    "fast-html-parser": "^1.0.1",
+    "jiti": "^1.21.6"
   },
   "repository": {
     "type": "git",

@@ -11,6 +11,9 @@ importers:
       fast-html-parser:
         specifier: ^1.0.1
         version: 1.0.1
+      jiti:
+        specifier: ^1.21.6
+        version: 1.21.6
     devDependencies:
       '@types/fast-html-parser':
         specifier: ^1.0.2
@@ -628,6 +631,10 @@ packages:
   isobject@3.0.1:
     resolution: {integrity: sha512-WhB9zCku7EGTj/HQQRz5aUQEUeoQZH2bWcltRErOpymJ4boYE6wL9Tbr23krRPSZ+C5zqNSrSw+Cc7sZZ4b7vg==}
     engines: {node: '>=0.10.0'}
+
+  jiti@1.21.6:
+    resolution: {integrity: sha512-2yTgeWTWzMWkHu6Jp9NKgePDaYHbntiwvYuuJLbbN9vl7DC9DvXKOB2BC3ZZ92D3cvV/aflH0osDfwpHepQ53w==}
+    hasBin: true
 
   json-stable-stringify-without-jsonify@1.0.1:
     resolution: {integrity: sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==}
@@ -1880,6 +1887,8 @@ snapshots:
       isarray: 1.0.0
 
   isobject@3.0.1: {}
+
+  jiti@1.21.6: {}
 
   json-stable-stringify-without-jsonify@1.0.1: {}
 
