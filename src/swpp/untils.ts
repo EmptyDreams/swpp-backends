@@ -173,6 +173,15 @@ export const utils = Object.freeze({
             result[key] = transfer(value)
         }
         return result
+    },
+
+    /** 深度冻结一个对象 */
+    deepFreeze<T>(obj: T): Readonly<T> {
+        const result = Object.freeze(obj)
+        for (let key in result) {
+            this.deepFreeze(obj[key])
+        }
+        return result
     }
 
 })
@@ -188,10 +197,14 @@ export const exceptionNames = {
     invalidKey: 'invalid_key',
     /** 不支持的版本号 */
     unsupportedVersion: 'unsupported_version',
+    /** 不支持的文件类型 */
+    unsupportedFileType: 'unsupported_file_type',
     /** 插入键重复 */
     repeatInjectKey: 'repeat_inject_key',
     /** 空指针 */
-    nullPoint: 'null_point'
+    nullPoint: 'null_point',
+    /** 配置文件已经完成构建 */
+    configBuilt: 'config_built'
 } as const
 
 export interface RuntimeException {
