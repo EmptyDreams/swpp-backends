@@ -135,6 +135,7 @@ export class RuntimeCoreCode extends RuntimeKeyValueDatabase<FunctionInBrowser<a
                 default: (event: Event) => {
                     // @ts-ignore
                     let request = event.request as Request
+                    if (request.method !== 'GET' || !request.url.startsWith('http')) return
                     if (isBlockRequest(request)) {
                         // @ts-ignore
                         return event.respondWith(new Response(null, {status: 204}))
