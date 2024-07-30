@@ -17,15 +17,38 @@ export class JsonBuilder {
         this.headers.set(key, value)
     }
 
-    private buildSrcJson(): UpdateJson {
-        const json: UpdateJson = {
-            global: 0,
-            info: [{
-                version: -1,
-                change: [createUpdateChangeExps(this.urls, this.map.values())]
-            }]
+    async buildJson(): Promise<UpdateJson> {
+        const json = await this.compilation.compilationEnv.read('VERSION_FILE')()
+        if (json.info.length == 0) {
+            json.info.push({version: 1})
+            return json
         }
+        const newChange = createUpdateChangeExps(this.urls, this.map.values())
+        json.info.unshift({
+            version: json.info[0].version + 1,
+            change: [newChange]
+        })
+        this.zipJson(json)
+        this.limitJson(json)
         return json
+    }
+
+    private zipJson(json: UpdateJson) {
+
+    }
+
+    private limitJson(json: UpdateJson) {
+        const lengthLimit = this.compilation.compilationEnv.read('VERSION_LENGTH_LIMIT')
+        if (lengthLimit == 0) return
+        let sum = 0
+        for (let i = 0; i < json.info.length; i++) {
+            sum += JSON.stringify(json.info[i]).length
+            if (sum > lengthLimit) {
+                if (i == 0) json.info = [{version: json.info[0].version}]
+                else json.info.splice(i)
+                return
+            }
+        }
     }
 
 }
@@ -117,7 +140,7 @@ export interface UpdateJson {
 
     info: {
         version: number,
-        change: UpdateChangeExp[]
+        change?: UpdateChangeExp[]
     }[]
 
 }
