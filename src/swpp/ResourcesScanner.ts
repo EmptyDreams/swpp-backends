@@ -18,7 +18,7 @@ export class ResourcesScanner {
     async scanLocalFile(path: string): Promise<FileUpdateTracker> {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule') as
             FunctionInBrowserAndNode<[URL], undefined | null | false | number>
-        const register = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
+        const register = this.compilation.compilationEnv.read('FILE_PARSER') as FileParserRegistry
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation)
         await traverseDirectory(path, async file => {
@@ -50,7 +50,7 @@ export class ResourcesScanner {
     private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule') as
             FunctionInBrowserAndNode<[URL], undefined | null | false | number>
-        const registry = this.compilation.env.read('FILE_PARSER') as FileParserRegistry
+        const registry = this.compilation.compilationEnv.read('FILE_PARSER') as FileParserRegistry
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(urls.size)
         let i = 0
@@ -136,7 +136,7 @@ export class FileUpdateTracker {
     normalizeUri(uri: string): URL {
         if (uri.startsWith('http:'))
             uri = `https:${uri.substring(5)}`
-        const domain = this.compilation.env.read('DOMAIN_HOST') as string
+        const domain = this.compilation.compilationEnv.read('DOMAIN_HOST') as string
         return new URL(uri, `https://${domain}`)
     }
 

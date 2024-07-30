@@ -33,7 +33,7 @@ export class FileParserRegistry {
 
     /** 解析网络文件 */
     async parserNetworkFile(response: Response, callback?: (content: crypto.BinaryLike) => Promise<any> | any): Promise<Set<string>> {
-        const fileHandler = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
+        const fileHandler = this.compilation.compilationEnv.read('FETCH_NETWORK_FILE') as NetworkFileHandler
         const contentType = fileHandler.getUrlContentType(response.url, response)
         const parser = this.map.get(contentType)
         if (!parser) return new Set<string>()
@@ -48,7 +48,7 @@ export class FileParserRegistry {
      * @param isCached 该链接指向的资源是否需要缓存
      */
     async parserUrlFile(url: string, isCached: boolean): Promise<FileMark> {
-        const fileHandler = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
+        const fileHandler = this.compilation.compilationEnv.read('FETCH_NETWORK_FILE') as NetworkFileHandler
         const contentType = fileHandler.getUrlContentType(url)
         if (!contentType && !isCached) return { file: url, mark: '', urls: new Set<string>() }
         const parser = this.map.get(contentType)
@@ -59,7 +59,7 @@ export class FileParserRegistry {
                 ...result
             }
         }
-        const fetcher = this.compilation.env.read('FETCH_NETWORK_FILE') as NetworkFileHandler
+        const fetcher = this.compilation.compilationEnv.read('FETCH_NETWORK_FILE') as NetworkFileHandler
         const urls = new Set<string>()
         let mark = ''
         await fetcher.fetch(url)

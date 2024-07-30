@@ -1,10 +1,12 @@
 import {HTMLElement} from 'fast-html-parser'
 import fs from 'fs'
 import {buildFileParser, FileParserRegistry} from '../FileParser'
+import {UpdateJson} from '../JsonBuilder'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {CompilationData} from '../SwCompiler'
 import {utils} from '../untils'
 import {CrossDepCode} from './CrossDepCode'
+import {CrossEnv} from './CrossEnv'
 import {buildEnv, KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 import * as HTMLParser from 'fast-html-parser'
 
@@ -13,7 +15,7 @@ import * as HTMLParser from 'fast-html-parser'
  */
 export class CompilationEnv extends KeyValueDatabase<any> {
 
-    constructor(env: CompilationEnv, cross: CrossDepCode) {
+    constructor(crossEnv: CrossEnv, crossCode: CrossDepCode) {
         super({
             DOMAIN_HOST: buildEnv({
                 default: 'www.example.com',
@@ -33,6 +35,24 @@ export class CompilationEnv extends KeyValueDatabase<any> {
                     return false
                 }
             }),
+            /** 获取已经上线的版本文件 */
+            VERSION_FILE: buildEnv({
+                default: async (): Promise<UpdateJson> => {
+                    const host = this.read('DOMAIN_HOST') as string
+                    const fetcher = this.read('FETCH_NETWORK_FILE') as FiniteConcurrencyFetcher
+                    const isNotFound = this.read('IS_NOT_FOUND')
+                    try {
+                        const response = await fetcher.fetch(`https://${host}/update.json`)
+                        if (!isNotFound.response(response)) {
+                            const json = await response.json()
+                            return json as UpdateJson
+                        }
+                    } catch (e) {
+                        if (!isNotFound.error(e)) throw e
+                    }
+                    return {global: 0, info: []}
+                }
+            }),
             /** 读取一个本地文件 */
             LOCAL_FILE_READER: buildEnv({
                 default: (path: string): Promise<string> => {
@@ -47,19 +67,34 @@ export class CompilationEnv extends KeyValueDatabase<any> {
             /** 拉取网络文件 */
             FETCH_NETWORK_FILE: buildEnv({
                 default: new FiniteConcurrencyFetcher()
+            }),
+            /** 判断文件是否是 404 */
+            IS_NOT_FOUND: buildEnv({
+                default: {
+                    response: (response: Response) => response.status == 404,
+                    error: (err: any) => err?.cause?.code === 'ENOTFOUND'
+                }
             })
         })
-        /** 解析文件内容 */
-        const register = new FileParserRegistry({env, crossDep: cross})
+        this.registryFileParser(crossEnv, crossCode)
+    }
+
+    /** 注册解析文件内容的注册机（`FILE_PARSER`） */
+    private registryFileParser(crossEnv: CrossEnv, crossCode: CrossDepCode) {
+        const register = new FileParserRegistry({
+            compilationEnv: this,
+            crossEnv,
+            crossDep: crossCode
+        })
         register.registry('html', buildFileParser({
             readFromLocal(compilation: CompilationData, path: string): Promise<string> {
-                return compilation.env.read('LOCAL_FILE_READER')(path)
+                return compilation.compilationEnv.read('LOCAL_FILE_READER')(path)
             },
             readFromNetwork(_: CompilationData, response: Response): Promise<string> {
                 return response.text()
             },
             async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
-                const host = compilation.env.read("DOMAIN_HOST") as string
+                const host = compilation.compilationEnv.read("DOMAIN_HOST") as string
                 const html = HTMLParser.parse(content, {
                     script: true, style: true
                 })
@@ -121,13 +156,13 @@ export class CompilationEnv extends KeyValueDatabase<any> {
         }))
         register.registry('css', buildFileParser({
             readFromLocal(compilation: CompilationData, path: string): Promise<string> {
-                return compilation.env.read('LOCAL_FILE_READER')(path)
+                return compilation.compilationEnv.read('LOCAL_FILE_READER')(path)
             },
             readFromNetwork(_: CompilationData, response: Response): Promise<string> {
                 return response.text()
             },
             async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
-                const host = compilation.env.read('DOMAIN_HOST') as string
+                const host = compilation.compilationEnv.read('DOMAIN_HOST') as string
                 const urls = new Set<string>()
                 /** 从指定位置开始查询注释 */
                 const findComment = (tag: string, start: number) => {

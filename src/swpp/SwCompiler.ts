@@ -2,7 +2,7 @@ import {CompilationEnv} from './database/CompilationEnv'
 import {CrossDepCode} from './database/CrossDepCode'
 import {RuntimeCoreCode} from './database/RuntimeCoreCode'
 import {RuntimeDepCode} from './database/RuntimeDepCode'
-import {RuntimeEnv} from './database/RuntimeEnv'
+import {CrossEnv} from './database/CrossEnv'
 import {RuntimeEventCode} from './database/RuntimeEventCode'
 import {RuntimeKeyValueDatabase} from './database/RuntimeKeyValueDatabase'
 import {exceptionNames} from './untils'
@@ -31,11 +31,11 @@ export class RuntimeData {
 
     /** 控制插入顺序 */
     readonly insertOrder: (Exclude<keyof RuntimeData, 'insertOrder'> | string)[] = [
-        'runtimeEnv', 'crossDep', 'runtimeDep', 'runtimeCore', 'runtimeEvent'
+        'crossEnv', 'crossDep', 'runtimeDep', 'runtimeCore', 'runtimeEvent'
     ]
 
     /** 运行时环境变量 */
-    readonly runtimeEnv = new RuntimeEnv()
+    readonly crossEnv = new CrossEnv()
     /** 运行时工具函数 */
     readonly runtimeDep = new RuntimeDepCode()
     /** 运行时核心功能函数 */
@@ -63,7 +63,8 @@ export class RuntimeData {
 /** 编译时数据 */
 export interface CompilationData {
 
-    env: CompilationEnv,
+    compilationEnv: CompilationEnv,
+    crossEnv: CrossEnv,
     crossDep: CrossDepCode
 
 }

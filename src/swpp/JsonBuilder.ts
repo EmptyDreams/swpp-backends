@@ -18,21 +18,24 @@ export class JsonBuilder {
     }
 
     private buildSrcJson(): UpdateJson {
-        const meta = {
-            version: -1,
-            change: []
-        }
-        const json = {
+        const json: UpdateJson = {
             global: 0,
-            info: [meta]
+            info: [{
+                version: -1,
+                change: [createUpdateChangeExps(this.urls, this.map.values())]
+            }]
         }
-
         return json
     }
 
 }
 
-export function createUpdateChangeExps(urls: Set<string>, refresh: Set<string>): UpdateChangeExp[] {
+/**
+ * 构建更新表达式
+ *
+ * 具体实现为使用字典树构建最优后缀匹配表达式，时间复杂度 O(N + M)
+ */
+export function createUpdateChangeExps(urls: ReadonlySet<string>, refresh: Iterable<string>): UpdateChangeExp {
     interface Node {
         next: (Node | undefined)[],
         flag: boolean,
@@ -62,7 +65,9 @@ export function createUpdateChangeExps(urls: Set<string>, refresh: Set<string>):
         cur.isEnd = true
     }
     urls.forEach(it => insert(it, false))
-    refresh.forEach(it => insert(it, true))
+    for (let item of refresh) {
+        insert(item, true)
+    }
 
     function dfs(node: Node) {
         if (node.isEnd) return
@@ -78,14 +83,11 @@ export function createUpdateChangeExps(urls: Set<string>, refresh: Set<string>):
     dfs(head)
 
     let dfs2S: string[] = []
-    const result: UpdateChangeExp[] = []
+    const result: string[] = []
 
     function dfs2(node: Node) {
         if (node.flag) {
-            result.push({
-                flag: 'suf',
-                value: dfs2S.reduceRight((a, b) => a + b, '')
-            })
+            result.push(dfs2S.reduceRight((a, b) => a + b, ''))
             return
         }
         for (let i = 0; i < node.next.length; i++) {
@@ -99,7 +101,7 @@ export function createUpdateChangeExps(urls: Set<string>, refresh: Set<string>):
     }
 
     dfs2(head)
-    return result
+    return {flag: 'suf', value: result}
 }
 
 export interface TrackerHeaderDiff {

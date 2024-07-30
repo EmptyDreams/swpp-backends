@@ -8,7 +8,7 @@ function isLegalHeaderName(name: string): boolean {
 }
 
 /** 环境变量存储器 */
-export class RuntimeEnv extends RuntimeKeyValueDatabase<any> {
+export class CrossEnv extends RuntimeKeyValueDatabase<any> {
 
     constructor() {
         super({
