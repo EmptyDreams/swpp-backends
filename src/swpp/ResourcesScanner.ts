@@ -16,9 +16,8 @@ export class ResourcesScanner {
 
     /** 扫描指定目录下的所有文件 */
     async scanLocalFile(path: string): Promise<FileUpdateTracker> {
-        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule') as
-            FunctionInBrowserAndNode<[URL], undefined | null | false | number>
-        const register = this.compilation.compilationEnv.read('FILE_PARSER') as FileParserRegistry
+        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
+        const register = this.compilation.compilationEnv.read('FILE_PARSER')
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation)
         await traverseDirectory(path, async file => {
@@ -48,9 +47,8 @@ export class ResourcesScanner {
 
     /** 扫描网络文件 */
     private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
-        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule') as
-            FunctionInBrowserAndNode<[URL], undefined | null | false | number>
-        const registry = this.compilation.compilationEnv.read('FILE_PARSER') as FileParserRegistry
+        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
+        const registry = this.compilation.compilationEnv.read('FILE_PARSER')
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(urls.size)
         let i = 0
@@ -136,7 +134,7 @@ export class FileUpdateTracker {
     normalizeUri(uri: string): URL {
         if (uri.startsWith('http:'))
             uri = `https:${uri.substring(5)}`
-        const domain = this.compilation.compilationEnv.read('DOMAIN_HOST') as string
+        const domain = this.compilation.compilationEnv.read('DOMAIN_HOST')
         return new URL(uri, `https://${domain}`)
     }
 

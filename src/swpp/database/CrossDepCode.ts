@@ -13,23 +13,16 @@ export interface FunctionInBrowserAndNode<Args extends any[], R> {
 
 }
 
+type COMMON_TYPE = ReturnType<typeof buildCommon>
+type RESULT<K> = K extends keyof COMMON_TYPE ? COMMON_TYPE[K]['default'] : FunctionInBrowserAndNode<any, any>
+
 /**
  * 运行时和生成时都依赖的代码
  */
-export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNode<any, any>> {
+export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNode<any, any>, COMMON_TYPE> {
 
     constructor() {
-        super({
-            /** 缓存规则 */
-            matchCacheRule: {
-                default: buildFunction({
-                    runOnBrowser: (_url: URL): undefined | null | false | number => false,
-                    runOnNode(_url: URL): undefined | null | false | number {
-                        return this.runOnBrowser(_url)
-                    }
-                })
-            }
-        })
+        super(buildCommon())
     }
 
     /** 构建 JS 源代码 */
@@ -38,6 +31,20 @@ export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNo
         return utils.anyToSource(map, false, 'const')
     }
 
+}
+
+function buildCommon() {
+    return {
+        /** 缓存规则 */
+        matchCacheRule: {
+            default: buildFunction({
+                runOnBrowser: (_url: URL): undefined | null | false | number => false,
+                runOnNode(_url: URL): undefined | null | false | number {
+                    return this.runOnBrowser(_url)
+                }
+            })
+        }
+    } as const
 }
 
 function buildFunction<Args extends any[], R>(

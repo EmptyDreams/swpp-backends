@@ -45,7 +45,7 @@ export class RuntimeData {
     /** 运行时/编译时工具函数 */
     readonly crossDep = new CrossDepCode()
 
-    getDatabase(key: string): RuntimeKeyValueDatabase<any> {
+    getDatabase(key: string): RuntimeKeyValueDatabase<any, {}> {
         if (!(key in this)) throw {
             code: exceptionNames.invalidKey,
             message: `传入的 key [${key}] 不在当前对象中存在`
@@ -55,7 +55,7 @@ export class RuntimeData {
             message: `传入的 key [${key}] 非法`
         }
         // @ts-ignore
-        return this[key] as RuntimeKeyValueDatabase<any>
+        return this[key]
     }
 
 }

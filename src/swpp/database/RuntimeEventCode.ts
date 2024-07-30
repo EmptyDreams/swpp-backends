@@ -3,41 +3,12 @@ import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
 let handleFetchEvent: (event: Event) => void
 
-export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<[Event], any>> {
+type COMMON_TYPE = ReturnType<typeof buildCommon>
+
+export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<[Event], any>, COMMON_TYPE> {
 
     constructor() {
-        super({
-            /** sw 激活后立即对所有页面生效，而非等待刷新 */
-            activate: {
-                // @ts-ignore
-                default: event => event.waitUntil(clients.claim())
-            },
-            fetch: {
-                default: event => handleFetchEvent(event)
-            },
-            /** 后台检查更新 */
-            periodicSync: {
-                default: event => {
-                    // @ts-ignore
-                    if (event.tag === 'update') {
-                        // @ts-ignore
-                        event.waitUntil(handleUpdate(true))
-                    }
-                }
-            },
-            message: {
-                default: event => {
-                    // @ts-ignore
-                    const data = event.data
-                    switch (data.type) {
-                        case 'update':
-                            // @ts-ignore
-                            handleUpdate()
-                            break
-                    }
-                }
-            }
-        })
+        super(buildCommon())
     }
 
     /** 构建 JS 源代码 */
@@ -50,4 +21,39 @@ export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<
         return result.join(';\n')
     }
 
+}
+
+function buildCommon() {
+    return {
+        /** sw 激活后立即对所有页面生效，而非等待刷新 */
+        activate: {
+            // @ts-ignore
+            default: (event: Event) => event.waitUntil(clients.claim())
+        },
+        fetch: {
+            default: (event: Event) => handleFetchEvent(event)
+        },
+        /** 后台检查更新 */
+        periodicSync: {
+            default: (event: Event) => {
+                // @ts-ignore
+                if (event.tag === 'update') {
+                    // @ts-ignore
+                    event.waitUntil(handleUpdate(true))
+                }
+            }
+        },
+        message: {
+            default: (event: Event) => {
+                // @ts-ignore
+                const data = event.data
+                switch (data.type) {
+                    case 'update':
+                        // @ts-ignore
+                        handleUpdate()
+                        break
+                }
+            }
+        }
+    } as const
 }

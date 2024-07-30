@@ -1,37 +1,42 @@
 /** 键值对存储器 */
-export class KeyValueDatabase<T> {
+export class KeyValueDatabase<T, C extends Record<string, DatabaseValue<T>>> {
 
     private runtimeEnvMap: { [p: string]: DatabaseValue<T> } = {}
 
-    constructor(map?: {[p: string]: DatabaseValue<T>}) {
+    constructor(map?: Record<string, DatabaseValue<T>>) {
         if (map) {
             Object.assign(this.runtimeEnvMap, map)
         }
+    }
+
+    /** 延迟初始化 */
+    protected lazyInit(map: Record<string, DatabaseValue<T>>) {
+        Object.assign(this.runtimeEnvMap, map)
     }
 
     /**
      * 读取指定键对应的值
      * @throws RuntimeEnvException
      */
-    read(key: string) {
-        const item = this.runtimeEnvMap[key]
+    read<K extends keyof C | string>(key: K): K extends keyof C ? C[K]['default'] : T {
+        const item = this.runtimeEnvMap[key as string]
         if (!item) throw {key, message: 'key 不存在'}
         const value = item.getter ? item.getter() : item.default
         if (!(value === null || value === undefined) && typeof value != typeof item.default)
             throw {key, value, message: '用户传入的值类型与缺省值类型不统一'} as RuntimeEnvException<any>
         const checkResult = item.checker?.(value)
         if (checkResult) throw {key, ...checkResult}
-        return value
+        return value as any
     }
 
     /**
      * 设置指定键对应的值
      * @throws RuntimeEnvException
      */
-    update(key: string, valueGetter: () => T) {
+    update<K extends keyof C | string>(key: K, valueGetter: () => T) {
         if (!(key in this.runtimeEnvMap))
             throw {key, value: null, message: 'key 不存在'} as RuntimeEnvException<any>
-        this.runtimeEnvMap[key].getter = valueGetter
+        this.runtimeEnvMap[key as string].getter = valueGetter
     }
 
     /**
@@ -45,7 +50,7 @@ export class KeyValueDatabase<T> {
     }
 
     /** 判断是否存在指定的环境变量 */
-    has(key: string): boolean {
+    has<K extends keyof C | string>(key: K): boolean {
         return key in this.runtimeEnvMap
     }
 

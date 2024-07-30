@@ -1,9 +1,9 @@
 import {DatabaseValue, KeyValueDatabase} from './KeyValueDatabase'
 
 /** 运行时键值对存储器 */
-export abstract class RuntimeKeyValueDatabase<T> extends KeyValueDatabase<T> {
+export abstract class RuntimeKeyValueDatabase<T, C extends Record<string, DatabaseValue<T>>> extends KeyValueDatabase<T, C> {
 
-    constructor(map?: {[p: string]: DatabaseValue<T>}) {
+    protected constructor(map?: Record<string, DatabaseValue<T>>) {
         super(map)
     }
 
