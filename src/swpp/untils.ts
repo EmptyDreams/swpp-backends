@@ -225,16 +225,12 @@ export const exceptionNames = {
     invalidVarName: 'invalid_var_name',
     /** 无效的变量类型 */
     invalidVarType: 'invalid_var_type',
-    /** 无效的内联代码键 */
-    invalidInlineCodeKey: 'invalid_inline_code_key',
     /** 无效的插入键 */
     invalidKey: 'invalid_key',
     /** 不支持的版本号 */
     unsupportedVersion: 'unsupported_version',
     /** 不支持的文件类型 */
     unsupportedFileType: 'unsupported_file_type',
-    /** 插入键重复 */
-    repeatInjectKey: 'repeat_inject_key',
     /** 空指针 */
     nullPoint: 'null_point',
     /** 配置文件已经完成构建 */
