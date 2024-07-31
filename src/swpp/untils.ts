@@ -182,6 +182,40 @@ export const utils = Object.freeze({
             this.deepFreeze(obj[key])
         }
         return result
+    },
+
+    /** 二分查找 */
+    binarySearch<T>(
+        array: T[], value: T,
+        startInclude: number = 0, endExclude: number = array.length,
+        comparator: (a: T, b: T) => number = (a, b) => a < b ? -1 : (a == b ? 0 : 1)
+    ): number {
+        let left = startInclude, right = endExclude - 1
+        while (left <= right) {
+            const midIndex = (left + right) >>> 1
+            const cmp = comparator(array[midIndex], value)
+            if (cmp < 0) {
+                left = midIndex + 1
+            } else if (cmp > 0) {
+                right = midIndex - 1
+            } else {
+                return midIndex
+            }
+        }
+        return -left - 1
+    },
+
+    /**
+     * 在可迭代容器中查找满足指定条件的元素的下标
+     */
+    findIndexInIterable<T>(set: Iterable<T>, predicate: (item: T) => boolean): number[] {
+        const result = []
+        let index = 0
+        for (let item of set) {
+            if (predicate(item)) result.push(index)
+            ++index
+        }
+        return result
     }
 
 })

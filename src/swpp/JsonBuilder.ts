@@ -1,4 +1,5 @@
 import {CompilationData} from './SwCompiler'
+import {utils} from './untils'
 
 export class JsonBuilder {
 
@@ -34,7 +35,35 @@ export class JsonBuilder {
     }
 
     private zipJson(json: UpdateJson) {
-
+        const matchUpdateRule = this.compilation.crossDep.read('matchUpdateRule')
+        const indexes = new Set<number>()
+        json.info[0].change?.forEach(item => {
+            const matcher = matchUpdateRule.runOnNode(item)
+            utils.findIndexInIterable(this.urls, url => !!matcher(url)).forEach(i => indexes.add(i))
+        })
+        for (let i = 1; i < json.info.length; i++) {
+            const changes = json.info[i].change
+            if (!changes) continue
+            for (let k = changes.length - 1; k >= 0; k--) {
+                const change = changes[k]
+                const values = Array.isArray(change.value) ? change.value : [change.value]
+                const tmpChange: UpdateChangeExp = {
+                    flag: change.flag,
+                    value: ''
+                }
+                for (let j = values.length - 1; j >= 0; j--) {
+                    tmpChange.value = values[j]
+                    const matcher = matchUpdateRule.runOnNode(tmpChange)
+                    const matchIndex = utils.findIndexInIterable(this.urls, url => !!matcher(url))
+                    if (matchIndex.every(it => indexes.has(it))) {
+                        values.splice(j, 1)
+                    }
+                }
+                if (values.length == 0) delete json.info[i].change
+                else if (values.length == 1) change.value = values[0]
+                else change.value = values
+            }
+        }
     }
 
     private limitJson(json: UpdateJson) {
@@ -58,7 +87,7 @@ export class JsonBuilder {
  *
  * 具体实现为使用字典树构建最优后缀匹配表达式，时间复杂度 O(N + M)
  */
-export function createUpdateChangeExps(urls: ReadonlySet<string>, refresh: Iterable<string>): UpdateChangeExp {
+function createUpdateChangeExps(urls: ReadonlySet<string>, refresh: Iterable<string>): UpdateChangeExp {
     interface Node {
         next: (Node | undefined)[],
         flag: boolean,
