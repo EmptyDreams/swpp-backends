@@ -36,33 +36,96 @@ export class JsonBuilder {
 
     private zipJson(json: UpdateJson) {
         const matchUpdateRule = this.compilation.crossDep.read('matchUpdateRule')
-        const indexes = new Set<number>()   // 统计匹配过的 URL
-        let htmlCount = 0   // 统计匹配的 HTML 的数量
-        json.info[0].change?.forEach(item => {
-            const matcher = matchUpdateRule.runOnNode(item)
-            utils.findValueInIterable(this.urls, url => !!matcher(url))
-                .forEach(it => {
-                    indexes.add(it.index)
-                    if (/(\/|\.html)$/.test(it.value)) ++htmlCount
-                })
+        const htmlMatcher = matchUpdateRule.runOnNode({flag: 'html'})
+
+        // 打散新版本的所有规则
+        json.info[0].change = json.info[0].change?.flatMap(exp => {
+            if (!Array.isArray(exp.value)) return [exp]
+            return exp.value.map(it => ({
+                flag: exp.flag, value: it
+            }))
         })
-        if (htmlCount > 0) {    // 如果 HTML 更新数量超过阈值，则直接清除所有 HTML 的缓存
-            const htmlLimit = this.compilation.compilationEnv.read('JSON_HTML_LIMIT')
-            if (htmlLimit > 0 && htmlCount > htmlLimit) {
-                json.info[0].change!.unshift({flag: 'html'})
-                utils.findValueInIterable(this.urls, url => /(\/|\.html)$/.test(url))
-                    .forEach(it => indexes.add(it.index))
+
+        // 压缩第一个版本的内容
+        const indexes = (() => {
+            const change = json.info[0].change
+            if (!change) return new Set<number>()
+            let htmlCount = 0
+            const indexes = new Set<number>()
+            // 统计每个表达式匹配的资源及刷新的 HTML 总量
+            const indexesArray = change.map(exp => {
+                const matcher = matchUpdateRule.runOnNode(exp)
+                const result = new Set<number>()
+                utils.findValueInIterable(this.urls, it => !!matcher(it))
+                    .forEach(item => {
+                        indexes.add(item.index)
+                        result.add(item.index)
+                        if (htmlMatcher(item.value)) ++htmlCount
+                    })
+                return result
+            })
+            // 如果 HTML 更新数量超过阈值，则直接清除所有 HTML 的缓存
+            if (htmlCount > 0) {
+                const htmlLimit = this.compilation.compilationEnv.read('JSON_HTML_LIMIT')
+                if (htmlLimit > 0 && htmlCount > htmlLimit) {
+                    change.unshift({flag: 'html'})
+                    const indexes = new Set<number>()
+                    utils.findValueInIterable(this.urls, it => !!htmlMatcher(it))
+                        .forEach(({index}) => indexes.add(index))
+                    indexesArray.unshift(indexes)
+                }
             }
-        }
+            // 分析哪些表达式是冗余的
+            const invalidIndex = new Array<boolean>(indexesArray.length)
+            for (let i = 0; i < indexesArray.length; i++) {
+                if (invalidIndex[i]) continue
+                const parent = indexesArray[0]
+                o:for (let k = 0; k < indexesArray.length; k++) {
+                    if (i == k || invalidIndex[k]) continue
+                    for (let item of indexesArray[k]) {
+                        if (!parent.has(item)) {
+                            continue o
+                        }
+                    }
+                    invalidIndex[k] = true
+                }
+            }
+            // 生成新的表达式
+            const validExp = new Map<UpdateChangeExp['flag'], string[]>()
+            for (let i = 0; i < invalidIndex.length; i++) {
+                if (invalidIndex[i]) continue
+                const oldExpList = validExp.get(change[i].flag)
+                const expList = oldExpList ?? []
+                if (change[i].value) {
+                    console.assert(typeof change[i].value == 'string', `change[${i}].value = ${change[i].value} 应当为字符串`)
+                    expList.push(change[i].value as string)
+                }
+                if (!oldExpList) validExp.set(change[i].flag, expList)
+            }
+            const newChange = json.info[0].change = [] as UpdateChangeExp[]
+            validExp.forEach((value, flag) => {
+                switch (value.length) {
+                    case 0:
+                        newChange.push({flag})
+                        break
+                    case 1:
+                        newChange.push({flag, value: value[0]})
+                        break
+                    default:
+                        newChange.push({flag, value})
+                }
+            })
+            return indexes
+        })()
+
         /**
          * 压缩一个表达式
          * @param set 已匹配的链接
          * @param info 要压缩的表达式所在的 change[]
          * @param index 要压缩的表达式在 change[] 中的下标
-         * @param addToSet 是否要把本次匹配到的内容放入到 set 中
          */
         const zipExp = (
-            set: Set<number>, info: UpdateJson['info'][number], index: number, addToSet: boolean
+            set: Set<number>, info: UpdateJson['info'][number], index: number
         ) => {
             const change = info.change![index]
             const values = change.value ? (Array.isArray(change.value) ? change.value : [change.value]) : []
@@ -74,33 +137,20 @@ export class JsonBuilder {
                 tmpChange.value = values[j]
                 const matcher = matchUpdateRule.runOnNode(tmpChange)
                 const matchIndex = utils.findValueInIterable(this.urls, url => !!matcher(url))
-                let everyExists = true
-                for (let item of matchIndex) {
-                    if (!set.has(item.index)) {
-                        everyExists = false
-                        if (addToSet) set.add(item.index)
-                    }
+                if (matchIndex.every(it => set.has(it.index))) {
+                    values.splice(j, 1)
                 }
-                // 如果所有匹配到的内容均已存在则将本条 value 删除
-                if (everyExists) values.splice(j, 1)
             }
             if (values.length == 0) delete info.change
             else if (values.length == 1) change.value = values[0]
             else change.value = values
         }
-        // 压缩首个版本信息
-        if (json.info[0].change) {
-            const indexRecord = new Set<number>()
-            for (let i = 0; i < json.info[0].change.length; i++) {
-                zipExp(indexRecord, json.info[0], i, true)
-            }
-        }
-        // 压缩历史版本信息
+
         for (let i = 1; i < json.info.length; i++) {
             const changes = json.info[i].change
             if (!changes) continue
             for (let k = changes.length - 1; k >= 0; k--) {
-                zipExp(indexes, json.info[i], k, false)
+                zipExp(indexes, json.info[i], k)
             }
         }
     }
