@@ -37,16 +37,31 @@ export class JsonBuilder {
     private zipJson(json: UpdateJson) {
         const matchUpdateRule = this.compilation.crossDep.read('matchUpdateRule')
         const indexes = new Set<number>()
+        // 统计匹配的 HTML 的数量
+        let htmlCount = 0
         json.info[0].change?.forEach(item => {
             const matcher = matchUpdateRule.runOnNode(item)
-            utils.findIndexInIterable(this.urls, url => !!matcher(url)).forEach(i => indexes.add(i))
+            utils.findValueInIterable(this.urls, url => !!matcher(url))
+                .forEach(it => {
+                    indexes.add(it.index)
+                    if (/(\/|\.html)$/.test(it.value)) ++htmlCount
+                })
         })
+        if (htmlCount > 0) {
+            const htmlLimit = this.compilation.compilationEnv.read('JSON_HTML_LIMIT')
+            // 如果 HTML 更新数量超过阈值，则直接清除所有 HTML 的缓存
+            if (htmlLimit > 0 && htmlCount > htmlLimit) {
+                json.info[0].change!.unshift({flag: 'html'})
+                utils.findValueInIterable(this.urls, url => /(\/|\.html)$/.test(url))
+                    .forEach(it => indexes.add(it.index))
+            }
+        }
         for (let i = 1; i < json.info.length; i++) {
             const changes = json.info[i].change
             if (!changes) continue
             for (let k = changes.length - 1; k >= 0; k--) {
                 const change = changes[k]
-                const values = Array.isArray(change.value) ? change.value : [change.value]
+                const values = change.value ? (Array.isArray(change.value) ? change.value : [change.value]) : []
                 const tmpChange: UpdateChangeExp = {
                     flag: change.flag,
                     value: ''
@@ -54,8 +69,8 @@ export class JsonBuilder {
                 for (let j = values.length - 1; j >= 0; j--) {
                     tmpChange.value = values[j]
                     const matcher = matchUpdateRule.runOnNode(tmpChange)
-                    const matchIndex = utils.findIndexInIterable(this.urls, url => !!matcher(url))
-                    if (matchIndex.every(it => indexes.has(it))) {
+                    const matchIndex = utils.findValueInIterable(this.urls, url => !!matcher(url))
+                    if (matchIndex.every(it => indexes.has(it.index))) {
                         values.splice(j, 1)
                     }
                 }
@@ -177,6 +192,6 @@ export interface UpdateJson {
 export interface UpdateChangeExp {
 
     flag: 'html' | 'suf' | 'pre' | 'str' | 'reg'
-    value: string | string[]
+    value?: string | string[]
 
 }

@@ -45,6 +45,10 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                 return false
             }
         }),
+        /** HTML 数量限制 */
+        JSON_HTML_LIMIT: buildEnv({
+            default: 0
+        }),
         /** 版本信息长度限制 */
         VERSION_LENGTH_LIMIT: buildEnv({
             default: 1024,

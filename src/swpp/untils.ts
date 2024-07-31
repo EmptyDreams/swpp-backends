@@ -208,11 +208,11 @@ export const utils = Object.freeze({
     /**
      * 在可迭代容器中查找满足指定条件的元素的下标
      */
-    findIndexInIterable<T>(set: Iterable<T>, predicate: (item: T) => boolean): number[] {
+    findValueInIterable<T>(set: Iterable<T>, predicate: (item: T) => boolean): { index: number, value: T }[] {
         const result = []
         let index = 0
         for (let item of set) {
-            if (predicate(item)) result.push(index)
+            if (predicate(item)) result.push({index, value: item})
             ++index
         }
         return result
