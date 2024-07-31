@@ -50,14 +50,14 @@ export class KeyValueDatabase<T, C extends Record<string, DatabaseValue<T>>> {
     }
 
     /** 判断是否存在指定的环境变量 */
-    has<K extends keyof C | string>(key: K): (K extends keyof C ? true : boolean) {
+    hasKey<K extends keyof C | string>(key: K): (K extends keyof C ? true : boolean) {
         // @ts-ignore
         return key in this.runtimeEnvMap
     }
 
     /** 判断指定键对应的环境变量是否存在用户设置的值 */
     hasValue<K extends keyof C | string>(key: K): boolean {
-        return this.has(key) && !!this.runtimeEnvMap[key as string].getter
+        return this.hasKey(key) && !!this.runtimeEnvMap[key as string].getter
     }
 
     /** 获取所有键值对 */
