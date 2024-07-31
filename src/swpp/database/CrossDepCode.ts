@@ -14,7 +14,6 @@ export interface FunctionInBrowserAndNode<Args extends any[], R> {
 }
 
 type COMMON_TYPE = ReturnType<typeof buildCommon>
-type RESULT<K> = K extends keyof COMMON_TYPE ? COMMON_TYPE[K]['default'] : FunctionInBrowserAndNode<any, any>
 
 /**
  * 运行时和生成时都依赖的代码
