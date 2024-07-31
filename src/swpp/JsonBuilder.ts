@@ -36,9 +36,8 @@ export class JsonBuilder {
 
     private zipJson(json: UpdateJson) {
         const matchUpdateRule = this.compilation.crossDep.read('matchUpdateRule')
-        const indexes = new Set<number>()
-        // 统计匹配的 HTML 的数量
-        let htmlCount = 0
+        const indexes = new Set<number>()   // 统计匹配过的 URL
+        let htmlCount = 0   // 统计匹配的 HTML 的数量
         json.info[0].change?.forEach(item => {
             const matcher = matchUpdateRule.runOnNode(item)
             utils.findValueInIterable(this.urls, url => !!matcher(url))
@@ -47,36 +46,61 @@ export class JsonBuilder {
                     if (/(\/|\.html)$/.test(it.value)) ++htmlCount
                 })
         })
-        if (htmlCount > 0) {
+        if (htmlCount > 0) {    // 如果 HTML 更新数量超过阈值，则直接清除所有 HTML 的缓存
             const htmlLimit = this.compilation.compilationEnv.read('JSON_HTML_LIMIT')
-            // 如果 HTML 更新数量超过阈值，则直接清除所有 HTML 的缓存
             if (htmlLimit > 0 && htmlCount > htmlLimit) {
                 json.info[0].change!.unshift({flag: 'html'})
                 utils.findValueInIterable(this.urls, url => /(\/|\.html)$/.test(url))
                     .forEach(it => indexes.add(it.index))
             }
         }
+        /**
+         * 压缩一个表达式
+         * @param set 已匹配的链接
+         * @param info 要压缩的表达式所在的 change[]
+         * @param index 要压缩的表达式在 change[] 中的下标
+         * @param addToSet 是否要把本次匹配到的内容放入到 set 中
+         */
+        const zipExp = (
+            set: Set<number>, info: UpdateJson['info'][number], index: number, addToSet: boolean
+        ) => {
+            const change = info.change![index]
+            const values = change.value ? (Array.isArray(change.value) ? change.value : [change.value]) : []
+            const tmpChange: UpdateChangeExp = {
+                flag: change.flag,
+                value: ''
+            }
+            for (let j = values.length - 1; j >= 0; j--) {
+                tmpChange.value = values[j]
+                const matcher = matchUpdateRule.runOnNode(tmpChange)
+                const matchIndex = utils.findValueInIterable(this.urls, url => !!matcher(url))
+                let everyExists = true
+                for (let item of matchIndex) {
+                    if (!set.has(item.index)) {
+                        everyExists = false
+                        if (addToSet) set.add(item.index)
+                    }
+                }
+                // 如果所有匹配到的内容均已存在则将本条 value 删除
+                if (everyExists) values.splice(j, 1)
+            }
+            if (values.length == 0) delete info.change
+            else if (values.length == 1) change.value = values[0]
+            else change.value = values
+        }
+        // 压缩首个版本信息
+        if (json.info[0].change) {
+            const indexRecord = new Set<number>()
+            for (let i = 0; i < json.info[0].change.length; i++) {
+                zipExp(indexRecord, json.info[0], i, true)
+            }
+        }
+        // 压缩历史版本信息
         for (let i = 1; i < json.info.length; i++) {
             const changes = json.info[i].change
             if (!changes) continue
             for (let k = changes.length - 1; k >= 0; k--) {
-                const change = changes[k]
-                const values = change.value ? (Array.isArray(change.value) ? change.value : [change.value]) : []
-                const tmpChange: UpdateChangeExp = {
-                    flag: change.flag,
-                    value: ''
-                }
-                for (let j = values.length - 1; j >= 0; j--) {
-                    tmpChange.value = values[j]
-                    const matcher = matchUpdateRule.runOnNode(tmpChange)
-                    const matchIndex = utils.findValueInIterable(this.urls, url => !!matcher(url))
-                    if (matchIndex.every(it => indexes.has(it.index))) {
-                        values.splice(j, 1)
-                    }
-                }
-                if (values.length == 0) delete json.info[i].change
-                else if (values.length == 1) change.value = values[0]
-                else change.value = values
+                zipExp(indexes, json.info[i], k, false)
             }
         }
     }
