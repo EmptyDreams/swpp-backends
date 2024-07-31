@@ -118,39 +118,28 @@ export class JsonBuilder {
             return indexes
         })()
 
-        /**
-         * 压缩一个表达式
-         * @param set 已匹配的链接
-         * @param info 要压缩的表达式所在的 change[]
-         * @param index 要压缩的表达式在 change[] 中的下标
-         */
-        const zipExp = (
-            set: Set<number>, info: UpdateJson['info'][number], index: number
-        ) => {
-            const change = info.change![index]
-            const values = change.value ? (Array.isArray(change.value) ? change.value : [change.value]) : []
-            const tmpChange: UpdateChangeExp = {
-                flag: change.flag,
-                value: ''
-            }
-            for (let j = values.length - 1; j >= 0; j--) {
-                tmpChange.value = values[j]
-                const matcher = matchUpdateRule.runOnNode(tmpChange)
-                const matchIndex = utils.findValueInIterable(this.urls, url => !!matcher(url))
-                if (matchIndex.every(it => set.has(it.index))) {
-                    values.splice(j, 1)
-                }
-            }
-            if (values.length == 0) delete info.change
-            else if (values.length == 1) change.value = values[0]
-            else change.value = values
-        }
-
+        // 移除后续表达式中冗余的内容
         for (let i = 1; i < json.info.length; i++) {
             const changes = json.info[i].change
             if (!changes) continue
             for (let k = changes.length - 1; k >= 0; k--) {
-                zipExp(indexes, json.info[i], k)
+                const change = json.info[i].change![k]
+                const values = change.value ? (Array.isArray(change.value) ? change.value : [change.value]) : []
+                const tmpChange: UpdateChangeExp = {
+                    flag: change.flag,
+                    value: ''
+                }
+                for (let j = values.length - 1; j >= 0; j--) {
+                    tmpChange.value = values[j]
+                    const matcher = matchUpdateRule.runOnNode(tmpChange)
+                    const matchIndex = utils.findValueInIterable(this.urls, url => !!matcher(url))
+                    if (matchIndex.every(it => indexes.has(it.index))) {
+                        values.splice(j, 1)
+                    }
+                }
+                if (values.length == 0) delete json.info[i].change
+                else if (values.length == 1) change.value = values[0]
+                else change.value = values
             }
         }
     }
