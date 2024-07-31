@@ -1,3 +1,4 @@
+import {UpdateChangeExp} from '../JsonBuilder'
 import {utils} from '../untils'
 import {FunctionInBrowser} from './RuntimeDepCode'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
@@ -40,6 +41,44 @@ function buildCommon() {
                 runOnBrowser: (_url: URL): undefined | null | false | number => false,
                 runOnNode(_url: URL): undefined | null | false | number {
                     return this.runOnBrowser(_url)
+                }
+            })
+        },
+        /** 匹配缓存更新规则 */
+        matchUpdateRule: {
+            default: buildFunction({
+                runOnBrowser: (change: UpdateChangeExp): (url: string) => boolean|undefined|null => {
+                    /**
+                     * 遍历所有value
+                     * @param action 接受value并返回bool的函数
+                     * @return 如果 value 只有一个则返回 `action(value)`，否则返回所有运算的或运算（带短路）
+                     */
+                    const forEachValues = (action: (value: string) => boolean): boolean => {
+                        const value = change.value
+                        if (Array.isArray(value)) {
+                            for (let it of value) {
+                                if (action(it)) return true
+                            }
+                            return false
+                        } else return action(value)
+                    }
+                    switch (change.flag) {
+                        case 'html':
+                            return url => /\/$|\.html$/.test(url)
+                        case 'suf':
+                            return url => forEachValues(value => url.endsWith(value))
+                        case 'pre':
+                            return url => forEachValues(value => url.startsWith(value))
+                        case 'str':
+                            return url => forEachValues(value => url.includes(value))
+                        case 'reg':
+                            return url => forEachValues(value => new RegExp(value, 'i').test(url))
+                        default:
+                            throw change
+                    }
+                },
+                runOnNode(change): (url: string) => boolean|undefined|null {
+                    return this.runOnBrowser(change)
                 }
             })
         }
