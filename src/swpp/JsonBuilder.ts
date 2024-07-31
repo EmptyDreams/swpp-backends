@@ -119,6 +119,7 @@ export class JsonBuilder {
         })()
 
         // 移除后续表达式中冗余的内容
+        if (indexes.size == 0) return
         for (let i = 1; i < json.info.length; i++) {
             const changes = json.info[i].change
             if (!changes) continue
