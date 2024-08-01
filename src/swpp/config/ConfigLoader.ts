@@ -6,8 +6,8 @@ import {COMMON_TYPE_CROSS_ENV} from '../database/CrossEnv'
 import {COMMON_TYPE_RUNTIME_CORE} from '../database/RuntimeCoreCode'
 import {COMMON_KEY_RUNTIME_DEP, FunctionInBrowser} from '../database/RuntimeDepCode'
 import {COMMON_TYPE_RUNTIME_EVENT} from '../database/RuntimeEventCode'
-import {CompilationData} from '../SwCompiler'
-import {exceptionNames, RuntimeException, utils} from '../untils'
+import {CompilationData, RuntimeData} from '../SwCompiler'
+import {exceptionNames, RuntimeException} from '../untils'
 
 export class ConfigLoader {
 
@@ -15,7 +15,7 @@ export class ConfigLoader {
     private static readonly extensions: ReadonlyArray<string> = [
         'js', 'ts', 'cjs', 'cts', 'mjs', 'mjs'
     ]
-    /** jiti */
+
     private static jiti = createJiti(__filename, {
         fsCache: false,
         moduleCache: false
@@ -49,19 +49,71 @@ export class ConfigLoader {
         else this.config = newConfig
     }
 
-    /**
-     * 构建配置
-     *
-     * 注意：调用该函数后该对象将不能再继续加载配置文件
-     */
-    build(): Readonly<SwppConfigTemplate> {
+    /** 将配置项的内容写入到环境中 */
+    write(runtime: RuntimeData, compilation: CompilationData) {
         if (!this.config) throw {
             code: exceptionNames.nullPoint,
             message: '构建配之前必须至少加载一个配置文件'
         } as RuntimeException
-        const result = this.isBuilt ? this.config : utils.deepFreeze(this.config)
-        this.isBuilt = true
-        return result
+        const config = this.config!
+        // 写入运行时信息
+        const writeRuntime = () => {
+            const insertList = ['runtimeDep', 'runtimeCore', 'runtimeEvent']
+            for (let str of insertList) {
+                const configValue = config[str as keyof SwppConfigTemplate]
+                if (!configValue) continue
+                for (let key in configValue) {
+                    const value = configValue[key]
+                    runtime.runtimeDep.update(key, () => value ?? null)
+                }
+            }
+        }
+        // 写入编译期信息
+        const writeCompilation = () => {
+            if (!config.compilationEnv) throw {
+                code: exceptionNames.nullPoint,
+                message: '配置项必须包含 compilationEnv 选项！'
+            } as RuntimeException
+            for (let key in config.compilationEnv) {
+                const value = config.compilationEnv[key]
+                compilation.compilationEnv.update(key, () => value)
+            }
+        }
+        // 写入 cross
+        const writeCross = () => {
+            if (config.crossEnv) {
+                for (let key in config.crossEnv) {
+                    const env = config.crossEnv[key]
+                    const value = typeof env === 'function' ? env.call(compilation) : env
+                    if (typeof value === 'function') throw {
+                        code: exceptionNames.invalidVarType,
+                        message: `crossEnv[${key}] 应当返回一个非函数对象，却返回了：${value.toString()}`
+                    }
+                    runtime.crossEnv.update(key, () => value)
+                }
+            }
+            if (config.crossDep) {
+                for (let key in config.crossDep) {
+                    const value = config.crossDep[key]
+                    if (typeof value != 'object') throw {
+                        code: exceptionNames.invalidVarType,
+                        message: `crossDep[${key}] 返回的内容应当为一个对象，却返回了：${value}`
+                    }
+                    if (!('runOnNode' in value)) throw {
+                        code: exceptionNames.invalidVarType,
+                        message: `crossDep[${key}] 返回的对象应当包含 {runOnNode} 字段，却返回了：${JSON.stringify(value, null, 2)}`
+                    }
+                    if (!('runOnBrowser' in value)) throw {
+                        code: exceptionNames.invalidVarType,
+                        message: `crossDep[${key}] 返回的对象应当包含 {runOnBrowser} 字段，却返回了：${JSON.stringify(value, null, 2)}`
+                    }
+                    runtime.crossDep.update(key, () => value)
+                }
+            }
+        }
+        writeRuntime()
+        writeCompilation()
+        writeCross()
     }
 
     /** 将新配置合并到已有配置中 */
@@ -273,5 +325,5 @@ export type SwppConfigCrossEnv = {
  * 该环境变量中的代码在 NodeJs 环境下执行，执行结果不会被放入 sw.js 中。
  */
 export type SwppConfigCompilationEnv = {
-    [K in keyof COMMON_TYPE_COMP_ENV | string]?: ValueOrReturnValue<K extends keyof COMMON_TYPE_COMP_ENV ? COMMON_TYPE_COMP_ENV[K]['default'] : any>
+    [K in keyof COMMON_TYPE_COMP_ENV | string]?: K extends keyof COMMON_TYPE_COMP_ENV ? COMMON_TYPE_COMP_ENV[K]['default'] : any
 }
