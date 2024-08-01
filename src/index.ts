@@ -1,16 +1,6 @@
-import fs from 'fs'
-import {RuntimeData, SwCompiler} from './swpp/SwCompiler'
+import {utils} from './swpp/untils'
 
-const builder = new SwCompiler()
-const runtimeData = new RuntimeData()
-const content = builder.buildSwCode(runtimeData)
-fs.writeFileSync('D:/Desktop/a.js', content, 'utf8')
+/** 版本号 */
+export const version = require('../package.json').version
 
-import {CompilationEnv} from './swpp/database/CompilationEnv'
-import {KeyValueDatabase} from './swpp/database/KeyValueDatabase'
-
-// const a = (a: number) => {
-//     console.log(a)
-// }
-//
-// a.call(2, 5)
+utils.printInfo('INDEX', `欢迎使用 swpp@${version}`)

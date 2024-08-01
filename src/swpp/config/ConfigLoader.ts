@@ -18,7 +18,10 @@ export class ConfigLoader {
 
     private static jiti = createJiti(__filename, {
         fsCache: false,
-        moduleCache: false
+        moduleCache: false,
+        alias: {
+            'swpp-backends': nodePath.join(__dirname, '..')
+        }
     })
 
     private config: SwppConfigTemplate | undefined
