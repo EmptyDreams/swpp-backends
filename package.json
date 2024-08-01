@@ -1,10 +1,10 @@
 {
   "name": "swpp-backends",
-  "version": "2.3.12",
+  "version": "3.0.0-alpha.0",
   "main": "dist/index.js",
   "typings": "types/index.d.ts",
   "scripts": {
-    "prepublishOnly": "tsc && gulp copy-resources"
+    "prepublishOnly": "tsc && xcopy /E \".\\src\\resources\\\" \".\\dist\\resources\\\""
   },
   "description": "Generate a powerful ServiceWorker for your website.",
   "author": "kmar",
@@ -16,7 +16,6 @@
   "devDependencies": {
     "@types/fast-html-parser": "^1.0.2",
     "@types/node": "^20.4.5",
-    "gulp": "^4.0.2",
     "typescript": "^5.1.6"
   },
   "dependencies": {
