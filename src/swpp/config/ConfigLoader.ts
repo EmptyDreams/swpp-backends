@@ -141,6 +141,41 @@ export class ConfigLoader {
 
 }
 
+/** 定义一个通过 `export default` 导出的配置 */
+export function defineConfig(config: SwppConfigTemplate): SwppConfigTemplate {
+    return config
+}
+
+/** 定义一个通过 `export const compilationEnv` 导出的配置 */
+export function defineCompilationEnv(config: SwppConfigCompilationEnv): SwppConfigCompilationEnv {
+    return config
+}
+
+/** 定义一个通过 `export const crossEnv` 导出的配置 */
+export function defineCrossEnv(config: SwppConfigCrossEnv): SwppConfigCrossDep {
+    return config
+}
+
+/** 定义一个通过 `export const runtimeDep` 导出的配置 */
+export function defineRuntimeDep(config: SwppConfigRuntimeDep): SwppConfigRuntimeDep {
+    return config
+}
+
+/** 定义一个通过 `export const crossDep` 导出的配置 */
+export function defineCrossDep(config: SwppConfigCrossDep): SwppConfigCrossDep {
+    return config
+}
+
+/** 定义一个通过 `export const runtimeCore` 导出的配置 */
+export function defineRuntimeCore(config: SwppConfigRuntimeCore): SwppConfigRuntimeCore {
+    return config
+}
+
+/** 定义一个通过 `export const runtimeEvent` 导出的配置 */
+export function defineRuntimeEvent(config: SwppConfigRuntimeEvent): SwppConfigRuntimeEvent {
+    return config
+}
+
 type ValueOrReturnValue<T> = T | ((this: CompilationData) => T)
 
 /**
