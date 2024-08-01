@@ -3,9 +3,9 @@ import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
 let handleFetchEvent: (event: Event) => void
 
-type COMMON_TYPE = ReturnType<typeof buildCommon>
+export type COMMON_TYPE_RUNTIME_EVENT = ReturnType<typeof buildCommon>
 
-export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<[Event], any>, COMMON_TYPE> {
+export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<[Event], any>, COMMON_TYPE_RUNTIME_EVENT> {
 
     constructor() {
         super(buildCommon())

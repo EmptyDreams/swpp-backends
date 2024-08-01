@@ -27,12 +27,12 @@ let fetchWrapper: (request: RequestInfo | URL, banCache: boolean, cors: boolean,
 let isCors: (request: Request) => boolean
 let matchUpdateRule: (change: UpdateChangeExp) => ((url: string) => boolean|undefined|null)
 
-type COMMON_TYPE = ReturnType<typeof buildCommon>
+export type COMMON_TYPE_RUNTIME_CORE = ReturnType<typeof buildCommon>
 
 /**
  * 运行时核心功能代码
  */
-export class RuntimeCoreCode extends RuntimeKeyValueDatabase<FunctionInBrowser<any, any> | null, COMMON_TYPE> {
+export class RuntimeCoreCode extends RuntimeKeyValueDatabase<FunctionInBrowser<any, any> | null, COMMON_TYPE_RUNTIME_CORE> {
 
     constructor() {
         super(buildCommon())

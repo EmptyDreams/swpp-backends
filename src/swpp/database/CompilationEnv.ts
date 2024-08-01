@@ -10,12 +10,12 @@ import {CrossEnv} from './CrossEnv'
 import {buildEnv, KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 import * as HTMLParser from 'fast-html-parser'
 
-type COMMON_TYPE = ReturnType<typeof buildCommon>
+export type COMMON_TYPE_COMP_ENV = ReturnType<typeof buildCommon>
 
 /**
  * 仅在编译期生效的配置项
  */
-export class CompilationEnv extends KeyValueDatabase<any, COMMON_TYPE> {
+export class CompilationEnv extends KeyValueDatabase<any, COMMON_TYPE_COMP_ENV> {
 
     constructor(crossEnv: CrossEnv, crossCode: CrossDepCode) {
         super()

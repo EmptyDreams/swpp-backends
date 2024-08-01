@@ -14,12 +14,12 @@ export interface FunctionInBrowserAndNode<Args extends any[], R> {
 
 }
 
-type COMMON_TYPE = ReturnType<typeof buildCommon>
+export type COMMON_TYPE_CROSS_DEP = ReturnType<typeof buildCommon>
 
 /**
  * 运行时和生成时都依赖的代码
  */
-export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNode<any, any>, COMMON_TYPE> {
+export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNode<any, any>, COMMON_TYPE_CROSS_DEP> {
 
     constructor() {
         super(buildCommon())

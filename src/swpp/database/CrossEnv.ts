@@ -7,10 +7,10 @@ function isLegalHeaderName(name: string): boolean {
     return /^[a-zA-Z0-9-]+$/.test(name)
 }
 
-type COMMON_TYPE = ReturnType<typeof buildCommon>
+export type COMMON_TYPE_CROSS_ENV = ReturnType<typeof buildCommon>
 
 /** 环境变量存储器 */
-export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE> {
+export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE_CROSS_ENV> {
 
     constructor() {
         super(buildCommon())
