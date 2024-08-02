@@ -26,6 +26,7 @@ export class ConfigLoader {
     private config: SwppConfigTemplate | undefined
     private isBuilt = false
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * 加载一个配置文件，越早加载的优先级越高
      * @param file
@@ -51,6 +52,7 @@ export class ConfigLoader {
         else this.config = newConfig
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /** 将配置项的内容写入到环境中 */
     write(runtime: RuntimeData, compilation: CompilationData) {
         if (!this.config) throw {

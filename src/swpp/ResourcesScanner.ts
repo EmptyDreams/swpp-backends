@@ -1,8 +1,6 @@
 import fs from 'fs'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
-import {FunctionInBrowserAndNode} from './database/CrossDepCode'
-import {FileParserRegistry} from './FileParser'
 import {JsonBuilder} from './JsonBuilder'
 import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
@@ -14,6 +12,7 @@ export class ResourcesScanner {
 
     constructor(private compilation: CompilationData) { }
 
+    // noinspection JSUnusedGlobalSymbols
     /** 扫描指定目录下的所有文件 */
     async scanLocalFile(path: string): Promise<FileUpdateTracker> {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
@@ -143,6 +142,7 @@ export class FileUpdateTracker {
         this.allUrl.add(url)
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * 判断两个 tracker 的差异
      * 

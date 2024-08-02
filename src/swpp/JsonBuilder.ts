@@ -18,6 +18,7 @@ export class JsonBuilder {
         this.headers.set(key, value)
     }
 
+    // noinspection JSUnusedGlobalSymbols
     async buildJson(): Promise<UpdateJson> {
         const json = await this.compilation.compilationEnv.read('VERSION_FILE')()
         if (json.info.length == 0) {

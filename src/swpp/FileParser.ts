@@ -1,6 +1,5 @@
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
-import {NetworkFileHandler} from './NetworkFileHandler'
 import {CompilationData} from './SwCompiler'
 import {utils} from './untils'
 

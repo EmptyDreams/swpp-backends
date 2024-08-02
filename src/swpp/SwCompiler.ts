@@ -11,6 +11,7 @@ export class SwCompiler {
 
     private swCode: string = ''
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * 构建 sw 代码，该函数结果会被缓存
      */
