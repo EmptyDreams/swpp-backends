@@ -1,7 +1,7 @@
 import {utils} from './swpp/untils'
 
 /** 版本号 */
-export const version = require('../package.json').version
+export const swppVersion = require('../package.json').version
 
 export { utils, RuntimeException } from './swpp/untils'
 export { ResourcesScanner, FileUpdateTracker,  } from './swpp/ResourcesScanner'
@@ -31,4 +31,4 @@ export { CrossDepCode } from './swpp/database/CrossDepCode'
 export { CompilationEnv, AllowNotFoundEnum } from './swpp/database/CompilationEnv'
 export { DomCode } from './swpp/database/DomCode'
 
-utils.printInfo('INDEX', `欢迎使用 swpp@${version}`)
+utils.printInfo('INDEX', `欢迎使用 swpp@${swppVersion}`)
