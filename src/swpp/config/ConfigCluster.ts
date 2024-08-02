@@ -6,7 +6,7 @@ import {COMMON_TYPE_RUNTIME_CORE} from '../database/RuntimeCoreCode'
 import {COMMON_KEY_RUNTIME_DEP, FunctionInBrowser} from '../database/RuntimeDepCode'
 import {COMMON_TYPE_RUNTIME_EVENT} from '../database/RuntimeEventCode'
 import {CompilationData} from '../SwCompiler'
-import {IndivisibleName} from './ConfigLoader'
+import {IndivisibleName, SwppConfigModifier} from './ConfigLoader'
 
 /** 定义一个通过 `export default` 导出的配置 */
 export function defineConfig(config: SwppConfigTemplate): SwppConfigTemplate {
@@ -48,6 +48,8 @@ export function defineRuntimeEvent(config: SwppConfigRuntimeEvent): SwppConfigRu
     return config
 }
 
+export type IndivisibleConfig<T> = { [K in typeof IndivisibleName]: true } & T
+
 /**
  * 定义一个无法分割的对象配置，这对一些强依赖对象内部属性的设置很有用，可以避免对象被错误地拼接。
  *
@@ -81,14 +83,14 @@ export function defineRuntimeEvent(config: SwppConfigRuntimeEvent): SwppConfigRu
  * }
  * ```
  */
-export function defineIndivisibleConfig<T extends Record<string, any>>(value: T): T {
+export function defineIndivisibleConfig<T extends Record<string, any>>(value: T): IndivisibleConfig<T> {
     Object.defineProperty(value, IndivisibleName, {
         value: true,
         writable: false,
         configurable: false,
         enumerable: false
     })
-    return value
+    return value as IndivisibleConfig<T>
 }
 
 type ValueOrReturnValue<T> = T | ((this: CompilationData) => T)
@@ -101,26 +103,28 @@ type ValueOrReturnValue<T> = T | ((this: CompilationData) => T)
 export interface SwppConfigTemplate {
 
     /** @see {SwppConfigCompilationEnv} */
-    compilationEnv: SwppConfigCompilationEnv
+    compilationEnv?: SwppConfigCompilationEnv
 
     /** @see {SwppConfigCrossEnv} */
-    crossEnv: SwppConfigCrossEnv
+    crossEnv?: SwppConfigCrossEnv
 
     /** @see {SwppConfigRuntimeDep} */
-    runtimeDep: SwppConfigRuntimeDep
+    runtimeDep?: SwppConfigRuntimeDep
 
     /** @see {SwppConfigCrossDep} */
-    crossDep: SwppConfigCrossDep
+    crossDep?: SwppConfigCrossDep
 
     /** @see {SwppConfigRuntimeCore} */
-    runtimeCore: SwppConfigRuntimeCore
+    runtimeCore?: SwppConfigRuntimeCore
 
     /** @see {SwppConfigRuntimeEvent} */
-    runtimeEvent: SwppConfigRuntimeEvent
+    runtimeEvent?: SwppConfigRuntimeEvent
 
     /** @see {SwppConfigDomConfig} */
-    domConfig: SwppConfigDomConfig
+    domConfig?: SwppConfigDomConfig
 
+    /** 配置编辑器 */
+    modifier?: SwppConfigModifier
 
 }
 

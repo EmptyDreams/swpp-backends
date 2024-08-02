@@ -1,8 +1,9 @@
 import {createJiti} from 'jiti'
 import nodePath from 'path'
+import {CompilationEnv} from '../database/CompilationEnv'
 import {CompilationData, RuntimeData} from '../SwCompiler'
 import {exceptionNames, RuntimeException} from '../untils'
-import {SwppConfigTemplate} from './ConfigCluster'
+import {IndivisibleConfig, SwppConfigTemplate} from './ConfigCluster'
 
 export const IndivisibleName = '1indivisible__'
 
@@ -21,6 +22,7 @@ export class ConfigLoader {
     })
 
     private config: SwppConfigTemplate | undefined
+    private modifierList: SwppConfigModifier[] = []
     private isBuilt = false
 
     // noinspection JSUnusedGlobalSymbols
@@ -45,23 +47,39 @@ export class ConfigLoader {
         // @ts-ignore
         const content: any = await ConfigLoader.jiti.import(file)
         let newConfig: SwppConfigTemplate = 'default' in content ? content.default : content
+        if ('modifier' in newConfig) {
+            this.modifierList.push(newConfig.modifier as SwppConfigModifier)
+        }
         if (this.config) this.mergeConfig(newConfig)
         else this.config = newConfig
     }
 
     // noinspection JSUnusedGlobalSymbols
     /** 将配置项的内容写入到环境中 */
-    write(runtime: RuntimeData, compilation: CompilationData) {
+    generate(): Readonly<{
+        runtime: RuntimeData,
+        compilation: CompilationData
+    }> {
         if (!this.config) throw {
             code: exceptionNames.nullPoint,
             message: '构建配之前必须至少加载一个配置文件'
         } as RuntimeException
+        // 构建属性集
+        const {runtime, compilation} = (this.modifierList.find(it => it.build)?.build ?? (() => {
+            const runtime = new RuntimeData()
+            const compilation: CompilationData = {
+                compilationEnv: new CompilationEnv(runtime.crossEnv, runtime.crossDep),
+                crossDep: runtime.crossDep,
+                crossEnv: runtime.crossEnv
+            }
+            return {runtime, compilation}
+        }))()
         const config = this.config!
         // 写入运行时信息
         const writeRuntime = () => {
             const insertList = ['runtimeDep', 'runtimeCore', 'runtimeEvent']
             for (let str of insertList) {
-                const configValue = config[str as keyof SwppConfigTemplate]
+                const configValue = config[str as keyof SwppConfigTemplate] as any
                 if (!configValue) continue
                 for (let key in configValue) {
                     const value = configValue[key]
@@ -112,15 +130,29 @@ export class ConfigLoader {
                 }
             }
         }
+
+        // 运行 registry
+        for (let i = this.modifierList.length - 1; i >= 0; i--) {
+            const modifier = this.modifierList[i]
+            modifier.registry?.(runtime, compilation)
+        }
         writeRuntime()
         writeCompilation()
         writeCross()
+        // 运行 dynamic
+        for (let i = this.modifierList.length - 1; i >= 0; i--) {
+            const modifier = this.modifierList[i]
+            modifier.dynamic?.(runtime, compilation)
+        }
+
+        return Object.freeze({runtime, compilation})
     }
 
     /** 将新配置合并到已有配置中 */
     private mergeConfig(other: SwppConfigTemplate) {
-        function mergeHelper(high: any, low: any) {
+        function mergeHelper(high: any, low: any, skip: boolean) {
             for (let key in low) {
+                if (skip && key == 'modifier') continue
                 const lowValue = low[key]
                 if (key in high) {
                     const highValue = high[key]
@@ -130,14 +162,49 @@ export class ConfigLoader {
                     }
                     if (typeof highValue != typeof lowValue) continue
                     if (typeof highValue == 'object' && !highValue[IndivisibleName] && !lowValue[IndivisibleName]) {
-                        mergeHelper(highValue, lowValue)
+                        mergeHelper(highValue, lowValue, false)
                     }
                 } else {
                     high[key] = lowValue
                 }
             }
         }
-        mergeHelper(this.config, other)
+        mergeHelper(this.config, other, true)
     }
+
+}
+
+/**
+ * 配置编辑器
+ */
+export interface SwppConfigModifier {
+
+    /**
+     * 自定义运行时和编译期的属性表
+     *
+     * 优先级越高越优先生效
+     */
+    build?: () => {
+        runtime: IndivisibleConfig<RuntimeData>,
+        compilation: IndivisibleConfig<CompilationData>
+    }
+
+    /**
+     * 本函数用于向系统注册新的属性。
+     *
+     * 该函数内应当只调用 xxx.append 函数及其它工具函数，非必要不应当包含其它有副作用的操作。
+     *
+     * 优先级越低该函数越早执行。
+     */
+    registry?: (runtime: RuntimeData, compilation: CompilationData) => void
+
+    /**
+     * 本函数用于动态修改属性的值。
+     *
+     * 该函数内应当只调用 xxx.update 函数及其它工具函数，非必要不应当包含其它有副作用的操作。
+     *
+     * 优先级越低该函数越早执行
+     */
+    dynamic?: (runtime: RuntimeData, compilation: CompilationData) => void
 
 }
