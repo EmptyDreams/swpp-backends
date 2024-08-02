@@ -1,4 +1,3 @@
-import {version} from '../../index'
 import {BrowserVersion} from '../SwCompiler'
 import {FunctionInBrowser} from './RuntimeDepCode'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
