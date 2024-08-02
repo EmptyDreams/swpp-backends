@@ -13,9 +13,10 @@ export { NetworkFileHandler, FiniteConcurrencyFetcher } from './swpp/NetworkFile
 export {
     ConfigLoader, SwppConfigRuntimeEvent,
     SwppConfigRuntimeCore, SwppConfigRuntimeDep, SwppConfigCrossDep,
-    SwppConfigCrossEnv, SwppConfigCompilationEnv, SwppConfigTemplate,
+    SwppConfigCrossEnv, SwppConfigCompilationEnv, SwppConfigTemplate, SwppConfigDomConfig,
     defineCompilationEnv, defineConfig, defineCrossEnv, defineCrossDep,
-    defineRuntimeDep, defineRuntimeCore, defineRuntimeEvent, defineIndivisibleConfig
+    defineRuntimeDep, defineRuntimeCore, defineRuntimeEvent, defineDomConfig,
+    defineIndivisibleConfig
 } from './swpp/config/ConfigLoader'
 
 export {

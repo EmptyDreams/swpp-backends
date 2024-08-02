@@ -178,6 +178,11 @@ export function defineRuntimeCore(config: SwppConfigRuntimeCore): SwppConfigRunt
     return config
 }
 
+/** 定义一个通过 `export const domConfig` 导出的配置 */
+export function defineDomConfig(config: SwppConfigDomConfig): SwppConfigDomConfig {
+    return config
+}
+
 /** 定义一个通过 `export const runtimeEvent` 导出的配置 */
 export function defineRuntimeEvent(config: SwppConfigRuntimeEvent): SwppConfigRuntimeEvent {
     return config
@@ -252,6 +257,9 @@ export interface SwppConfigTemplate {
 
     /** @see {SwppConfigRuntimeEvent} */
     runtimeEvent: SwppConfigRuntimeEvent
+
+    /** @see {SwppConfigDomConfig} */
+    domConfig: SwppConfigDomConfig
 
 }
 
@@ -418,8 +426,10 @@ export type SwppConfigCompilationEnv = {
  *
  * 该配置项用于放置需要生成到 dom.js 中的内容。
  *
- * 对于每一项配置
+ * 对于每一项配置 `<KEY>: <value>`：<KEY> 是常量名或函数名，常量推荐大写下划线命名，函数推荐小写驼峰命名，<value> 是值。
+ * 
+ * 该配置项中的值只能使用本配置项中包含的内容，不能使用其它编译期、运行期的内容。
  */
-export type SwppConfigDomCode = {
+export type SwppConfigDomConfig = {
     [K in keyof COMMON_TYPE_DOM_CODE | string]?: K extends keyof COMMON_TYPE_DOM_CODE ? COMMON_TYPE_DOM_CODE[K]['default'] : any
 }
