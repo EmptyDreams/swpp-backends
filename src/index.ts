@@ -21,7 +21,7 @@ export {
     SwppConfigRuntimeCore, SwppConfigRuntimeDep, SwppConfigCrossDep,
     SwppConfigCrossEnv, SwppConfigCompilationEnv, SwppConfigTemplate,
     defineCompilationEnv, defineConfig, defineCrossEnv, defineCrossDep,
-    defineRuntimeDep, defineRuntimeCore, defineRuntimeEvent
+    defineRuntimeDep, defineRuntimeCore, defineRuntimeEvent, defineIndivisibleConfig
 } from './swpp/config/ConfigLoader'
 
 export {
@@ -33,7 +33,7 @@ export { RuntimeCoreCode } from './swpp/database/RuntimeCoreCode'
 export { RuntimeDepCode } from './swpp/database/RuntimeDepCode'
 export { CrossEnv } from './swpp/database/CrossEnv'
 export { CrossDepCode } from './swpp/database/CrossDepCode'
-export { CompilationEnv } from './swpp/database/CompilationEnv'
+export { CompilationEnv, AllowNotFoundEnum } from './swpp/database/CompilationEnv'
 
 export namespace SwppType {
 

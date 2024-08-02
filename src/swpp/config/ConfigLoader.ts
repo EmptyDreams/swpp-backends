@@ -9,6 +9,8 @@ import {COMMON_TYPE_RUNTIME_EVENT} from '../database/RuntimeEventCode'
 import {CompilationData, RuntimeData} from '../SwCompiler'
 import {exceptionNames, RuntimeException} from '../untils'
 
+const IndivisibleName = '1indivisible__'
+
 export class ConfigLoader {
 
     /** 支持的拓展名列表 */
@@ -132,7 +134,7 @@ export class ConfigLoader {
                         continue
                     }
                     if (typeof highValue != typeof lowValue) continue
-                    if (typeof highValue == 'object') {
+                    if (typeof highValue == 'object' && !highValue[IndivisibleName] && !lowValue[IndivisibleName]) {
                         mergeHelper(highValue, lowValue)
                     }
                 } else {
@@ -178,6 +180,49 @@ export function defineRuntimeCore(config: SwppConfigRuntimeCore): SwppConfigRunt
 /** 定义一个通过 `export const runtimeEvent` 导出的配置 */
 export function defineRuntimeEvent(config: SwppConfigRuntimeEvent): SwppConfigRuntimeEvent {
     return config
+}
+
+/**
+ * 定义一个无法分割的对象配置，这对一些强依赖对象内部属性的设置很有用，可以避免对象被错误地拼接。
+ *
+ * 默认情况下，当定义一个对象配置时，将允许从其它配置文件中合并一部分配置到对象中，比如：
+ *
+ * ```typescript
+ * // 当前配置
+ * exampleConfig.obj = {
+ *     value1: 'hello world'
+ * }
+ * // 如果还有一个配置文件中也声明了这个配置
+ * exampleConfig.obj = {
+ *     value2: 'hello swpp'
+ * }
+ * // 最终将合并生成如下配置
+ * exampleConfig.obj = {
+ *     value1: 'hello world',
+ *     value2: 'hello swpp'
+ * }
+ * ```
+ *
+ * 通过该函数，可以禁止 swpp 合并配置时仅选取对象的部分字段，要么全部使用 [value] 的值，要么完全不使用 [value] 的值。
+ *
+ * 放入到上述例子中，假如两个 obj 任意一个或多个通过 `defineIndivisibleConfig({ xxx: xxx })` 设置，最终的值将取决于两个配置文件的优先级，
+ * 若 `value2` 的优先级高将产生：
+ *
+ * ```typescript
+ * // 最终结果
+ * exampleConfig.obj = {
+ *     value2: 'hello swpp'
+ * }
+ * ```
+ */
+export function defineIndivisibleConfig<T extends Record<string, any>>(value: T): T {
+    Object.defineProperty(value, IndivisibleName, {
+        value: true,
+        writable: false,
+        configurable: false,
+        enumerable: false
+    })
+    return value
 }
 
 type ValueOrReturnValue<T> = T | ((this: CompilationData) => T)
