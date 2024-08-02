@@ -11,12 +11,7 @@ export { SwCompiler, CompilationData, RuntimeData, BrowserVersion } from './swpp
 export { NetworkFileHandler, FiniteConcurrencyFetcher } from './swpp/NetworkFileHandler'
 
 export {
-    ConfigLoader, SwppConfigRuntimeEvent,
-    SwppConfigRuntimeCore, SwppConfigRuntimeDep, SwppConfigCrossDep,
-    SwppConfigCrossEnv, SwppConfigCompilationEnv, SwppConfigTemplate, SwppConfigDomConfig,
-    defineCompilationEnv, defineConfig, defineCrossEnv, defineCrossDep,
-    defineRuntimeDep, defineRuntimeCore, defineRuntimeEvent, defineDomConfig,
-    defineIndivisibleConfig
+    ConfigLoader
 } from './swpp/config/ConfigLoader'
 
 export {
@@ -32,3 +27,11 @@ export { CompilationEnv, AllowNotFoundEnum } from './swpp/database/CompilationEn
 export { DomCode } from './swpp/database/DomCode'
 
 utils.printInfo('INDEX', `欢迎使用 swpp@${swppVersion}`)
+export {
+    SwppConfigDomConfig, SwppConfigCompilationEnv,
+    SwppConfigCrossEnv, SwppConfigRuntimeEvent, SwppConfigCrossDep,
+    SwppConfigRuntimeCore, SwppConfigRuntimeDep, SwppConfigTemplate,
+    defineIndivisibleConfig, defineConfig,
+    defineRuntimeEvent, defineDomConfig, defineRuntimeCore, defineCrossDep,
+    defineRuntimeDep, defineCrossEnv, defineCompilationEnv
+} from './swpp/config/ConfigCluster'
