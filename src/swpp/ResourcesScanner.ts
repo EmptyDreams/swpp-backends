@@ -1,6 +1,7 @@
 import fs from 'fs'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
+import {AllowNotFoundEnum} from './database/CompilationEnv'
 import {JsonBuilder} from './JsonBuilder'
 import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
@@ -170,6 +171,7 @@ export class FileUpdateTracker {
         return diff
     }
 
+    // noinspection JSUnusedGlobalSymbols
     /**
      * 将数据序列化为 JSON
      *
@@ -226,6 +228,51 @@ export class FileUpdateTracker {
             } as RuntimeException
         }
         return tracker
+    }
+
+    // noinspection JSUnusedGlobalSymbols
+    /** 从网络拉取并解析 tracker */
+    static async parserJsonFromNetwork(
+        compilation: CompilationData, url: RequestInfo | URL
+    ): Promise<FileUpdateTracker> {
+        const fetcher = compilation.compilationEnv.read('FETCH_NETWORK_FILE')
+        const isNotFound = compilation.compilationEnv.read('IS_NOT_FOUND')
+        const notFoundLevel = compilation.compilationEnv.read('ALLOW_NOT_FOUND')
+        let error: RuntimeException
+        const result = await (async () => {
+            try {
+                const response = await fetcher.fetch(url)
+                if (isNotFound.response(response)) {
+                    if (notFoundLevel == AllowNotFoundEnum.REJECT_ALL) {
+                        error = {
+                            code: exceptionNames.notFound,
+                            message: `拉取 ${url} 时出现 404 错误`
+                        }
+                        return
+                    }
+                    utils.printWarning(
+                        'SCANNER', '拉取 tracker 时服务器返回了 404，如果是第一次携带 swpp v3 构建网站请忽视这条信息'
+                    )
+                    return new FileUpdateTracker(compilation)
+                }
+                const text = await response.text()
+                return FileUpdateTracker.unJson(compilation, text)
+            } catch (e) {
+                if (isNotFound.error(e) && notFoundLevel == AllowNotFoundEnum.ALLOW_ALL) {
+                    utils.printWarning(
+                        'SCANNER', '拉取 tracker 时 DNS 解析失败，如果是第一次携带 swpp v3 构建网站且网站暂时无法解析请忽视这条信息'
+                    )
+                    return new FileUpdateTracker(compilation)
+                }
+                utils.printError('SCANNER', e)
+                throw {
+                    code: exceptionNames.error,
+                    message: `拉取或解析历史 Tracker 时出现错误`
+                } as RuntimeException
+            }
+        })()
+        if (result) return result
+        throw error!
     }
 
 }

@@ -150,7 +150,7 @@ export const utils = Object.freeze({
     },
 
     printError(title: string, err: any) {
-        console.error(`[${this.time()}] [ERR] [SWPP] [${title}]: ${JSON.stringify(err, null, 2)}`)
+        console.error(`[${this.time()}] [ERR] [SWPP] [${title}]: `, err)
     },
 
     printInfo(title: string, info: any) {
@@ -234,7 +234,11 @@ export const exceptionNames = {
     /** 空指针 */
     nullPoint: 'null_point',
     /** 配置文件已经完成构建 */
-    configBuilt: 'config_built'
+    configBuilt: 'config_built',
+    /** 404 错误 */
+    notFound: 'not_found',
+    /** 未知分类错误 */
+    error: 'error'
 } as const
 
 export interface RuntimeException {

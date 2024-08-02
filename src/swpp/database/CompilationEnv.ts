@@ -24,6 +24,18 @@ export class CompilationEnv extends KeyValueDatabase<any, COMMON_TYPE_COMP_ENV> 
 
 }
 
+/** 拉取版本信息和 tracker 时的 404 等级 */
+export enum AllowNotFoundEnum {
+
+    /** 允许任意形式的 404，包含 DNS 解析失败 */
+    ALLOW_ALL,
+    /** 允许服务器返回 404 */
+    ALLOW_STATUS,
+    /** 拒绝任意形式的 404 */
+    REJECT_ALL
+
+}
+
 function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
     const env = _env as CompilationEnv
     return {
@@ -100,6 +112,19 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
             default: {
                 response: (response: Response) => response.status == 404,
                 error: (err: any) => err?.cause?.code === 'ENOTFOUND'
+            }
+        }),
+        ALLOW_NOT_FOUND: buildEnv({
+            default: AllowNotFoundEnum.ALLOW_STATUS,
+            checker(value: AllowNotFoundEnum): false | RuntimeEnvErrorTemplate<any> {
+                switch (value) {
+                    case AllowNotFoundEnum.ALLOW_ALL:
+                    case AllowNotFoundEnum.ALLOW_STATUS:
+                    case AllowNotFoundEnum.REJECT_ALL:
+                        return false
+                    default:
+                        return {value, message: '填写了非法的 ALLOW_NOT_FOUND 值'}
+                }
             }
         }),
         FILE_PARSER: buildEnv({
