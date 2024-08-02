@@ -4,7 +4,7 @@
   "main": "dist/index.js",
   "typings": "types/index.d.ts",
   "scripts": {
-    "prepublishOnly": "tsc && xcopy /E \".\\src\\resources\\\" \".\\dist\\resources\\\""
+    "prepublishOnly": "tsc"
   },
   "description": "Generate a powerful ServiceWorker for your website.",
   "author": "kmar",

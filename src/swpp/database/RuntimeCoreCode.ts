@@ -60,11 +60,12 @@ function buildCommon() {
         /**
          * 缓存增量更新功能实现
          * @param force 是否强制更新
-         * @return 标记缓存是否更新，-1 - 新访客，1 - 仅更新版本号，2 - 更新了缓存，否则 - 没有进行任何更新
+         * @return 标记缓存是否更新，-1 - 新访客，1 - 仅更新版本号，2 - 更新了缓存，string[] - 更新了部分缓存，否则 - 没有进行任何更新
          */
         handleUpdate: {
-            default: async (force?: boolean): Promise<1 | -1 | 2 | undefined | null | void> => {
-                const oldVersion = await readVersion()
+            default: async (
+                oldVersion: BrowserVersion | undefined, force?: boolean
+            ): Promise<1 | -1 | 2 | undefined | null | void | string[]> => {
                 if (!force && oldVersion && Date.now() - oldVersion.tp! < UPDATE_CD) return
                 const json: UpdateJson =
                     await (await fetch(UPDATE_JSON_URL, {
@@ -76,7 +77,7 @@ function buildCommon() {
                 // 新访客或触发了逃生门
                 if (!oldVersion || (ESCAPE && ESCAPE !== oldVersion.escape)) {
                     await writeVersion(newVersion)
-                    return oldVersion ? 2 : -1
+                    return oldVersion ? 1 : -1
                 }
                 // 已是最新版本时跳过剩余步骤
                 if (oldVersion.global === global && oldVersion.local === newVersion.local) return
@@ -96,7 +97,7 @@ function buildCommon() {
                                     }
                                 }
                             })
-                        return postMessage('update', urlList)
+                        return urlList
                     }
                     const changeList = infoElement.change
                     if (changeList) {
@@ -108,7 +109,7 @@ function buildCommon() {
                 // 运行到这里说明版本号丢失
                 await caches.delete(CACHE_NAME)
                     .then(() => writeVersion(newVersion))
-                return postMessage('reset', null)
+                return 2
             }
         },
         handleFetchEvent: {

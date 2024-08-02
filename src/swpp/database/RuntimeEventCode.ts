@@ -1,7 +1,12 @@
+import {version} from '../../index'
+import {BrowserVersion} from '../SwCompiler'
 import {FunctionInBrowser} from './RuntimeDepCode'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
 let handleFetchEvent: (event: Event) => void
+let handleUpdate: (oldVersion: BrowserVersion | undefined, force?: boolean) => Promise<1 | -1 | 2 | undefined | null | void | string[]>
+let postMessage: (type: string, data: any, ...goals: any) => Promise<void>
+let readVersion: () => Promise<BrowserVersion | undefined>
 
 export type COMMON_TYPE_RUNTIME_EVENT = ReturnType<typeof buildCommon>
 
@@ -44,14 +49,26 @@ function buildCommon() {
             }
         },
         message: {
-            default: (event: Event) => {
+            default: async (event: Event) => {
                 // @ts-ignore
                 const data = event.data
                 switch (data.type) {
                     case 'update':
-                        // @ts-ignore
-                        handleUpdate()
-                        break
+                        const oldVersion = await readVersion()
+                        const updateResult = await handleUpdate(oldVersion)
+                        if (!updateResult) return
+                        switch (updateResult) {
+                            case -1:
+                                return postMessage('new', null)
+                            case 1:
+                                return postMessage('revise', null)
+                            case 2:
+                                return postMessage('update', null)
+                            default:
+                                if (Array.isArray(updateResult)) {
+                                    return postMessage('update', updateResult)
+                                }
+                        }
                 }
             }
         }

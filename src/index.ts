@@ -1,9 +1,3 @@
-import {COMMON_TYPE_COMP_ENV} from './swpp/database/CompilationEnv'
-import {COMMON_TYPE_CROSS_DEP} from './swpp/database/CrossDepCode'
-import {COMMON_TYPE_CROSS_ENV} from './swpp/database/CrossEnv'
-import {COMMON_TYPE_RUNTIME_CORE} from './swpp/database/RuntimeCoreCode'
-import {COMMON_KEY_RUNTIME_DEP} from './swpp/database/RuntimeDepCode'
-import {COMMON_TYPE_RUNTIME_EVENT} from './swpp/database/RuntimeEventCode'
 import {utils} from './swpp/untils'
 
 /** 版本号 */
@@ -34,16 +28,6 @@ export { RuntimeDepCode } from './swpp/database/RuntimeDepCode'
 export { CrossEnv } from './swpp/database/CrossEnv'
 export { CrossDepCode } from './swpp/database/CrossDepCode'
 export { CompilationEnv, AllowNotFoundEnum } from './swpp/database/CompilationEnv'
-
-export namespace SwppType {
-
-    export type RuntimeEventCode = COMMON_TYPE_RUNTIME_EVENT
-    export type RuntimeCoreCode = COMMON_TYPE_RUNTIME_CORE
-    export type RuntimeDepCode = COMMON_KEY_RUNTIME_DEP
-    export type CrossEnv = COMMON_TYPE_CROSS_ENV
-    export type CrossDep = COMMON_TYPE_CROSS_DEP
-    export type CompilationEnv = COMMON_TYPE_COMP_ENV
-
-}
+export { DomCode } from './swpp/database/DomCode'
 
 utils.printInfo('INDEX', `欢迎使用 swpp@${version}`)

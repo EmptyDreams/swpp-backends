@@ -3,6 +3,7 @@ import nodePath from 'path'
 import {COMMON_TYPE_COMP_ENV} from '../database/CompilationEnv'
 import {COMMON_TYPE_CROSS_DEP} from '../database/CrossDepCode'
 import {COMMON_TYPE_CROSS_ENV} from '../database/CrossEnv'
+import {COMMON_TYPE_DOM_CODE} from '../database/DomCode'
 import {COMMON_TYPE_RUNTIME_CORE} from '../database/RuntimeCoreCode'
 import {COMMON_KEY_RUNTIME_DEP, FunctionInBrowser} from '../database/RuntimeDepCode'
 import {COMMON_TYPE_RUNTIME_EVENT} from '../database/RuntimeEventCode'
@@ -410,4 +411,15 @@ export type SwppConfigCrossEnv = {
  */
 export type SwppConfigCompilationEnv = {
     [K in keyof COMMON_TYPE_COMP_ENV | string]?: K extends keyof COMMON_TYPE_COMP_ENV ? COMMON_TYPE_COMP_ENV[K]['default'] : any
+}
+
+/**
+ * 运行时使用的常量、函数。
+ *
+ * 该配置项用于放置需要生成到 dom.js 中的内容。
+ *
+ * 对于每一项配置
+ */
+export type SwppConfigDomCode = {
+    [K in keyof COMMON_TYPE_DOM_CODE | string]?: K extends keyof COMMON_TYPE_DOM_CODE ? COMMON_TYPE_DOM_CODE[K]['default'] : any
 }
