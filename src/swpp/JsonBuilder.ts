@@ -20,7 +20,7 @@ export class JsonBuilder {
 
     // noinspection JSUnusedGlobalSymbols
     async buildJson(): Promise<UpdateJson> {
-        const json = await this.compilation.compilationEnv.read('VERSION_FILE').fetcher()
+        const json = await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetcher()
         if (json.info.length == 0) {
             json.info.push({version: 1})
             return json

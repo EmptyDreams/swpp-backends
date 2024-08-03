@@ -75,7 +75,7 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
             }
         }),
         /** 获取已经上线的版本文件 */
-        VERSION_FILE: buildEnv({
+        SWPP_JSON_FILE: buildEnv({
             default: {
                 trackerPath: 'swpp/tracker.json',
                 versionPath: 'swpp/update.json',
