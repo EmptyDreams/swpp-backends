@@ -76,20 +76,23 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
         }),
         /** 获取已经上线的版本文件 */
         VERSION_FILE: buildEnv({
-            default: async (): Promise<UpdateJson> => {
-                const host = env.read('DOMAIN_HOST')
-                const fetcher = env.read('FETCH_NETWORK_FILE')
-                const isNotFound = env.read('IS_NOT_FOUND')
-                try {
-                    const response = await fetcher.fetch(`https://${host}/update.json`)
-                    if (!isNotFound.response(response)) {
-                        const json = await response.json()
-                        return json as UpdateJson
+            default: {
+                path: 'update.json',
+                async fetcher(): Promise<UpdateJson> {
+                    const host = env.read('DOMAIN_HOST')
+                    const fetcher = env.read('FETCH_NETWORK_FILE')
+                    const isNotFound = env.read('IS_NOT_FOUND')
+                    try {
+                        const response = await fetcher.fetch(`https://${host}/${this.path}`)
+                        if (!isNotFound.response(response)) {
+                            const json = await response.json()
+                            return json as UpdateJson
+                        }
+                    } catch (e) {
+                        if (!isNotFound.error(e)) throw e
                     }
-                } catch (e) {
-                    if (!isNotFound.error(e)) throw e
+                    return {global: 0, info: []}
                 }
-                return {global: 0, info: []}
             }
         }),
         /** 读取一个本地文件 */
