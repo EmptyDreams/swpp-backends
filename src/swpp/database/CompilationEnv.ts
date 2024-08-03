@@ -117,6 +117,7 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                 error: (err: any) => err?.cause?.code === 'ENOTFOUND'
             }
         }),
+        /** 是否允许 404 */
         ALLOW_NOT_FOUND: buildEnv({
             default: AllowNotFoundEnum.ALLOW_STATUS,
             checker(value: AllowNotFoundEnum): false | RuntimeEnvErrorTemplate<any> {
@@ -130,6 +131,7 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                 }
             }
         }),
+        /** 文件解析器 */
         FILE_PARSER: buildEnv({
             default: createRegister(env, crossEnv, crossCode)
         })
