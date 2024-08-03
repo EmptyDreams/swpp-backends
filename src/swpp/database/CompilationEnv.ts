@@ -77,13 +77,14 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
         /** 获取已经上线的版本文件 */
         VERSION_FILE: buildEnv({
             default: {
-                path: 'update.json',
+                trackerPath: 'swpp/tracker.json',
+                versionPath: 'swpp/update.json',
                 async fetcher(): Promise<UpdateJson> {
                     const host = env.read('DOMAIN_HOST')
                     const fetcher = env.read('FETCH_NETWORK_FILE')
                     const isNotFound = env.read('IS_NOT_FOUND')
                     try {
-                        const response = await fetcher.fetch(`https://${host}/${this.path}`)
+                        const response = await fetcher.fetch(new URL(this.versionPath, `https://${host}`))
                         if (!isNotFound.response(response)) {
                             const json = await response.json()
                             return json as UpdateJson
