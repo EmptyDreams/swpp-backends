@@ -19,6 +19,7 @@ export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> 
 
     buildInnerSource(): string {
         const map = this.entries()
+        delete map['registry']
         const inlineCode = Object.keys(map)
             .filter(it => it.startsWith('_inline'))
             .map(it => `${it}()`)
@@ -43,6 +44,18 @@ let postMessage2Sw: (type: string) => void
 
 function buildCommon() {
     return {
+        registry: {
+            default: () => {
+                const sw = navigator.serviceWorker
+                if (sw) {
+                    sw.register('sw.js')
+                        .then(() => console.log('SWPP 注册成功'))
+                        .catch(err => console.error('SWPP 注册失败', err))
+                } else {
+                    console.warn('当前浏览器不支持 SW')
+                }
+            }
+        },
         postMessage2Sw: {
             default: (type: string) => controller.postMessage(type)
         },
