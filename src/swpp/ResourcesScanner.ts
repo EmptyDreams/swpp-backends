@@ -232,9 +232,10 @@ export class FileUpdateTracker {
 
     // noinspection JSUnusedGlobalSymbols
     /** 从网络拉取并解析 tracker */
-    static async parserJsonFromNetwork(
-        compilation: CompilationData, url: RequestInfo | URL
-    ): Promise<FileUpdateTracker> {
+    static async parserJsonFromNetwork(compilation: CompilationData): Promise<FileUpdateTracker> {
+        const domain = compilation.compilationEnv.read('DOMAIN_HOST')
+        const jsonInfo = compilation.compilationEnv.read('VERSION_FILE')
+        const url = new URL(jsonInfo.trackerPath, `https://${domain}`)
         const fetcher = compilation.compilationEnv.read('FETCH_NETWORK_FILE')
         const isNotFound = compilation.compilationEnv.read('IS_NOT_FOUND')
         const notFoundLevel = compilation.compilationEnv.read('ALLOW_NOT_FOUND')
