@@ -1,5 +1,6 @@
 import {CompilationEnv} from './database/CompilationEnv'
 import {CrossDepCode} from './database/CrossDepCode'
+import {DomCode} from './database/DomCode'
 import {RuntimeCoreCode} from './database/RuntimeCoreCode'
 import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {CrossEnv} from './database/CrossEnv'
@@ -31,20 +32,22 @@ export class SwCompiler {
 export class RuntimeData {
 
     /** 控制插入顺序 */
-    readonly insertOrder: (Exclude<keyof RuntimeData, 'insertOrder'> | string)[] = [
+    readonly insertOrder: (Exclude<keyof RuntimeData, 'insertOrder' | 'domConfig'> | string)[] = [
         'crossEnv', 'crossDep', 'runtimeDep', 'runtimeCore', 'runtimeEvent'
     ]
 
     /** 运行时环境变量 */
-    readonly crossEnv = new CrossEnv()
+    crossEnv = new CrossEnv()
     /** 运行时工具函数 */
-    readonly runtimeDep = new RuntimeDepCode()
+    runtimeDep = new RuntimeDepCode()
     /** 运行时核心功能函数 */
-    readonly runtimeCore = new RuntimeCoreCode()
+    runtimeCore = new RuntimeCoreCode()
     /** 运行时事件注册 */
-    readonly runtimeEvent = new RuntimeEventCode()
+    runtimeEvent = new RuntimeEventCode()
     /** 运行时/编译时工具函数 */
-    readonly crossDep = new CrossDepCode()
+    crossDep = new CrossDepCode()
+    /** DOM 相关设置 */
+    domConfig = new DomCode()
 
     getDatabase(key: string): RuntimeKeyValueDatabase<any, {}> {
         if (!(key in this)) throw {

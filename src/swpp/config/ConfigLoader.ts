@@ -74,7 +74,7 @@ export class ConfigLoader {
         const config = this.config!
         // 写入运行时信息
         const writeRuntime = () => {
-            const insertList = ['runtimeDep', 'runtimeCore', 'runtimeEvent']
+            const insertList = ['runtimeDep', 'runtimeCore', 'runtimeEvent', 'domConfig']
             for (let str of insertList) {
                 const configValue = config[str as keyof SwppConfigTemplate] as any
                 if (!configValue) continue
