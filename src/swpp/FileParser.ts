@@ -1,5 +1,6 @@
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
+import {FileUpdateTracker} from './ResourcesScanner'
 import {CompilationData} from './SwCompiler'
 import {utils} from './untils'
 
@@ -7,12 +8,12 @@ export class FileParserRegistry {
 
     private map = new Map<string, FileParser<any>>();
 
-    constructor(private compilation: CompilationData, obj: { [key: string]: FileParser<any> } = {}) {
-        for (let key in obj) {
-            this.map.set(key, obj[key])
-        }
-    }
+    constructor(
+        private compilation: CompilationData,
+        private oldTracker?: FileUpdateTracker
+    ) { }
 
+    /** 注册一种处理器 */
     registry(type: string, parser: FileParser<any>) {
         this.map.set(type, parser)
     }
@@ -51,6 +52,7 @@ export class FileParserRegistry {
         const contentType = fileHandler.getUrlContentType(url)
         if (!contentType && !isCached) return { file: url, mark: '', urls: new Set<string>() }
         const parser = this.map.get(contentType)
+        if (!parser && !isCached) return { file: url, mark: '', urls: new Set<string>() }
         if (parser?.calcUrl) {
             const result = await parser.calcUrl(url)
             if (result) return {
@@ -134,8 +136,12 @@ export interface FileMark {
 
     /** URL */
     file: string
-    /** 文件标识符 */
-    mark: string
+    /**
+     * 文件标识符或子文件列表
+     *
+     * 如果链接为稳定链接，则为子文件列表，否则为文件标识符
+     */
+    mark: string | Set<string>
     /** URL 列表 */
     urls: Set<string>
 

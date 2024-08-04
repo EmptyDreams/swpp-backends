@@ -250,6 +250,8 @@ export const exceptionNames = {
     invalidVarType: 'invalid_var_type',
     /** 无效的插入键 */
     invalidKey: 'invalid_key',
+    /** 无效的插入值 */
+    invalidValue: 'invalid_value',
     /** 不支持的版本号 */
     unsupportedVersion: 'unsupported_version',
     /** 不支持的文件类型 */

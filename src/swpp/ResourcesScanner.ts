@@ -11,7 +11,10 @@ import {exceptionNames, RuntimeException, utils} from './untils'
  */
 export class ResourcesScanner {
 
-    constructor(private compilation: CompilationData) { }
+    constructor(
+        private compilation: CompilationData,
+        private oldTracker?: FileUpdateTracker
+    ) { }
 
     // noinspection JSUnusedGlobalSymbols
     /** 扫描指定目录下的所有文件 */
@@ -49,6 +52,7 @@ export class ResourcesScanner {
     private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
         const registry = this.compilation.compilationEnv.read('FILE_PARSER')
+        const isStable = this.compilation.compilationEnv.read('IS_STABLE')
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(urls.size)
         let i = 0
@@ -59,6 +63,14 @@ export class ResourcesScanner {
             const isCached = matchCacheRule.runOnNode(normalizeUri)
             if (isCached) {
                 tracker.addUrl(normalizeUri.href)
+            }
+            if (isStable(normalizeUri)) {
+                const oldValue = this.oldTracker?.get?.(normalizeUri.href)
+                if (Array.isArray(oldValue)) {
+                    const list = tracker.syncStable(normalizeUri, oldValue, this.oldTracker!)
+                    list.forEach(it => appendedUrls.add(it))
+                    continue
+                }
             }
             taskList[i++] = registry.parserUrlFile(normalizeUri.href, !!isCached)
                 .then(value => {
@@ -111,13 +123,50 @@ export class FileUpdateTracker {
     constructor(protected compilation: CompilationData) { }
 
     /** 更新一个文件的标识符 */
-    update(uri: string, value: string) {
-        this.map.set(uri, value)
+    update(uri: string, value: string | Set<string> | string[]) {
+        if (typeof value == 'string') {
+            if (value.startsWith('[')) throw {
+                code: exceptionNames.invalidValue,
+                message: `插入数据（"${value}"）时，不应当以方括号开头`
+            } as RuntimeException
+            this.map.set(uri, value)
+        } else if (Array.isArray(value)) {
+            this.map.set(uri, JSON.stringify(value))
+        } else {
+            this.map.set(uri, JSON.stringify(Array.from(value)))
+        }
+    }
+
+    /**
+     * 同步指定的稳定资源（同步时会连同同步其连接的稳定资源）
+     * @return 直接或间接连接的一些需要扫描的资源
+     */
+    syncStable(uri: URL, value: string[], oldTracker: FileUpdateTracker): string[] {
+        const isStable = this.compilation.compilationEnv.read('IS_STABLE')
+        this.update(uri.href, value)
+        this.addUrl(uri.href)
+        const result = []
+        for (let item of value) {
+            this.addUrl(item)
+            const itemUrl = new URL(item)
+            if (isStable(itemUrl)) {
+                const oldValue = oldTracker.get(item)
+                if (Array.isArray(oldValue)) {
+                    const son = this.syncStable(itemUrl, oldValue, oldTracker)
+                    result.push(...son)
+                    continue
+                }
+            }
+            result.push(item)
+        }
+        return result
     }
 
     /** 读取一个文件的标识符 */
-    get(uri: string) {
-        return this.map.get(this.normalizeUri(uri).href)
+    get(uri: string): string | string[] | undefined {
+        const value = this.map.get(this.normalizeUri(uri).href)
+        if (!value) return
+        return value.startsWith('[') ? JSON.parse(value) : value
     }
 
     /** 设置一个 header */

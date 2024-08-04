@@ -135,6 +135,10 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
         /** 文件解析器 */
         FILE_PARSER: buildEnv({
             default: createRegister(env, crossEnv, crossCode)
+        }),
+        /** 检查一个链接是否是稳定的（也就是 URL 不变其返回的结果永远不变） */
+        IS_STABLE: buildEnv({
+            default: (_url: URL): boolean => false
         })
     } as const
 }
