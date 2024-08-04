@@ -52,7 +52,7 @@ export class ResourcesScanner {
     private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
         const registry = this.compilation.compilationEnv.read('FILE_PARSER')
-        const isStable = this.compilation.compilationEnv.read('IS_STABLE')
+        const isStable = this.compilation.compilationEnv.read('isStable')
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(urls.size)
         let i = 0
@@ -142,7 +142,7 @@ export class FileUpdateTracker {
      * @return 直接或间接连接的一些需要扫描的资源
      */
     syncStable(uri: URL, value: string[], oldTracker: FileUpdateTracker): string[] {
-        const isStable = this.compilation.compilationEnv.read('IS_STABLE')
+        const isStable = this.compilation.compilationEnv.read('isStable')
         this.update(uri.href, value)
         this.addUrl(uri.href)
         const result = []
@@ -285,8 +285,8 @@ export class FileUpdateTracker {
         const domain = compilation.compilationEnv.read('DOMAIN_HOST')
         const jsonInfo = compilation.compilationEnv.read('SWPP_JSON_FILE')
         const url = new URL(jsonInfo.trackerPath, `https://${domain}`)
-        const fetcher = compilation.compilationEnv.read('FETCH_NETWORK_FILE')
-        const isNotFound = compilation.compilationEnv.read('IS_NOT_FOUND')
+        const fetcher = compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
+        const isNotFound = compilation.compilationEnv.read('isNotFound')
         const notFoundLevel = compilation.compilationEnv.read('ALLOW_NOT_FOUND')
         let error: RuntimeException
         const result = await (async () => {

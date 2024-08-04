@@ -81,8 +81,8 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                 versionPath: 'swpp/update.json',
                 async fetcher(): Promise<UpdateJson> {
                     const host = env.read('DOMAIN_HOST')
-                    const fetcher = env.read('FETCH_NETWORK_FILE')
-                    const isNotFound = env.read('IS_NOT_FOUND')
+                    const fetcher = env.read('NETWORK_FILE_FETCHER')
+                    const isNotFound = env.read('isNotFound')
                     try {
                         const response = await fetcher.fetch(new URL(this.versionPath, `https://${host}`))
                         if (!isNotFound.response(response)) {
@@ -97,7 +97,7 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
             }
         }),
         /** 读取一个本地文件 */
-        LOCAL_FILE_READER: buildEnv({
+        readLocalFile: buildEnv({
             default: (path: string): Promise<string> => {
                 return new Promise((resolve, reject) => {
                     fs.readFile(path, 'utf8', (err, data) => {
@@ -108,11 +108,11 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
             }
         }),
         /** 拉取网络文件 */
-        FETCH_NETWORK_FILE: buildEnv({
+        NETWORK_FILE_FETCHER: buildEnv({
             default: new FiniteConcurrencyFetcher()
         }),
         /** 判断文件是否是 404 */
-        IS_NOT_FOUND: buildEnv({
+        isNotFound: buildEnv({
             default: {
                 response: (response: Response) => response.status == 404,
                 error: (err: any) => err?.cause?.code === 'ENOTFOUND'
@@ -137,7 +137,7 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
             default: createRegister(env, crossEnv, crossCode)
         }),
         /** 检查一个链接是否是稳定的（也就是 URL 不变其返回的结果永远不变） */
-        IS_STABLE: buildEnv({
+        isStable: buildEnv({
             default: (_url: URL): boolean => false
         })
     } as const
@@ -151,7 +151,7 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
     })
     register.registry('html', buildFileParser({
         readFromLocal(compilation: CompilationData, path: string): Promise<string> {
-            return compilation.compilationEnv.read('LOCAL_FILE_READER')(path)
+            return compilation.compilationEnv.read('readLocalFile')(path)
         },
         readFromNetwork(_: CompilationData, response: Response): Promise<string> {
             return response.text()
@@ -219,7 +219,7 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
     }))
     register.registry('css', buildFileParser({
         readFromLocal(compilation: CompilationData, path: string): Promise<string> {
-            return compilation.compilationEnv.read('LOCAL_FILE_READER')(path)
+            return compilation.compilationEnv.read('readLocalFile')(path)
         },
         readFromNetwork(_: CompilationData, response: Response): Promise<string> {
             return response.text()
