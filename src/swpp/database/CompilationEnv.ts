@@ -43,7 +43,7 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
             default: 'www.example.com',
             checker(value: string): false | RuntimeEnvErrorTemplate<any> {
                 if (value === 'www.example.com') return {
-                    value, message: '应当手动设置一个域名而非使用默认域名'
+                    value, message: 'DOMAIN_HOST 必须手动设置而非使用默认值'
                 }
                 if (value.includes('/')) return {
                     value, message: '传入的域名不应当包含“/”字符'
@@ -51,7 +51,7 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                 if (value.includes('#') || value.includes('?')) return {
                     value, message: '传入的域名不应当包含查询参数和片段标识符'
                 }
-                if (!value.includes('.') || !/^[a-zA-Z0-9.-]$/.test(value)) return {
+                if (!value.includes('.') || !utils.isValidHost(value)) return {
                     value, message: '传入的域名不是一个合法的域名'
                 }
                 return false

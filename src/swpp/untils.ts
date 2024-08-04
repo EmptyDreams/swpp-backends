@@ -21,6 +21,29 @@ export const utils = Object.freeze({
     },
 
     /**
+     * 检查一个 host 是否合法
+     */
+    isValidHost(host: string): boolean {
+        if (/\s/.test(host)) return false
+        const [domain, port, other] = host.split(':')
+        // 检查是否包含第三项，也就是是否包含两个及以上的冒号
+        if (other) return false
+        if (port) {
+            // 如果端口号包含非数字
+            if (!/^[[0-9]*$/.test(port)) return false
+            const portInt = parseInt(port)
+            // 如果端口号超过范围限制
+            if (portInt < 0 || portInt > 65535) return false
+        }
+        const a = domain.split('.')
+        // 如果没有 . 一定是非法的
+        if (a.length < 2) return false
+        // 检查是否有连续的 .
+        if (a.some(it => !it)) return false
+        return true
+    },
+
+    /**
      * 将任意的对象转化为 JS 源码
      *
      * @param obj 要进行转化的对象
