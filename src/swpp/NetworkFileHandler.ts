@@ -30,7 +30,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     }[]
 
     limit = 100
-    referer = 'swpp-backends'
+    referer = 'https://swpp.example.com'
     userAgent = 'swpp-backends'
     headers = {}
 

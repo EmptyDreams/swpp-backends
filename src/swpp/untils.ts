@@ -21,6 +21,18 @@ export const utils = Object.freeze({
     },
 
     /**
+     * 拼接链接
+     * @param domain
+     * @param values
+     */
+    splicingUrl(domain: string, ...values: string[]): URL {
+        return new URL(
+            values.join('/').replaceAll(/(\/+)|\\/g, '/'),
+            domain.includes('://') ? domain : `https://${domain}`
+        )
+    },
+
+    /**
      * 检查一个 host 是否合法
      */
     isValidHost(host: string): boolean {
@@ -39,8 +51,7 @@ export const utils = Object.freeze({
         // 如果没有 . 一定是非法的
         if (a.length < 2) return false
         // 检查是否有连续的 .
-        if (a.some(it => !it)) return false
-        return true
+        return !a.some(it => !it);
     },
 
     /**

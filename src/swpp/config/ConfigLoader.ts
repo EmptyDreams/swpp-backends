@@ -20,7 +20,6 @@ export class ConfigLoader {
 
     private config: SwppConfigTemplate | undefined
     private modifierList: SwppConfigModifier[] = []
-    private isBuilt = false
 
     // noinspection JSUnusedGlobalSymbols
     /**
@@ -28,11 +27,6 @@ export class ConfigLoader {
      * @param file
      */
     async load(file: string) {
-        if (this.isBuilt) throw {
-            code: exceptionNames.configBuilt,
-            message: '配置文件已经完成构建，不能继续加载新的配置',
-            file
-        } as RuntimeException
         const extensionName = nodePath.extname(file).substring(1)
         if (!ConfigLoader.extensions.includes(extensionName)) {
             throw {
@@ -44,11 +38,18 @@ export class ConfigLoader {
         // @ts-ignore
         const content: any = await ConfigLoader.jiti.import(file)
         let newConfig: SwppConfigTemplate = 'default' in content ? content.default : content
-        if ('modifier' in newConfig) {
-            this.modifierList.push(newConfig.modifier as SwppConfigModifier)
+        this.loadFromCode(newConfig)
+    }
+
+    /**
+     * 加载一个在代码层面编写的配置
+     */
+    loadFromCode(config: SwppConfigTemplate) {
+        if ('modifier' in config) {
+            this.modifierList.push(config.modifier as SwppConfigModifier)
         }
-        if (this.config) this.mergeConfig(newConfig)
-        else this.config = newConfig
+        if (this.config) this.mergeConfig(config)
+        else this.config = config
     }
 
     // noinspection JSUnusedGlobalSymbols

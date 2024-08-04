@@ -4,7 +4,7 @@ import {buildFileParser, FileParserRegistry} from '../FileParser'
 import {UpdateJson} from '../JsonBuilder'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {CompilationData} from '../SwCompiler'
-import {utils} from '../untils'
+import {exceptionNames, RuntimeException, utils} from '../untils'
 import {CrossDepCode} from './CrossDepCode'
 import {CrossEnv} from './CrossEnv'
 import {buildEnv, KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
@@ -57,7 +57,15 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                 return false
             }
         }),
-        /** HTML 数量限制 */
+        SERVICE_WORKER: buildEnv({
+            default: 'sw',
+            checker(value: string): false | RuntimeEnvErrorTemplate<any> {
+                return value.endsWith('.js') ? {
+                    value, message: 'SW 文件名不需要包含拓展名'
+                } : false
+            }
+        }),
+        /** HTML 数量限制，设置为 <= 0 表示不限制 */
         JSON_HTML_LIMIT: buildEnv({
             default: 0
         }),
@@ -74,17 +82,18 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                 return false
             }
         }),
-        /** 获取已经上线的版本文件 */
+        /** swpp 的 JSON 文件的基本信息 */
         SWPP_JSON_FILE: buildEnv({
             default: {
-                trackerPath: 'swpp/tracker.json',
-                versionPath: 'swpp/update.json',
-                async fetcher(): Promise<UpdateJson> {
+                swppPath: 'swpp',
+                trackerPath: 'tracker.json',
+                versionPath: 'update.json',
+                async fetchVersionFile(): Promise<UpdateJson> {
                     const host = env.read('DOMAIN_HOST')
                     const fetcher = env.read('NETWORK_FILE_FETCHER')
                     const isNotFound = env.read('isNotFound')
                     try {
-                        const response = await fetcher.fetch(new URL(this.versionPath, `https://${host}`))
+                        const response = await fetcher.fetch(utils.splicingUrl(host, this.swppPath, this.versionPath))
                         if (!isNotFound.response(response)) {
                             const json = await response.json()
                             return json as UpdateJson
@@ -164,7 +173,8 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
             const queue = [html]
             const result = new Set<string>()
             async function handleItem(item: HTMLParser.HTMLElement) {
-                queue.push(...item.childNodes)
+                queue.push(...(item.childNodes ?? []))
+                if (!item.tagName) return
                 switch (item.tagName.toLowerCase()) {
                     case 'script': {
                         if (!register.containsType('script')) break
@@ -206,14 +216,18 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
                     }
                 }
             }
-            do {
-                const item = queue.pop() as HTMLElement
-                try {
+            try {
+                do {
+                    const item = queue.pop() as HTMLElement
                     await handleItem(item)
-                } catch (e) {
-                    utils.printError('PARSER HTML', e)
-                }
-            } while (queue.length > 0)
+                } while (queue.length > 0)
+            } catch (e) {
+                throw {
+                    code: exceptionNames.error,
+                    message: '解析 HTML 时出现错误',
+                    cause: e
+                } as RuntimeException
+            }
             return result
         }
     }))

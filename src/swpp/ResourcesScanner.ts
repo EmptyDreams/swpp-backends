@@ -21,6 +21,11 @@ export class ResourcesScanner {
     async scanLocalFile(path: string): Promise<FileUpdateTracker> {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
         const register = this.compilation.compilationEnv.read('FILE_PARSER')
+        const jsonInfo = this.compilation.compilationEnv.read('SWPP_JSON_FILE')
+        const excludes = [
+            nodePath.join(path, jsonInfo.swppPath, jsonInfo.versionPath),
+            nodePath.join(path, jsonInfo.swppPath, jsonInfo.trackerPath)
+        ]
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation)
         await traverseDirectory(path, async file => {
@@ -31,18 +36,22 @@ export class ResourcesScanner {
             if (matchCacheRule.runOnNode(localUrl)) {
                 tracker.addUrl(localUrl.href)
             }
-            const type = nodePath.extname(file).substring(1)
-            if (register.containsType(type)) {
-                const set = await register.parserLocalFile(file)
-                set.forEach(it => urls.add(it))
-            }
-            await new Promise<void>((resolve, reject) => {
-                stream.on('end', () => {
-                    tracker.update(file, hash.digest('hex'))
-                    resolve()
-                })
-                stream.on('error', err => reject(err))
-            })
+            await Promise.all([
+                new Promise<void>((resolve, reject) => {
+                    stream.on('end', () => {
+                        tracker.update(file, hash.digest('hex'))
+                        resolve()
+                    })
+                    stream.on('error', err => reject(err))
+                }),
+                async () => {
+                    const type = nodePath.extname(file).substring(1)
+                    if (register.containsType(type)) {
+                        const set = await register.parserLocalFile(file)
+                        set.forEach(it => urls.add(it))
+                    }
+                }
+            ])
         })
         await this.scanNetworkFile(tracker, urls)
         return tracker
@@ -284,7 +293,7 @@ export class FileUpdateTracker {
     static async parserJsonFromNetwork(compilation: CompilationData): Promise<FileUpdateTracker> {
         const domain = compilation.compilationEnv.read('DOMAIN_HOST')
         const jsonInfo = compilation.compilationEnv.read('SWPP_JSON_FILE')
-        const url = new URL(jsonInfo.trackerPath, `https://${domain}`)
+        const url = utils.splicingUrl(domain, jsonInfo.swppPath, jsonInfo.trackerPath)
         const fetcher = compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
         const isNotFound = compilation.compilationEnv.read('isNotFound')
         const notFoundLevel = compilation.compilationEnv.read('ALLOW_NOT_FOUND')
