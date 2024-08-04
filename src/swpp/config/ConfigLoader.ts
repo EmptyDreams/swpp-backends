@@ -33,7 +33,7 @@ export class ConfigLoader {
             message: '配置文件已经完成构建，不能继续加载新的配置',
             file
         } as RuntimeException
-        const extensionName = nodePath.extname(file)
+        const extensionName = nodePath.extname(file).substring(1)
         if (!ConfigLoader.extensions.includes(extensionName)) {
             throw {
                 code: exceptionNames.unsupportedFileType,

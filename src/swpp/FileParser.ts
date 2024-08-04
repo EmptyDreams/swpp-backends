@@ -24,7 +24,7 @@ export class FileParserRegistry {
 
     /** 解析本地文件 */
     async parserLocalFile(path: string): Promise<Set<string>> {
-        const parser = this.map.get(nodePath.extname(path))
+        const parser = this.map.get(nodePath.extname(path).substring(1))
         if (!parser) return new Set<string>()
         const content = await parser.readFromLocal(this.compilation, path)
         return await parser.extractUrls(this.compilation, content)

@@ -70,7 +70,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
         if (url.endsWith('/')) {
             contentType = 'html'
         } else {
-            contentType = nodePath.extname(url)
+            contentType = nodePath.extname(url).substring(1)
         }
         if (!contentType) {
             if (response)

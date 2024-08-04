@@ -28,7 +28,7 @@ export class ResourcesScanner {
             if (matchCacheRule.runOnNode(localUrl)) {
                 tracker.addUrl(localUrl.href)
             }
-            const type = nodePath.extname(file)
+            const type = nodePath.extname(file).substring(1)
             if (register.containsType(type)) {
                 const set = await register.parserLocalFile(file)
                 set.forEach(it => urls.add(it))
