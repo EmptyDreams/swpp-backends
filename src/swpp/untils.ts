@@ -3,12 +3,7 @@ import {RuntimeEnvErrorTemplate} from './database/KeyValueDatabase'
 
 export type ValuesOf<T> = T[keyof T]
 
-export const utils = Object.freeze({
-
-    /** 将一个值封装为 lambda */
-    package<T>(value: T): () => T {
-        return () => value
-    },
+export const utils = {
 
     /** 检查指定 URL 是否是合法的 URL */
     checkUrl(url: string): boolean {
@@ -200,7 +195,7 @@ export const utils = Object.freeze({
      * @param obj
      * @param transfer
      */
-    objMap<T, R>(obj: { [key: string]: T }, transfer: (item: T) => R): { [key: string]: R } {
+    objMap<T, R>(obj: Readonly<Record<string, T>>, transfer: (item: T) => R): { [key: string]: R } {
         const result: any = {}
         for (let key in obj) {
             const value = obj[key]
@@ -209,34 +204,52 @@ export const utils = Object.freeze({
         return result
     },
 
-    /** 深度冻结一个对象 */
+    /**
+     * 深度冻结一个对象。
+     *
+     * 该函数会修改传入的对象，返回的结果不一定是传入的对象。
+     */
     deepFreeze<T>(obj: T): Readonly<T> {
-        const result = Object.freeze(obj)
-        for (let key in result) {
-            this.deepFreeze(obj[key])
+        Object.freeze(obj)
+        if (obj && typeof obj === 'object') {
+            const error = {
+                code: exceptionNames.unsupportedOperate,
+                message: '被冻结的对象禁止修改'
+            } as RuntimeException
+            // @ts-ignore
+            obj = new Proxy(obj, {
+                set(): boolean {
+                    throw error
+                },
+                deleteProperty(): boolean {
+                    throw error
+                },
+                setPrototypeOf(): boolean {
+                    throw error
+                }
+            })
+
         }
-        return result
+        for (let key in obj) {
+            // @ts-ignore
+            obj[key] = this.deepFreeze(obj[key])
+        }
+        return obj
     },
 
-    /** 二分查找 */
-    binarySearch<T>(
-        array: T[], value: T,
-        startInclude: number = 0, endExclude: number = array.length,
-        comparator: (a: T, b: T) => number = (a, b) => a < b ? -1 : (a == b ? 0 : 1)
-    ): number {
-        let left = startInclude, right = endExclude - 1
-        while (left <= right) {
-            const midIndex = (left + right) >>> 1
-            const cmp = comparator(array[midIndex], value)
-            if (cmp < 0) {
-                left = midIndex + 1
-            } else if (cmp > 0) {
-                right = midIndex - 1
-            } else {
-                return midIndex
-            }
+    /**
+     * 过滤对象中的值
+     * @param obj 要进行过滤的对象
+     * @param predicate 过滤器
+     * @return 返回传入的 obj，过滤会在原址进行
+     */
+    objFilter<T>(obj: Record<string, T>, predicate: (value: T) => boolean | any): Record<string, T> {
+        const removeList: string[] = []
+        for (let objKey in obj) {
+            if (!predicate(obj[objKey])) removeList.push(objKey)
         }
-        return -left - 1
+        removeList.forEach(it => delete obj[it])
+        return obj
     },
 
     /**
@@ -252,7 +265,7 @@ export const utils = Object.freeze({
         return result
     }
 
-})
+}
 
 export const exceptionNames = {
     /** 无效的变量名 */
@@ -267,6 +280,8 @@ export const exceptionNames = {
     unsupportedVersion: 'unsupported_version',
     /** 不支持的文件类型 */
     unsupportedFileType: 'unsupported_file_type',
+    /** 不支持的操作 */
+    unsupportedOperate: 'unsupported_operate',
     /** 空指针 */
     nullPoint: 'null_point',
     /** 配置文件已经完成构建 */

@@ -1,8 +1,7 @@
 import {createJiti} from 'jiti'
 import nodePath from 'path'
-import {CompilationEnv} from '../database/CompilationEnv'
 import {CompilationData, RuntimeData} from '../SwCompiler'
-import {exceptionNames, RuntimeException} from '../untils'
+import {exceptionNames, RuntimeException, utils} from '../untils'
 import {IndivisibleConfig, SwppConfigTemplate} from './ConfigCluster'
 
 export const IndivisibleName = '1indivisible__'
@@ -64,14 +63,11 @@ export class ConfigLoader {
         } as RuntimeException
         // 构建属性集
         const {runtime, compilation} = (this.modifierList.find(it => it.build)?.build ?? (() => {
-            const runtime = new RuntimeData()
-            const compilation: CompilationData = {
-                compilationEnv: new CompilationEnv(runtime.crossEnv, runtime.crossDep),
-                crossDep: runtime.crossDep,
-                crossEnv: runtime.crossEnv
-            }
+            const compilation = new CompilationData()
+            const runtime = new RuntimeData(compilation)
             return {runtime, compilation}
         }))()
+        this.mergeConfig(this.buildDefConfig(runtime, compilation))
         const config = this.config!
         // 写入运行时信息
         const writeRuntime = () => {
@@ -168,6 +164,21 @@ export class ConfigLoader {
             }
         }
         mergeHelper(this.config, other, true)
+    }
+
+    private buildDefConfig(runtime: RuntimeData, compilation: CompilationData): SwppConfigTemplate {
+        function filterNull<T>(obj: Record<string, T | null>): Record<string, T> {
+            return utils.objFilter(obj, it => it != null) as Record<string, T>
+        }
+        return {
+            compilationEnv: compilation.compilationEnv.entries(),
+            runtimeEvent: runtime.runtimeEvent.entries(),
+            runtimeDep: filterNull(runtime.runtimeDep.entries()),
+            runtimeCore: filterNull(runtime.runtimeCore.entries()),
+            crossDep: runtime.crossDep.entries(),
+            crossEnv: runtime.crossEnv.entries(),
+            domConfig: runtime.domConfig.entries()
+        }
     }
 
 }

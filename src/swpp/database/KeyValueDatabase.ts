@@ -1,31 +1,47 @@
+import {utils} from '../untils'
+
 /** 键值对存储器 */
-export class KeyValueDatabase<T, C extends Record<string, DatabaseValue<T>>> {
+export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<T>>> {
 
-    private runtimeEnvMap: { [p: string]: DatabaseValue<T> } = {}
+    private dataValues: Record<string, DatabaseValue<T>> = {}
+    private valueCaches: Record<string, T> = {}
 
-    constructor(map?: C) {
+    constructor(map?: CONTAINER) {
         if (map) {
-            Object.assign(this.runtimeEnvMap, map)
+            Object.assign(this.dataValues, map)
         }
     }
 
     /** 延迟初始化 */
-    protected lazyInit(map: C) {
-        Object.assign(this.runtimeEnvMap, map)
+    protected lazyInit(map: CONTAINER) {
+        Object.assign(this.dataValues, map)
     }
 
     /**
-     * 读取指定键对应的值
-     * @throws RuntimeEnvException
+     * 读取指定键对应的值。
+     *
+     * 注意：允许被缓存的值返回后是不允许被修改的，不缓存的值是允许修改的。
      */
-    read<K extends keyof C | string>(key: K): K extends keyof C ? C[K]['default'] : T {
-        const item = this.runtimeEnvMap[key as string]
+    read<K extends keyof CONTAINER | string>(_key: K): K extends keyof CONTAINER ? CONTAINER[K]['default'] : T {
+        const key = _key as string
+        if (key in this.valueCaches) {
+            // @ts-ignore
+            return this.valueCaches[key]
+        }
+        const item = this.dataValues[key]
         if (!item) throw {key, message: 'key 不存在'}
-        const value = item.getter ? item.getter() : item.default
+        let value = item.getter ? item.getter() : item.default
         if (!(value === null || value === undefined) && typeof value != typeof item.default)
             throw {key, value, message: '用户传入的值类型与缺省值类型不统一'} as RuntimeEnvException<any>
         const checkResult = item.checker?.(value)
         if (checkResult) throw {key, ...checkResult}
+        if (item.getter) {
+            const getter = item.getter
+            if ('1NoCache' in getter && getter['1NoCache'])
+                return value as any
+        }
+        value = utils.deepFreeze(value)
+        this.valueCaches[key] = value
         return value as any
     }
 
@@ -33,10 +49,11 @@ export class KeyValueDatabase<T, C extends Record<string, DatabaseValue<T>>> {
      * 设置指定键对应的值
      * @throws RuntimeEnvException
      */
-    update<K extends keyof C | string>(key: K, valueGetter: () => T) {
-        if (!(key in this.runtimeEnvMap))
+    update<K extends keyof CONTAINER | string>(key: K, valueGetter: () => T) {
+        if (!(key in this.dataValues))
             throw {key, value: null, message: 'key 不存在'} as RuntimeEnvException<any>
-        this.runtimeEnvMap[key as string].getter = valueGetter
+        this.dataValues[key as string].getter = valueGetter
+        delete this.valueCaches[key as string]
     }
 
     /**
@@ -44,30 +61,46 @@ export class KeyValueDatabase<T, C extends Record<string, DatabaseValue<T>>> {
      * @throws RuntimeEnvException
      */
     append(key: string, env: DatabaseValue<T>) {
-        if (key in this.runtimeEnvMap)
-            throw {key, value: this.runtimeEnvMap[key], message: 'key 重复'}
-        this.runtimeEnvMap[key] = env
+        if (key in this.dataValues)
+            throw {key, value: this.dataValues[key], message: 'key 重复'}
+        this.dataValues[key] = env
     }
 
     /** 判断是否存在指定的环境变量 */
-    hasKey<K extends keyof C | string>(key: K): (K extends keyof C ? true : boolean) {
+    hasKey<K extends keyof CONTAINER | string>(key: K): (K extends keyof CONTAINER ? true : boolean) {
         // @ts-ignore
-        return key in this.runtimeEnvMap
+        return key in this.dataValues
     }
 
     /** 判断指定键对应的环境变量是否存在用户设置的值 */
-    hasValue<K extends keyof C | string>(key: K): boolean {
-        return this.hasKey(key) && !!this.runtimeEnvMap[key as string].getter
+    hasValue<K extends keyof CONTAINER | string>(key: K): boolean {
+        return this.hasKey(key) && !!this.dataValues[key as string].getter
     }
 
     /** 获取所有键值对 */
-    entries(): {[p: string]: T} {
-        const result: {[p: string]: any} = {}
-        for (let key in this.runtimeEnvMap) {
+    entries(): Record<string, T> {
+        const result: Record<string, any> = {}
+        for (let key in this.dataValues) {
             result[key] = this.read(key)
         }
         return result
     }
+
+    // noinspection JSUnusedGlobalSymbols
+    /** 定义一个不被缓存的 getter */
+    static defineNoCacheGetter<T>(getter: () => T): NoCacheGetter<T> {
+        const result = getter as NoCacheGetter<T>
+        result['1NoCache'] = true
+        return result
+    }
+
+}
+
+export interface NoCacheGetter<T> extends Function {
+
+    '1NoCache': true
+
+    (): T
 
 }
 

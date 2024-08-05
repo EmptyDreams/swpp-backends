@@ -24,7 +24,7 @@ let fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
 export type COMMON_KEY_RUNTIME_DEP = ReturnType<typeof buildCommon>
 
 /** 运行时依赖代码 */
-export class RuntimeDepCode extends RuntimeKeyValueDatabase<FunctionInBrowser<any, any> | null, COMMON_KEY_RUNTIME_DEP> {
+export class RuntimeDepCode extends RuntimeKeyValueDatabase<FunctionInBrowser<any[], any> | null, COMMON_KEY_RUNTIME_DEP> {
 
     constructor() {
         super(buildCommon())

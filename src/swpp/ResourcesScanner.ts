@@ -24,11 +24,13 @@ export class ResourcesScanner {
         const jsonInfo = this.compilation.compilationEnv.read('SWPP_JSON_FILE')
         const excludes = [
             nodePath.join(path, jsonInfo.swppPath, jsonInfo.versionPath),
-            nodePath.join(path, jsonInfo.swppPath, jsonInfo.trackerPath)
+            nodePath.join(path, jsonInfo.swppPath, jsonInfo.trackerPath),
+            nodePath.join(path, this.compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
         ]
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation)
         await traverseDirectory(path, async file => {
+            if (excludes.includes(file)) return
             const stream = fs.createReadStream(file)
             const hash = crypto.createHash('md5')
             stream.on('data', data => hash.update(data))
@@ -210,8 +212,9 @@ export class FileUpdateTracker {
      * + 在新旧 tracker 中都存在且唯一标识符发生变化
      * + 在新 tracker 中不存在且在旧 tracker 中存在
      */
-    diff(oldTracker: FileUpdateTracker): JsonBuilder {
+    async diff(): Promise<JsonBuilder> {
         const diff = new JsonBuilder(this.compilation, this.allUrl)
+        const oldTracker = await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetchTrackerFile(this.compilation)
         oldTracker.map.forEach((value, key) => {
             if (this.map.has(key)) {
                 if (this.get(key) !== value)
@@ -250,12 +253,16 @@ export class FileUpdateTracker {
     json(): string {
         const result = {
             version: 4,
-            tracker: {} as { [key: string]: string }
+            tracker: {} as { [key: string]: string },
+            headers: {} as { [key: string]: any }
         }
         this.map.forEach((value, key) => {
             result.tracker[key] = value
         })
-        return JSON.stringify(result.tracker)
+        this.headers.forEach((value, key) => {
+            result.headers[key] = value
+        })
+        return JSON.stringify(result)
     }
 
     /** 解序列化数据 */

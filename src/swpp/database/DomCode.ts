@@ -1,3 +1,4 @@
+import {CompilationData} from '../SwCompiler'
 import {utils} from '../untils'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
@@ -5,8 +6,8 @@ export type COMMON_TYPE_DOM_CODE = ReturnType<typeof buildCommon>
 
 export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> {
 
-    constructor() {
-        super(buildCommon())
+    constructor(compilation: CompilationData) {
+        super(buildCommon(compilation))
     }
 
     buildJsSource(): string {
@@ -42,18 +43,22 @@ let onSuccess: () => void
 let pjaxUpdate: (url: string) => void
 let postMessage2Sw: (type: string) => void
 
-function buildCommon() {
+function buildCommon(compilation: CompilationData) {
     return {
         registry: {
             default: () => {
-                const sw = navigator.serviceWorker
-                if (sw) {
-                    sw.register('sw.js')
-                        .then(() => console.log('SWPP 注册成功'))
-                        .catch(err => console.error('SWPP 注册失败', err))
-                } else {
-                    console.warn('当前浏览器不支持 SW')
-                }
+                const value = (() => {
+                    const sw = navigator.serviceWorker
+                    if (sw) {
+                        sw.register('$$sw.js')
+                            .then(() => console.log('SWPP 注册成功'))
+                            .catch(err => console.error('SWPP 注册失败', err))
+                    } else {
+                        console.warn('当前浏览器不支持 SW')
+                    }
+                }).toString()
+                const path = compilation.compilationEnv.read('SERVICE_WORKER')
+                return value.replace(`'$$sw.js'`, path + '.js')
             }
         },
         postMessage2Sw: {

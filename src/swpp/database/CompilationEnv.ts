@@ -3,6 +3,7 @@ import fs from 'fs'
 import {buildFileParser, FileParserRegistry} from '../FileParser'
 import {UpdateJson} from '../JsonBuilder'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
+import {FileUpdateTracker} from '../ResourcesScanner'
 import {CompilationData} from '../SwCompiler'
 import {exceptionNames, RuntimeException, utils} from '../untils'
 import {CrossDepCode} from './CrossDepCode'
@@ -102,6 +103,9 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                         if (!isNotFound.error(e)) throw e
                     }
                     return {global: 0, info: []}
+                },
+                async fetchTrackerFile(compilation: CompilationData): Promise<FileUpdateTracker> {
+                    return await FileUpdateTracker.parserJsonFromNetwork(compilation)
                 }
             }
         }),

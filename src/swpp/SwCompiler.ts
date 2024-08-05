@@ -37,7 +37,7 @@ export class RuntimeData {
     ]
 
     /** 运行时环境变量 */
-    crossEnv = new CrossEnv()
+    crossEnv: CrossEnv
     /** 运行时工具函数 */
     runtimeDep = new RuntimeDepCode()
     /** 运行时核心功能函数 */
@@ -45,9 +45,15 @@ export class RuntimeData {
     /** 运行时事件注册 */
     runtimeEvent = new RuntimeEventCode()
     /** 运行时/编译时工具函数 */
-    crossDep = new CrossDepCode()
+    crossDep: CrossDepCode
     /** DOM 相关设置 */
-    domConfig = new DomCode()
+    domConfig: DomCode
+
+    constructor(compilationData: CompilationData) {
+        this.crossDep = compilationData.crossDep
+        this.crossEnv = compilationData.crossEnv
+        this.domConfig = new DomCode(compilationData)
+    }
 
     getDatabase(key: string): RuntimeKeyValueDatabase<any, {}> {
         if (!(key in this)) throw {
@@ -65,11 +71,11 @@ export class RuntimeData {
 }
 
 /** 编译时数据 */
-export interface CompilationData {
+export class CompilationData {
 
-    compilationEnv: CompilationEnv,
-    crossEnv: CrossEnv,
-    crossDep: CrossDepCode
+    crossEnv: CrossEnv = new CrossEnv()
+    crossDep: CrossDepCode = new CrossDepCode()
+    compilationEnv = new CompilationEnv(this.crossEnv, this.crossDep)
 
 }
 

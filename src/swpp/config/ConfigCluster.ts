@@ -128,6 +128,8 @@ export interface SwppConfigTemplate {
 
 }
 
+export interface SwppConfigInterface { }
+
 /**
  * 运行时函数依赖。
  *
@@ -160,7 +162,7 @@ export interface SwppConfigTemplate {
  */
 export type SwppConfigRuntimeDep = {
     [K in keyof COMMON_KEY_RUNTIME_DEP | string]?: K extends keyof COMMON_KEY_RUNTIME_DEP ? COMMON_KEY_RUNTIME_DEP[K]['default'] : FunctionInBrowser<any[], any>
-}
+} & SwppConfigInterface
 /**
  * 运行时核心功能.
  *
@@ -171,7 +173,8 @@ export type SwppConfigRuntimeDep = {
  */
 export type SwppConfigRuntimeCore = {
     [K in keyof COMMON_TYPE_RUNTIME_CORE | string]?: K extends keyof COMMON_TYPE_RUNTIME_CORE ? COMMON_TYPE_RUNTIME_CORE[K]['default'] : FunctionInBrowser<any[], any>
-}
+} & SwppConfigInterface
+
 /**
  * 运行时 & 编译期的函数依赖。
  *
@@ -207,7 +210,8 @@ export type SwppConfigRuntimeCore = {
  */
 export type SwppConfigCrossDep = {
     [K in keyof COMMON_TYPE_CROSS_DEP | string]?: K extends keyof COMMON_TYPE_CROSS_DEP ? COMMON_TYPE_CROSS_DEP[K]['default'] : any
-}
+} & SwppConfigInterface
+
 /**
  * 运行时事件注册。
  *
@@ -235,7 +239,8 @@ export type SwppConfigCrossDep = {
  */
 export type SwppConfigRuntimeEvent = {
     [K in keyof COMMON_TYPE_RUNTIME_EVENT | string]?: K extends keyof COMMON_TYPE_RUNTIME_EVENT ? COMMON_TYPE_RUNTIME_EVENT[K]['default'] : FunctionInBrowser<[Event], any>
-}
+} & SwppConfigInterface
+
 /**
  * 运行时 & 编译期环境变量。
  *
@@ -265,7 +270,8 @@ export type SwppConfigRuntimeEvent = {
  */
 export type SwppConfigCrossEnv = {
     [K in keyof COMMON_TYPE_CROSS_ENV | string]: ValueOrReturnValue<K extends keyof COMMON_TYPE_CROSS_ENV ? COMMON_TYPE_CROSS_ENV[K]['default'] : any>
-}
+} & SwppConfigInterface
+
 /**
  * 构建期使用的环境变量。
  *
@@ -279,7 +285,8 @@ export type SwppConfigCrossEnv = {
  */
 export type SwppConfigCompilationEnv = {
     [K in keyof COMMON_TYPE_COMP_ENV | string]?: K extends keyof COMMON_TYPE_COMP_ENV ? COMMON_TYPE_COMP_ENV[K]['default'] : any
-}
+} & SwppConfigInterface
+
 /**
  * 运行时使用的常量、函数。
  *
@@ -291,4 +298,4 @@ export type SwppConfigCompilationEnv = {
  */
 export type SwppConfigDomConfig = {
     [K in keyof COMMON_TYPE_DOM_CODE | string]?: K extends keyof COMMON_TYPE_DOM_CODE ? COMMON_TYPE_DOM_CODE[K]['default'] : any
-}
+} & SwppConfigInterface
