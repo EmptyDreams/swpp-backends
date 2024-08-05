@@ -181,21 +181,26 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
                 if (!item.tagName) return
                 switch (item.tagName.toLowerCase()) {
                     case 'script': {
-                        if (!register.containsType('script')) break
                         const src = item.attributes.src
                         if (src) {
-                            const son = await register.parserContent('script', item.rawText)
+                            if (!utils.isSameHost(src, host)) {
+                                result.add(src)
+                            }
+                        } else {
+                            const son = await register.parserContent('js', item.rawText)
                             son.forEach(it => result.add(it))
-                        } else if (!utils.isSameHost(src, host)) {
-                            result.add(src)
                         }
                         break
                     }
                     case 'link': {
                         if (item.attributes.rel !== 'preconnect') {
                             const href = item.attributes.href
-                            if (!utils.isSameHost(href, host))
+                            if (!href) {
+                                const son = await register.parserContent('css', item.rawText)
+                                son.forEach(it => result.add(it))
+                            } else if (!utils.isSameHost(href, host)) {
                                 result.add(href)
+                            }
                         }
                         break
                     }

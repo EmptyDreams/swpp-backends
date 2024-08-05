@@ -300,17 +300,6 @@ function buildCommon() {
                 return fetchWrapper(request, true, isCors(request as Request), optional)
             }
         },
-        /** 归一化 URL */
-        normalizeUrl: {
-            default: (url: string): string => {
-                if (url.endsWith('/index.html'))
-                    return url.substring(0, url.length - 10)
-                if (url.endsWith('.html'))
-                    return url.substring(0, url.length - 5)
-                else
-                    return url
-            }
-        },
         /** 是否阻断请求 */
         isBlockRequest: {
             default: (() => false) as (request: Request) => boolean

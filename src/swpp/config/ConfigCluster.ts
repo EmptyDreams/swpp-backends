@@ -83,7 +83,7 @@ export type IndivisibleConfig<T> = { [K in typeof IndivisibleName]: true } & T
  * }
  * ```
  */
-export function defineIndivisibleConfig<T extends Record<string, any>>(value: T): IndivisibleConfig<T> {
+export function defineIndivisibleConfig<T extends object>(value: T): IndivisibleConfig<T> {
     Object.defineProperty(value, IndivisibleName, {
         value: true,
         writable: false,

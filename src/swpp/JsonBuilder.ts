@@ -25,7 +25,7 @@ export class JsonBuilder {
             json.info.push({version: 1})
             return json
         }
-        const newChange = createUpdateChangeExps(this.urls, this.map.values())
+        const newChange = createUpdateChangeExps(this.urls, this.map.keys())
         json.info.unshift({
             version: json.info[0].version + 1,
             change: [newChange]

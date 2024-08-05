@@ -44,6 +44,22 @@ function buildCommon() {
                 }
             })
         },
+        /** 归一化 URL */
+        normalizeUrl: {
+            default: {
+                runOnBrowser: (url: string): string => {
+                    if (url.endsWith('/index.html'))
+                        return url.substring(0, url.length - 10)
+                    if (url.endsWith('.html'))
+                        return url.substring(0, url.length - 5)
+                    else
+                        return url
+                },
+                runOnNode(url: string): string {
+                    return this.runOnBrowser(url)
+                }
+            }
+        },
         /** 匹配缓存更新规则 */
         matchUpdateRule: {
             default: buildFunction({

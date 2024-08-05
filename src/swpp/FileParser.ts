@@ -24,10 +24,18 @@ export class FileParserRegistry {
     }
 
     /** 解析本地文件 */
-    async parserLocalFile(path: string): Promise<Set<string>> {
+    async parserLocalFile(path: string, cb?: (content: crypto.BinaryLike) => void, force?: boolean): Promise<Set<string>> {
         const parser = this.map.get(nodePath.extname(path).substring(1))
-        if (!parser) return new Set<string>()
+        if (!parser) {
+            if (force && cb) {
+                const reader = this.compilation.compilationEnv.read('readLocalFile')
+                const content = await reader(path)
+                cb(content)
+            }
+            return new Set<string>()
+        }
         const content = await parser.readFromLocal(this.compilation, path)
+        cb?.(content)
         return await parser.extractUrls(this.compilation, content)
     }
 
@@ -36,7 +44,14 @@ export class FileParserRegistry {
         const fileHandler = this.compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
         const contentType = fileHandler.getUrlContentType(response.url, response)
         const parser = this.map.get(contentType)
-        if (!parser) return new Set<string>()
+        if (!parser) {
+            if (callback) {
+                const blob = await response.blob()
+                const array = await blob.stream().getReader().read()
+                callback(array.value!)
+            }
+            return new Set<string>()
+        }
         const content = await parser.readFromNetwork(this.compilation, response)
         if (callback) await callback(content)
         return await parser.extractUrls(this.compilation, content)
@@ -64,9 +79,9 @@ export class FileParserRegistry {
         const urls = new Set<string>()
         let mark = ''
         await fetcher.fetch(url)
-            .then(response => this.parserNetworkFile(response, content => {
+            .then(response => this.parserNetworkFile(response, isCached ? content => {
                 mark = utils.calcHash(content)
-            }))
+            } : undefined))
             .then(urls => urls.forEach(it => urls.add(it)))
         return { file: url, mark, urls }
     }

@@ -1,5 +1,3 @@
-import {utils} from '../untils'
-
 /** 键值对存储器 */
 export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<T>>> {
 
@@ -40,9 +38,15 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
             if ('1NoCache' in getter && getter['1NoCache'])
                 return value as any
         }
-        value = utils.deepFreeze(value)
-        this.valueCaches[key] = value
-        return value as any
+        return this.valueCaches[key] = value as any
+    }
+
+    /** 读取默认配置 */
+    readDefault<K extends keyof CONTAINER | string>(_key: K): K extends keyof CONTAINER ? CONTAINER[K]['default'] : T {
+        const key = _key as string
+        const item = this.dataValues[key]
+        if (!item) throw {key, message: 'key 不存在'}
+        return item.default as any
     }
 
     /**
@@ -90,7 +94,12 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     /** 定义一个不被缓存的 getter */
     static defineNoCacheGetter<T>(getter: () => T): NoCacheGetter<T> {
         const result = getter as NoCacheGetter<T>
-        result['1NoCache'] = true
+        Object.defineProperty(result, '1NoCache', {
+            value: true,
+            writable: false,
+            configurable: false,
+            enumerable: false
+        })
         return result
     }
 

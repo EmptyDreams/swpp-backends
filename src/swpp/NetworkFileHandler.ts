@@ -78,7 +78,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
             if (contentType.startsWith('text/'))
                 contentType = contentType.substring(5)
             if (contentType === 'javascript')
-                contentType = 'script'
+                contentType = 'js'
         }
         return contentType
     }

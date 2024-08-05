@@ -112,6 +112,7 @@ function buildCommon() {
                 return 2
             }
         },
+        /** 处理网络请求事件 */
         handleFetchEvent: {
             default: (event: Event) => {
                 // @ts-ignore

@@ -205,39 +205,6 @@ export const utils = {
     },
 
     /**
-     * 深度冻结一个对象。
-     *
-     * 该函数会修改传入的对象，返回的结果不一定是传入的对象。
-     */
-    deepFreeze<T>(obj: T): Readonly<T> {
-        Object.freeze(obj)
-        if (obj && typeof obj === 'object') {
-            const error = {
-                code: exceptionNames.unsupportedOperate,
-                message: '被冻结的对象禁止修改'
-            } as RuntimeException
-            // @ts-ignore
-            obj = new Proxy(obj, {
-                set(): boolean {
-                    throw error
-                },
-                deleteProperty(): boolean {
-                    throw error
-                },
-                setPrototypeOf(): boolean {
-                    throw error
-                }
-            })
-
-        }
-        for (let key in obj) {
-            // @ts-ignore
-            obj[key] = this.deepFreeze(obj[key])
-        }
-        return obj
-    },
-
-    /**
      * 过滤对象中的值
      * @param obj 要进行过滤的对象
      * @param predicate 过滤器

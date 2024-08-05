@@ -1,7 +1,7 @@
 import {createJiti} from 'jiti'
 import nodePath from 'path'
 import {CompilationData, RuntimeData} from '../SwCompiler'
-import {exceptionNames, RuntimeException, utils} from '../untils'
+import {exceptionNames, RuntimeException} from '../untils'
 import {IndivisibleConfig, SwppConfigTemplate} from './ConfigCluster'
 
 export const IndivisibleName = '1indivisible__'
@@ -47,7 +47,7 @@ export class ConfigLoader {
         if ('modifier' in config) {
             this.modifierList.push(config.modifier as SwppConfigModifier)
         }
-        if (this.config) this.mergeConfig(config)
+        if (this.config) ConfigLoader.mergeConfig(this.config, config)
         else this.config = config
     }
 
@@ -67,17 +67,21 @@ export class ConfigLoader {
             const runtime = new RuntimeData(compilation)
             return {runtime, compilation}
         }))()
-        this.mergeConfig(this.buildDefConfig(runtime, compilation))
         const config = this.config!
         // 写入运行时信息
         const writeRuntime = () => {
-            const insertList = ['runtimeDep', 'runtimeCore', 'runtimeEvent', 'domConfig']
+            const insertList = ['runtimeDep', 'runtimeCore', 'runtimeEvent', 'domConfig'] as const
             for (let str of insertList) {
                 const configValue = config[str as keyof SwppConfigTemplate] as any
+                const database = runtime[str]
                 if (!configValue) continue
                 for (let key in configValue) {
                     const value = configValue[key]
-                    runtime.runtimeDep.update(key, () => value ?? null)
+                    if (typeof value == 'object') {
+                        const def = database.readDefault(key)
+                        ConfigLoader.mergeConfig(value, def, false)
+                    }
+                    database.update(key, () => value ?? null)
                 }
             }
         }
@@ -89,6 +93,10 @@ export class ConfigLoader {
             } as RuntimeException
             for (let key in config.compilationEnv) {
                 const value = config.compilationEnv[key]
+                if (typeof value == 'object') {
+                    const def = compilation.compilationEnv.readDefault(key)
+                    ConfigLoader.mergeConfig(value, def, false)
+                }
                 compilation.compilationEnv.update(key, () => value)
             }
         }
@@ -101,6 +109,10 @@ export class ConfigLoader {
                     if (typeof value === 'function') throw {
                         code: exceptionNames.invalidVarType,
                         message: `crossEnv[${key}] 应当返回一个非函数对象，却返回了：${value.toString()}`
+                    }
+                    if (typeof value == 'object') {
+                        const def = runtime.crossEnv.readDefault(key)
+                        ConfigLoader.mergeConfig(value, def, false)
                     }
                     runtime.crossEnv.update(key, () => value)
                 }
@@ -120,6 +132,8 @@ export class ConfigLoader {
                         code: exceptionNames.invalidVarType,
                         message: `crossDep[${key}] 返回的对象应当包含 {runOnBrowser} 字段，却返回了：${JSON.stringify(value, null, 2)}`
                     }
+                    const def = runtime.crossDep.readDefault(key)
+                    ConfigLoader.mergeConfig(value, def, false)
                     runtime.crossDep.update(key, () => value)
                 }
             }
@@ -143,7 +157,7 @@ export class ConfigLoader {
     }
 
     /** 将新配置合并到已有配置中 */
-    private mergeConfig(other: SwppConfigTemplate) {
+    private static mergeConfig(config: any, other: SwppConfigTemplate | any, isTop: boolean = true) {
         function mergeHelper(high: any, low: any, skip: boolean) {
             for (let key in low) {
                 if (skip && key == 'modifier') continue
@@ -163,22 +177,7 @@ export class ConfigLoader {
                 }
             }
         }
-        mergeHelper(this.config, other, true)
-    }
-
-    private buildDefConfig(runtime: RuntimeData, compilation: CompilationData): SwppConfigTemplate {
-        function filterNull<T>(obj: Record<string, T | null>): Record<string, T> {
-            return utils.objFilter(obj, it => it != null) as Record<string, T>
-        }
-        return {
-            compilationEnv: compilation.compilationEnv.entries(),
-            runtimeEvent: runtime.runtimeEvent.entries(),
-            runtimeDep: filterNull(runtime.runtimeDep.entries()),
-            runtimeCore: filterNull(runtime.runtimeCore.entries()),
-            crossDep: runtime.crossDep.entries(),
-            crossEnv: runtime.crossEnv.entries(),
-            domConfig: runtime.domConfig.entries()
-        }
+        mergeHelper(config, other, isTop)
     }
 
 }

@@ -23,37 +23,27 @@ export class ResourcesScanner {
         const register = this.compilation.compilationEnv.read('FILE_PARSER')
         const jsonInfo = this.compilation.compilationEnv.read('SWPP_JSON_FILE')
         const excludes = [
-            nodePath.join(path, jsonInfo.swppPath, jsonInfo.versionPath),
-            nodePath.join(path, jsonInfo.swppPath, jsonInfo.trackerPath),
-            nodePath.join(path, this.compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
+            nodePath.posix.join(path, jsonInfo.swppPath, jsonInfo.versionPath),
+            nodePath.posix.join(path, jsonInfo.swppPath, jsonInfo.trackerPath),
+            nodePath.posix.join(path, this.compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
         ]
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation)
         await traverseDirectory(path, async file => {
             if (excludes.includes(file)) return
-            const stream = fs.createReadStream(file)
-            const hash = crypto.createHash('md5')
-            stream.on('data', data => hash.update(data))
             const localUrl = tracker.normalizeUri(file.substring(path.length))
-            if (matchCacheRule.runOnNode(localUrl)) {
+            const isCached = !!matchCacheRule.runOnNode(localUrl)
+            if (isCached) {
                 tracker.addUrl(localUrl.href)
             }
-            await Promise.all([
-                new Promise<void>((resolve, reject) => {
-                    stream.on('end', () => {
-                        tracker.update(file, hash.digest('hex'))
-                        resolve()
-                    })
-                    stream.on('error', err => reject(err))
-                }),
-                async () => {
-                    const type = nodePath.extname(file).substring(1)
-                    if (register.containsType(type)) {
-                        const set = await register.parserLocalFile(file)
-                        set.forEach(it => urls.add(it))
-                    }
+            const set = await register.parserLocalFile(file, content => {
+                if (isCached) {
+                    const hash = crypto.createHash('md5')
+                    hash.update(content)
+                    tracker.update(localUrl.pathname, hash.digest('hex'))
                 }
-            ])
+            }, isCached)
+            set.forEach(it => urls.add(it))
         })
         await this.scanNetworkFile(tracker, urls)
         return tracker
@@ -85,7 +75,9 @@ export class ResourcesScanner {
             }
             taskList[i++] = registry.parserUrlFile(normalizeUri.href, !!isCached)
                 .then(value => {
-                    tracker.update(value.file, value.mark)
+                    if (isCached) {
+                        tracker.update(value.file, value.mark)
+                    }
                     value.urls.forEach(it => appendedUrls.add(it))
                 }).catch(err => utils.printError('SCAN NETWORK FILE', err))
         }
@@ -109,7 +101,7 @@ async function traverseDirectory(dir: string, callback: (file: string) => Promis
                 if (err) reject(err)
                 else {
                     Promise.all(
-                        files.map(it => traverseDirectory(nodePath.join(dir, it), callback))
+                        files.map(it => traverseDirectory(nodePath.posix.join(dir, it), callback))
                     ).then(() => resolve())
                 }
             })
@@ -195,7 +187,9 @@ export class FileUpdateTracker {
         if (uri.startsWith('http:'))
             uri = `https:${uri.substring(5)}`
         const domain = this.compilation.compilationEnv.read('DOMAIN_HOST')
-        return new URL(uri, `https://${domain}`)
+        const url = new URL(uri, `https://${domain}`)
+        const normalizer = this.compilation.crossDep.read('normalizeUrl')
+        return new URL(normalizer.runOnNode(url.href))
     }
 
     /** 添加一个 URL */
@@ -213,14 +207,15 @@ export class FileUpdateTracker {
      * + 在新 tracker 中不存在且在旧 tracker 中存在
      */
     async diff(): Promise<JsonBuilder> {
+        const host = this.compilation.compilationEnv.read('DOMAIN_HOST')
         const diff = new JsonBuilder(this.compilation, this.allUrl)
         const oldTracker = await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetchTrackerFile(this.compilation)
         oldTracker.map.forEach((value, key) => {
             if (this.map.has(key)) {
                 if (this.get(key) !== value)
-                    diff.update(key, value)
+                    diff.update(utils.splicingUrl(host, key).href, value)
             } else {
-                diff.update(key, value)
+                diff.update(utils.splicingUrl(host, key).href, value)
             }
         })
         this.headers.forEach((value, key) => {
