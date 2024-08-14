@@ -48,6 +48,11 @@ export function defineRuntimeEvent(config: SwppConfigRuntimeEvent): SwppConfigRu
     return config
 }
 
+/** 定义一个通过 `export const modifier` 导出的配置 */
+export function defineModifier(config: SwppConfigModifier): SwppConfigModifier {
+    return config
+}
+
 export type IndivisibleConfig<T> = { [K in typeof IndivisibleName]: true } & T
 
 /**

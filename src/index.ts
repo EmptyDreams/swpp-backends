@@ -26,5 +26,6 @@ utils.printInfo('INDEX', `欢迎使用 swpp@${swppVersion}`)
 export {
     defineIndivisibleConfig, defineConfig,
     defineRuntimeEvent, defineDomConfig, defineRuntimeCore, defineCrossDep,
-    defineRuntimeDep, defineCrossEnv, defineCompilationEnv
+    defineRuntimeDep, defineCrossEnv, defineCompilationEnv,
+    defineModifier
 } from './swpp/config/ConfigCluster'

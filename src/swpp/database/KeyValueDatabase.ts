@@ -23,8 +23,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     read<K extends keyof CONTAINER | string>(_key: K): K extends keyof CONTAINER ? CONTAINER[K]['default'] : T {
         const key = _key as string
         if (key in this.valueCaches) {
-            // @ts-ignore
-            return this.valueCaches[key]
+            return this.valueCaches[key] as any
         }
         const item = this.dataValues[key]
         if (!item) throw {key, message: 'key 不存在'}
