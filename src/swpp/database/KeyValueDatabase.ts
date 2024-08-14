@@ -60,7 +60,6 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
 
     /**
      * 设置指定键对应的值
-     * @throws RuntimeEnvException
      */
     update<K extends keyof CONTAINER | string>(key: K, valueGetter: () => T) {
         if (!(key in this.dataValues))
@@ -71,7 +70,6 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
 
     /**
      * 追加键值对
-     * @throws RuntimeEnvException
      */
     append(key: string, env: DatabaseValue<T>) {
         if (key in this.dataValues)
@@ -141,16 +139,9 @@ export interface DatabaseValue<T> {
 
 }
 
-/** 运行时环境变量包含非法值时的警告 */
-export interface RuntimeEnvException<T> {
+export interface RuntimeEnvErrorTemplate<T> {
 
-    /** 环境变量名 */
-    key: string
-    /** 用户填写的值 */
     value: T
-    /** 错误提示 */
     message: string
 
 }
-
-export type RuntimeEnvErrorTemplate<T> = Omit<RuntimeEnvException<T>, 'key'>
