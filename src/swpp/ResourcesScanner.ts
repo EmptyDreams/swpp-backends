@@ -20,7 +20,7 @@ export class ResourcesScanner {
     /** 扫描指定目录下的所有文件 */
     async scanLocalFile(path: string): Promise<FileUpdateTracker> {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
-        const register = this.compilation.compilationEnv.read('FILE_PARSER')
+        const register = this.compilation.fileParser
         const jsonInfo = this.compilation.compilationEnv.read('SWPP_JSON_FILE')
         const excludes = [
             nodePath.posix.join(path, jsonInfo.swppPath, jsonInfo.versionPath),
@@ -52,7 +52,7 @@ export class ResourcesScanner {
     /** 扫描网络文件 */
     private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
-        const registry = this.compilation.compilationEnv.read('FILE_PARSER')
+        const registry = this.compilation.fileParser
         const isStable = this.compilation.compilationEnv.read('isStable')
         const appendedUrls = new Set<string>()
         const taskList = new Array<Promise<void>>(urls.size)

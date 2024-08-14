@@ -1,4 +1,5 @@
 import {CompilationEnv} from './database/CompilationEnv'
+import {CompilationFileParser} from './database/CompilationFileParser'
 import {CrossDepCode} from './database/CrossDepCode'
 import {DomCode} from './database/DomCode'
 import {RuntimeCoreCode} from './database/RuntimeCoreCode'
@@ -75,7 +76,8 @@ export class CompilationData {
 
     crossEnv: CrossEnv = new CrossEnv()
     crossDep: CrossDepCode = new CrossDepCode()
-    compilationEnv = new CompilationEnv(this.crossEnv, this.crossDep)
+    compilationEnv = new CompilationEnv()
+    fileParser = new CompilationFileParser(this)
 
 }
 

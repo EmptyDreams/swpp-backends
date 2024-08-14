@@ -23,28 +23,6 @@ export const utils = {
     },
 
     /**
-     * 检查一个 host 是否合法
-     */
-    isValidHost(host: string): boolean {
-        if (/\s/.test(host)) return false
-        const [domain, port, other] = host.split(':')
-        // 检查是否包含第三项，也就是是否包含两个及以上的冒号
-        if (other) return false
-        if (port) {
-            // 如果端口号包含非数字
-            if (!/^[[0-9]*$/.test(port)) return false
-            const portInt = parseInt(port)
-            // 如果端口号超过范围限制
-            if (portInt < 0 || portInt > 65535) return false
-        }
-        const a = domain.split('.')
-        // 如果没有 . 一定是非法的
-        if (a.length < 2) return false
-        // 检查是否有连续的 .
-        return !a.some(it => !it);
-    },
-
-    /**
      * 将任意的对象转化为 JS 源码
      *
      * @param obj 要进行转化的对象
@@ -177,10 +155,6 @@ export const utils = {
         console.error(`[${this.time()}] [ERR] [SWPP] [${title}]: `, err)
     },
 
-    printInfo(title: string, info: any) {
-        console.info(`[${this.time()}] [INFO] [SWPP] [${title}]: ${JSON.stringify(info, null, 2)}`)
-    },
-
     printWarning(title: string, warning: any) {
         console.warn(`[${this.time()}] [WARN] [SWPP] [${title}]: ${JSON.stringify(warning, null, 2)}`)
     },
@@ -197,21 +171,6 @@ export const utils = {
             result[key] = transfer(value)
         }
         return result
-    },
-
-    /**
-     * 过滤对象中的值
-     * @param obj 要进行过滤的对象
-     * @param predicate 过滤器
-     * @return 返回传入的 obj，过滤会在原址进行
-     */
-    objFilter<T>(obj: Record<string, T>, predicate: (value: T) => boolean | any): Record<string, T> {
-        const removeList: string[] = []
-        for (let objKey in obj) {
-            if (!predicate(obj[objKey])) removeList.push(objKey)
-        }
-        removeList.forEach(it => delete obj[it])
-        return obj
     },
 
     /**

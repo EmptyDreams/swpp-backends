@@ -1,12 +1,10 @@
-import {utils} from './swpp/untils'
-
+// noinspection JSUnusedGlobalSymbols
 /** 版本号 */
 export const swppVersion = require('../package.json').version
 
 export {utils, RuntimeException} from './swpp/untils'
 export {ResourcesScanner, FileUpdateTracker,} from './swpp/ResourcesScanner'
 export {JsonBuilder, UpdateJson, UpdateChangeExp, TrackerHeaderDiff} from './swpp/JsonBuilder'
-export {FileParserRegistry, FileParser, FileMark} from './swpp/FileParser'
 export {SwCompiler, CompilationData, RuntimeData, BrowserVersion} from './swpp/SwCompiler'
 export {NetworkFileHandler, FiniteConcurrencyFetcher} from './swpp/NetworkFileHandler'
 
@@ -20,9 +18,9 @@ export {RuntimeDepCode} from './swpp/database/RuntimeDepCode'
 export {CrossEnv} from './swpp/database/CrossEnv'
 export {CrossDepCode} from './swpp/database/CrossDepCode'
 export {CompilationEnv, AllowNotFoundEnum} from './swpp/database/CompilationEnv'
+export {FileMark, FileParser} from './swpp/database/CompilationFileParser'
 export {DomCode} from './swpp/database/DomCode'
 
-utils.printInfo('INDEX', `欢迎使用 swpp@${swppVersion}`)
 export {
     defineIndivisibleConfig, defineConfig,
     defineRuntimeEvent, defineDomConfig, defineRuntimeCore, defineCrossDep,
