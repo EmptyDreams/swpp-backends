@@ -28,11 +28,11 @@ export class ConfigLoader {
     async load(file: string) {
         const extensionName = nodePath.extname(file).substring(1)
         if (!ConfigLoader.extensions.includes(extensionName)) {
-            throw {
-                code: exceptionNames.unsupportedFileType,
-                message: `配置文件传入了不支持的文件类型：${extensionName}，仅支持：${ConfigLoader.extensions}`,
-                file
-            } as RuntimeException
+            throw new RuntimeException(
+                exceptionNames.unsupportedFileType,
+                `配置文件传入了不支持的文件类型：${extensionName}，仅支持：${ConfigLoader.extensions}`,
+                { configPath: file }
+            )
         }
         // @ts-ignore
         const content: any = await ConfigLoader.jiti.import(file)
@@ -57,10 +57,8 @@ export class ConfigLoader {
         runtime: RuntimeData,
         compilation: CompilationData
     }> {
-        if (!this.config) throw {
-            code: exceptionNames.nullPoint,
-            message: '构建配之前必须至少加载一个配置文件'
-        } as RuntimeException
+        if (!this.config)
+            throw new RuntimeException(exceptionNames.nullPoint, '构建配之前必须至少加载一个配置文件')
         // 构建属性集
         const {runtime, compilation} = (this.modifierList.find(it => it.build)?.build ?? (() => {
             const compilation = new CompilationData()
@@ -87,10 +85,8 @@ export class ConfigLoader {
         }
         // 写入编译期信息
         const writeCompilation = () => {
-            if (!config.compilationEnv) throw {
-                code: exceptionNames.nullPoint,
-                message: '配置项必须包含 compilationEnv 选项！'
-            } as RuntimeException
+            if (!config.compilationEnv)
+                throw new RuntimeException(exceptionNames.nullPoint, '配置项必须包含 compilationEnv 选项！')
             for (let key in config.compilationEnv) {
                 const value = config.compilationEnv[key]
                 if (typeof value == 'object') {
@@ -106,9 +102,11 @@ export class ConfigLoader {
                 for (let key in config.crossEnv) {
                     const env = config.crossEnv[key]
                     const value = typeof env === 'function' ? env.call(compilation) : env
-                    if (typeof value === 'function') throw {
-                        code: exceptionNames.invalidVarType,
-                        message: `crossEnv[${key}] 应当返回一个非函数对象，却返回了：${value.toString()}`
+                    if (typeof value === 'function') {
+                        throw new RuntimeException(
+                            exceptionNames.invalidVarType,
+                            `crossEnv[${key}] 应当返回一个非函数对象，却返回了：${value.toString()}`
+                        )
                     }
                     if (typeof value == 'object') {
                         const def = runtime.crossEnv.readDefault(key)
@@ -120,17 +118,23 @@ export class ConfigLoader {
             if (config.crossDep) {
                 for (let key in config.crossDep) {
                     const value = config.crossDep[key]
-                    if (typeof value != 'object') throw {
-                        code: exceptionNames.invalidVarType,
-                        message: `crossDep[${key}] 返回的内容应当为一个对象，却返回了：${value}`
+                    if (typeof value != 'object') {
+                        throw new RuntimeException(
+                            exceptionNames.invalidVarType,
+                            `crossDep[${key}] 返回的内容应当为一个对象，却返回了：${value}`
+                        )
                     }
-                    if (!('runOnNode' in value)) throw {
-                        code: exceptionNames.invalidVarType,
-                        message: `crossDep[${key}] 返回的对象应当包含 {runOnNode} 字段，却返回了：${JSON.stringify(value, null, 2)}`
+                    if (!('runOnNode' in value)) {
+                        throw new RuntimeException(
+                            exceptionNames.invalidVarName,
+                            `crossDep[${key}] 返回的对象应当包含 {runOnNode} 字段，却返回了：${JSON.stringify(value, null, 2)}`
+                        )
                     }
-                    if (!('runOnBrowser' in value)) throw {
-                        code: exceptionNames.invalidVarType,
-                        message: `crossDep[${key}] 返回的对象应当包含 {runOnBrowser} 字段，却返回了：${JSON.stringify(value, null, 2)}`
+                    if (!('runOnBrowser' in value)) {
+                        throw new RuntimeException(
+                            exceptionNames.invalidVarType,
+                            `crossDep[${key}] 返回的对象应当包含 {runOnBrowser} 字段，却返回了：${JSON.stringify(value, null, 2)}`
+                        )
                     }
                     const def = runtime.crossDep.readDefault(key)
                     ConfigLoader.mergeConfig(value, def, false)

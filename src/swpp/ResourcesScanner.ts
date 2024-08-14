@@ -128,10 +128,9 @@ export class FileUpdateTracker {
     /** 更新一个文件的标识符 */
     update(uri: string, value: string | Set<string> | string[]) {
         if (typeof value == 'string') {
-            if (value.startsWith('[')) throw {
-                code: exceptionNames.invalidValue,
-                message: `插入数据（"${value}"）时，不应当以方括号开头`
-            } as RuntimeException
+            if (value.startsWith('[')) {
+                throw new RuntimeException(exceptionNames.invalidValue, `插入数据（"${value}"）时，不应当以方括号开头`)
+            }
             this.map.set(uri, value)
         } else if (Array.isArray(value)) {
             this.map.set(uri, JSON.stringify(value))
@@ -282,10 +281,7 @@ export class FileUpdateTracker {
                     tracker.map.set(key, value.length === 32 ? value : '')
                 }
                 break
-            default: throw {
-                code: exceptionNames.unsupportedVersion,
-                message: `不支持 ${json.version}`,
-            } as RuntimeException
+            default: throw new RuntimeException(exceptionNames.unsupportedVersion, `不支持 ${json.version}`)
         }
         return tracker
     }
@@ -305,10 +301,7 @@ export class FileUpdateTracker {
                 const response = await fetcher.fetch(url)
                 if (isNotFound.response(response)) {
                     if (notFoundLevel == AllowNotFoundEnum.REJECT_ALL) {
-                        error = {
-                            code: exceptionNames.notFound,
-                            message: `拉取 ${url} 时出现 404 错误`
-                        }
+                        error = new RuntimeException(exceptionNames.notFound, `拉取 ${url} 时出现 404 错误`)
                         return
                     }
                     utils.printWarning(
@@ -325,11 +318,7 @@ export class FileUpdateTracker {
                     )
                     return new FileUpdateTracker(compilation)
                 }
-                utils.printError('SCANNER', e)
-                throw {
-                    code: exceptionNames.error,
-                    message: `拉取或解析历史 Tracker 时出现错误`
-                } as RuntimeException
+                throw new RuntimeException(exceptionNames.error, `拉取或解析历史 Tracker 时出现错误`, { cause: e })
             }
         })()
         if (result) return result

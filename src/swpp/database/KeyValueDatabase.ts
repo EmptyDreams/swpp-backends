@@ -1,3 +1,5 @@
+import {exceptionNames, RuntimeException} from '../untils'
+
 /** 键值对存储器 */
 export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<T>>> {
 
@@ -26,12 +28,20 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
             return this.valueCaches[key] as any
         }
         const item = this.dataValues[key]
-        if (!item) throw {key, message: 'key 不存在'}
+        if (!item) throw new RuntimeException(exceptionNames.invalidKey, `输入的 key[${key}] 不存在`)
         let value = item.getter ? item.getter() : item.default
-        if (!(value === null || value === undefined) && typeof value != typeof item.default)
-            throw {key, value, message: '用户传入的值类型与缺省值类型不统一'} as RuntimeEnvException<any>
+        if (!(value === null || value === undefined) && typeof value != typeof item.default) {
+            throw new RuntimeException(
+                exceptionNames.invalidValue,
+                '用户传入的值类型与缺省值类型不统一',
+                { default: item.default, value }
+            )
+
+        }
         const checkResult = item.checker?.(value)
-        if (checkResult) throw {key, ...checkResult}
+        if (checkResult) {
+            throw new RuntimeException(exceptionNames.invalidValue, `设置的值非法`, {key, ...checkResult})
+        }
         if (item.getter) {
             const getter = item.getter
             if ('1NoCache' in getter && getter['1NoCache'])
@@ -44,7 +54,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     readDefault<K extends keyof CONTAINER | string>(_key: K): K extends keyof CONTAINER ? CONTAINER[K]['default'] : T {
         const key = _key as string
         const item = this.dataValues[key]
-        if (!item) throw {key, message: 'key 不存在'}
+        if (!item) throw new RuntimeException(exceptionNames.invalidKey, `传入的 key[${key}] 不存在`)
         return item.default as any
     }
 
@@ -54,7 +64,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
      */
     update<K extends keyof CONTAINER | string>(key: K, valueGetter: () => T) {
         if (!(key in this.dataValues))
-            throw {key, value: null, message: 'key 不存在'} as RuntimeEnvException<any>
+            throw new RuntimeException(exceptionNames.invalidKey, `传入的 key[${key as string}] 不存在`)
         this.dataValues[key as string].getter = valueGetter
         delete this.valueCaches[key as string]
     }
@@ -65,7 +75,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
      */
     append(key: string, env: DatabaseValue<T>) {
         if (key in this.dataValues)
-            throw {key, value: this.dataValues[key], message: 'key 重复'}
+            throw new RuntimeException(exceptionNames.invalidKey, `追加的 key[${key}] 已存在`)
         this.dataValues[key] = env
     }
 

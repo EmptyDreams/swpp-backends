@@ -54,11 +54,9 @@ export const utils = {
         const resultList: string[] = []
         const pushToResult = (key: string, value: string) => {
             if (writeAsVar) {
-                if (!/^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(key))
-                    throw {
-                        code: exceptionNames.invalidVarName,
-                        message: '非法的变量名：' + key
-                    } as RuntimeException
+                if (!/^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(key)) {
+                    throw new RuntimeException(exceptionNames.invalidVarName, '非法的变量名：' + key)
+                }
                 resultList.push(`${writeAsVar} ${key} = ${value}`)
             } else if (/^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(key)) {
                 resultList.push(`${key}: ${value}`)
@@ -114,10 +112,7 @@ export const utils = {
                     break
                 }
                 case "symbol":
-                    throw {
-                        code: exceptionNames.invalidVarType,
-                        message: '非法的类型：symbol, key = ' + key
-                    } as RuntimeException
+                    throw new RuntimeException(exceptionNames.invalidVarType, '非法的类型：symbol, key = ' + key)
             }
         }
         return writeAsVar ? resultList.join(';\n') : '{\n' + resultList.join(',\n') + '\n};'
@@ -128,11 +123,8 @@ export const utils = {
         try {
             const url = new URL(path, baseUrl)
             return baseUrl.hostname === url.hostname && baseUrl.pathname.startsWith(url.pathname)
-        } catch (_) {
-            throw {
-                value: `path: ${path}; host: ${baseUrl}`,
-                message: '传入的 path 或 host 不合法'
-            } as RuntimeEnvErrorTemplate<string>
+        } catch (e) {
+            throw new RuntimeException(exceptionNames.error, `传入的 path[${path}] 不合法`, { cause: e })
         }
     },
 
@@ -213,11 +205,16 @@ export const exceptionNames = {
     error: 'error'
 } as const
 
-export interface RuntimeException {
+export class RuntimeException extends Error {
 
-    /** 报错类型代码 */
-    code: ValuesOf<typeof exceptionNames>
-    /** 错误提示 */
-    message: string
+    constructor(
+        public readonly code: ValuesOf<typeof exceptionNames>,
+        public readonly message: string,
+        public readonly addOn?: any
+    ) {
+        super(JSON.stringify({code, message, addOn}, null, 2))
+        this.name = 'SwppRuntimeException'
+        Object.setPrototypeOf(this, RuntimeException.prototype)
+    }
 
 }

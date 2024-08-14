@@ -160,11 +160,7 @@ function buildCommon($this: any) {
                             await handleItem(item)
                         } while (queue.length > 0)
                     } catch (e) {
-                        throw {
-                            code: exceptionNames.error,
-                            message: '解析 HTML 时出现错误',
-                            cause: e
-                        } as RuntimeException
+                        throw new RuntimeException(exceptionNames.error, '解析 HTML 时出现错误', { cause: e })
                     }
                     return result
                 }

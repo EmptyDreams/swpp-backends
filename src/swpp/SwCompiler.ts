@@ -7,7 +7,7 @@ import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {CrossEnv} from './database/CrossEnv'
 import {RuntimeEventCode} from './database/RuntimeEventCode'
 import {RuntimeKeyValueDatabase} from './database/RuntimeKeyValueDatabase'
-import {exceptionNames} from './untils'
+import {exceptionNames, RuntimeException} from './untils'
 
 export class SwCompiler {
 
@@ -57,14 +57,10 @@ export class RuntimeData {
     }
 
     getDatabase(key: string): RuntimeKeyValueDatabase<any, {}> {
-        if (!(key in this)) throw {
-            code: exceptionNames.invalidKey,
-            message: `传入的 key [${key}] 不在当前对象中存在`
-        }
-        if (key == 'insertOrder') throw {
-            code: exceptionNames.invalidKey,
-            message: `传入的 key [${key}] 非法`
-        }
+        if (!(key in this))
+            throw new RuntimeException(exceptionNames.invalidKey, `传入的 key [${key}] 不在当前对象中存在`)
+        if (key == 'insertOrder')
+            throw new RuntimeException(exceptionNames.invalidKey, `传入的 key [${key}] 非法`)
         // @ts-ignore
         return this[key]
     }
