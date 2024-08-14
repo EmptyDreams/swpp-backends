@@ -25,5 +25,6 @@ export {
     defineIndivisibleConfig, defineConfig,
     defineRuntimeEvent, defineDomConfig, defineRuntimeCore, defineCrossDep,
     defineRuntimeDep, defineCrossEnv, defineCompilationEnv,
+    defineCompilationFP,
     defineModifier
 } from './swpp/config/ConfigCluster'

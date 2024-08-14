@@ -1,4 +1,6 @@
+import * as crypto from 'node:crypto'
 import {COMMON_TYPE_COMP_ENV} from '../database/CompilationEnv'
+import {COMMON_TYPE_COMP_FP, FileParser} from '../database/CompilationFileParser'
 import {COMMON_TYPE_CROSS_DEP} from '../database/CrossDepCode'
 import {COMMON_TYPE_CROSS_ENV} from '../database/CrossEnv'
 import {COMMON_TYPE_DOM_CODE} from '../database/DomCode'
@@ -15,6 +17,11 @@ export function defineConfig(config: SwppConfigTemplate): SwppConfigTemplate {
 
 /** 定义一个通过 `export const compilationEnv` 导出的配置 */
 export function defineCompilationEnv(config: SwppConfigCompilationEnv): SwppConfigCompilationEnv {
+    return config
+}
+
+/** 定义一个通过 `export const compilationFileParser` 导出的配置 */
+export function defineCompilationFP(config: SwppConfigCompilationFileParser): SwppConfigCompilationFileParser {
     return config
 }
 
@@ -127,6 +134,9 @@ export interface SwppConfigTemplate {
 
     /** @see {SwppConfigDomConfig} */
     domConfig?: SwppConfigDomConfig
+
+    /** @see {SwppConfigCompilationFileParser} */
+    compilationFileParser?: SwppConfigCompilationFileParser
 
     /** 配置编辑器 */
     modifier?: SwppConfigModifier
@@ -291,6 +301,19 @@ export type SwppConfigCrossEnv = {
 export type SwppConfigCompilationEnv = {
     [K in keyof COMMON_TYPE_COMP_ENV | string]?: K extends keyof COMMON_TYPE_COMP_ENV ? COMMON_TYPE_COMP_ENV[K]['default'] : any
 } & SwppConfigInterface
+
+/**
+ * 构建期使用的文件处理器。
+ *
+ * 该配置项用于放置需要在 NodeJs 环境中使用的文件处理器。
+ *
+ * 对于每一项配置 `<KEY>: <FileParser>`: <KEY> 是文件拓展名（不包括 `.`），<FileParser> 是处理机。
+ *
+ * @see {FileParser}
+ */
+export type SwppConfigCompilationFileParser = {
+    [K in keyof COMMON_TYPE_COMP_FP | string]?: FileParser<crypto.BinaryLike>
+}
 
 /**
  * 运行时使用的常量、函数。
