@@ -41,19 +41,16 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
     const env = _env as CompilationEnv
     return {
         DOMAIN_HOST: buildEnv({
-            default: 'www.example.com',
-            checker(value: string): false | RuntimeEnvErrorTemplate<any> {
-                if (value === 'www.example.com') return {
+            default: new URL("https://www.example.com"),
+            checker(value: URL): false | RuntimeEnvErrorTemplate<any> {
+                if (value.host === 'www.example.com') return {
                     value, message: 'DOMAIN_HOST 必须手动设置而非使用默认值'
                 }
-                if (value.includes('/')) return {
-                    value, message: '传入的域名不应当包含“/”字符'
-                }
-                if (value.includes('#') || value.includes('?')) return {
+                if (value.hash || value.search) return {
                     value, message: '传入的域名不应当包含查询参数和片段标识符'
                 }
-                if (!value.includes('.') || !utils.isValidHost(value)) return {
-                    value, message: '传入的域名不是一个合法的域名'
+                if (value.protocol !== 'https:' && value.host !== '127.0.0.1' && value.host !== 'localhost') return {
+                    value, message: '传入的 URL 必须使用 https 协议'
                 }
                 return false
             }
@@ -90,11 +87,11 @@ function buildCommon(_env: any, crossEnv: CrossEnv, crossCode: CrossDepCode) {
                 trackerPath: 'tracker.json',
                 versionPath: 'update.json',
                 async fetchVersionFile(): Promise<UpdateJson> {
-                    const host = env.read('DOMAIN_HOST')
+                    const baseUrl = env.read('DOMAIN_HOST')
                     const fetcher = env.read('NETWORK_FILE_FETCHER')
                     const isNotFound = env.read('isNotFound')
                     try {
-                        const response = await fetcher.fetch(utils.splicingUrl(host, this.swppPath, this.versionPath))
+                        const response = await fetcher.fetch(utils.splicingUrl(baseUrl, this.swppPath, this.versionPath))
                         if (!isNotFound.response(response)) {
                             const json = await response.json()
                             return json as UpdateJson
@@ -170,7 +167,7 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
             return response.text()
         },
         async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
-            const host = compilation.compilationEnv.read("DOMAIN_HOST")
+            const baseUrl = compilation.compilationEnv.read("DOMAIN_HOST")
             const html = HTMLParser.parse(content, {
                 script: true, style: true
             })
@@ -183,7 +180,7 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
                     case 'script': {
                         const src = item.attributes.src
                         if (src) {
-                            if (!utils.isSameHost(src, host)) {
+                            if (!utils.isSameHost(src, baseUrl)) {
                                 result.add(src)
                             }
                         } else {
@@ -198,7 +195,7 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
                             if (!href) {
                                 const son = await register.parserContent('css', item.rawText)
                                 son.forEach(it => result.add(it))
-                            } else if (!utils.isSameHost(href, host)) {
+                            } else if (!utils.isSameHost(href, baseUrl)) {
                                 result.add(href)
                             }
                         }
@@ -206,14 +203,14 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
                     }
                     case 'img': case 'source': case 'iframe': case 'embed': {
                         const src = item.attributes.src
-                        if (src && !utils.isSameHost(src, host)) {
+                        if (src && !utils.isSameHost(src, baseUrl)) {
                             result.add(src)
                         }
                         break
                     }
                     case 'object': {
                         const data = item.attributes.data
-                        if (data && !utils.isSameHost(data, host)) {
+                        if (data && !utils.isSameHost(data, baseUrl)) {
                             result.add(data)
                         }
                         break
@@ -248,7 +245,7 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
             return response.text()
         },
         async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
-            const host = compilation.compilationEnv.read('DOMAIN_HOST')
+            const baseUrl = compilation.compilationEnv.read('DOMAIN_HOST')
             const urls = new Set<string>()
             /** 从指定位置开始查询注释 */
             const findComment = (tag: string, start: number) => {
@@ -290,7 +287,7 @@ function createRegister(env: CompilationEnv, crossEnv: CrossEnv, crossCode: Cros
                 }
                 sub.match(/(url\(.*?\))|(@import\s+['"].*?['"])|((https?:)?\/\/[^\s/$.?#].\S*)/g)
                     ?.map(it => it.replace(/(^url\(\s*(['"]?))|((['"]?\s*)\)$)|(^@import\s+['"])|(['"]$)/g, ''))
-                    ?.filter(it => !utils.isSameHost(it, host))
+                    ?.filter(it => !utils.isSameHost(it, baseUrl))
                     ?.forEach(it => urls.add(it))
             }
             return urls

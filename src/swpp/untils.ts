@@ -17,14 +17,9 @@ export const utils = {
 
     /**
      * 拼接链接
-     * @param domain
-     * @param values
      */
-    splicingUrl(domain: string, ...values: string[]): URL {
-        return new URL(
-            values.join('/').replaceAll(/(\/+)|\\/g, '/'),
-            domain.includes('://') ? domain : `https://${domain}`
-        )
+    splicingUrl(base: URL, ...values: string[]): URL {
+        return new URL(values.join('/').replaceAll(/(\/+)|\\/g, '/'), base)
     },
 
     /**
@@ -151,13 +146,13 @@ export const utils = {
     },
 
     /** 判断指定链接的 host 是否为指定的 host */
-    isSameHost(path: string, host: string): boolean {
+    isSameHost(path: string, baseUrl: URL): boolean {
         try {
-            const url = new URL(path, `https://${host}`)
-            return url.host === host
+            const url = new URL(path, baseUrl)
+            return baseUrl.hostname === url.hostname && baseUrl.pathname.startsWith(url.pathname)
         } catch (_) {
             throw {
-                value: `path: ${path}; host: ${host}`,
+                value: `path: ${path}; host: ${baseUrl}`,
                 message: '传入的 path 或 host 不合法'
             } as RuntimeEnvErrorTemplate<string>
         }

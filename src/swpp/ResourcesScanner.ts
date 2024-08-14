@@ -186,8 +186,8 @@ export class FileUpdateTracker {
     normalizeUri(uri: string): URL {
         if (uri.startsWith('http:'))
             uri = `https:${uri.substring(5)}`
-        const domain = this.compilation.compilationEnv.read('DOMAIN_HOST')
-        const url = new URL(uri, `https://${domain}`)
+        const baseUrl = this.compilation.compilationEnv.read('DOMAIN_HOST')
+        const url = new URL(uri, baseUrl)
         const normalizer = this.compilation.crossDep.read('normalizeUrl')
         return new URL(normalizer.runOnNode(url.href))
     }
@@ -207,15 +207,15 @@ export class FileUpdateTracker {
      * + 在新 tracker 中不存在且在旧 tracker 中存在
      */
     async diff(): Promise<JsonBuilder> {
-        const host = this.compilation.compilationEnv.read('DOMAIN_HOST')
+        const baseUrl = this.compilation.compilationEnv.read('DOMAIN_HOST')
         const diff = new JsonBuilder(this.compilation, this.allUrl)
         const oldTracker = await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetchTrackerFile(this.compilation)
         oldTracker.map.forEach((value, key) => {
             if (this.map.has(key)) {
                 if (this.get(key) !== value)
-                    diff.update(utils.splicingUrl(host, key).href, value)
+                    diff.update(utils.splicingUrl(baseUrl, key).href, value)
             } else {
-                diff.update(utils.splicingUrl(host, key).href, value)
+                diff.update(utils.splicingUrl(baseUrl, key).href, value)
             }
         })
         this.headers.forEach((value, key) => {
