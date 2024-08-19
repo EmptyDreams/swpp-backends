@@ -2,6 +2,7 @@ import {CompilationEnv} from './database/CompilationEnv'
 import {CompilationFileParser} from './database/CompilationFileParser'
 import {CrossDepCode} from './database/CrossDepCode'
 import {DomCode} from './database/DomCode'
+import {KeyValueDatabase} from './database/KeyValueDatabase'
 import {RuntimeCoreCode} from './database/RuntimeCoreCode'
 import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {CrossEnv} from './database/CrossEnv'
@@ -33,7 +34,7 @@ export class SwCompiler {
 export class RuntimeData {
 
     /** 控制插入顺序 */
-    readonly insertOrder: (Exclude<keyof RuntimeData, 'insertOrder' | 'domConfig'> | string)[] = [
+    insertOrder: (Exclude<keyof RuntimeData, 'insertOrder' | 'domConfig'> | string)[] = [
         'crossEnv', 'crossDep', 'runtimeDep', 'runtimeCore', 'runtimeEvent'
     ]
 
@@ -65,15 +66,28 @@ export class RuntimeData {
         return this[key]
     }
 
+    freezeAll() {
+        this.insertOrder.forEach(it => this.getDatabase(it).freeze())
+    }
+
 }
 
 /** 编译时数据 */
 export class CompilationData {
 
-    crossEnv: CrossEnv = new CrossEnv()
-    crossDep: CrossDepCode = new CrossDepCode()
     compilationEnv = new CompilationEnv()
+    crossDep: CrossDepCode = new CrossDepCode()
+    crossEnv: CrossEnv = new CrossEnv(this.compilationEnv)
     fileParser = new CompilationFileParser(this)
+
+    freezeAll() {
+        for (let key in this) {
+            const value = this[key]
+            if (value instanceof KeyValueDatabase) {
+                value.freeze()
+            }
+        }
+    }
 
 }
 

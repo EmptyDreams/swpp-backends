@@ -1,4 +1,6 @@
+import nodePath from 'path'
 import {utils} from '../untils'
+import {CompilationEnv} from './CompilationEnv'
 import {buildEnv} from './KeyValueDatabase'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
@@ -12,8 +14,8 @@ export type COMMON_TYPE_CROSS_ENV = ReturnType<typeof buildCommon>
 /** 环境变量存储器 */
 export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE_CROSS_ENV> {
 
-    constructor() {
-        super(buildCommon())
+    constructor(compilationEnv: CompilationEnv) {
+        super(buildCommon(compilationEnv))
     }
 
     /** 构建 JS 源代码 */
@@ -23,7 +25,7 @@ export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE_CROSS_ENV
 
 }
 
-function buildCommon() {
+function buildCommon(compilationEnv: CompilationEnv) {
     return {
         /** 缓存库名称 */
         CACHE_NAME: buildEnv({default: 'kmarBlogCache'}),
@@ -64,7 +66,14 @@ function buildCommon() {
         }),
         /** 版本文件所在目录 */
         UPDATE_JSON_URL: buildEnv({
-            default: '/update.json'
+            default: (() => {
+                const info = compilationEnv.read('SWPP_JSON_FILE')
+                return nodePath.posix.join(info.swppPath, info.versionPath)
+            })(),
+            checker(value: string) {
+                if (this.getter) return {value, message: '不应当手动设置该项！'}
+                return false
+            }
         }),
         /** 检查更新的最短时间间隔 */
         UPDATE_CD: buildEnv({

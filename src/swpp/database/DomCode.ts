@@ -23,7 +23,7 @@ export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> 
         delete map['registry']
         const inlineCode = Object.keys(map)
             .filter(it => it.startsWith('_inline'))
-            .map(it => `${it}()`)
+            .map(it => `(${it.toString()})()`)
         return `
             const controller = navigator.serviceWorker?.controller
             if (!controller) return
@@ -37,7 +37,6 @@ export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> 
 
 }
 
-let controller: ServiceWorker
 let SESSION_KEY: string
 let onSuccess: () => void
 let pjaxUpdate: (url: string) => void
@@ -51,7 +50,17 @@ function buildCommon(compilation: CompilationData) {
                     const sw = navigator.serviceWorker
                     if (sw) {
                         sw.register('$$sw.js')
-                            .then(() => console.log('SWPP 注册成功'))
+                            .then(async registration => {
+                                console.log('SWPP 注册成功')
+                                try {
+                                    // @ts-ignore
+                                    await registration.periodicSync.register("update", {
+                                        minInterval: 24 * 60 * 60 * 1000
+                                    })
+                                } catch (e) {
+                                    console.warn('Periodic Sync 注册失败', e)
+                                }
+                            })
                             .catch(err => console.error('SWPP 注册失败', err))
                     } else {
                         console.warn('当前浏览器不支持 SW')
@@ -62,7 +71,7 @@ function buildCommon(compilation: CompilationData) {
             }
         },
         postMessage2Sw: {
-            default: (type: string) => controller.postMessage(type)
+            default: (type: string) => navigator.serviceWorker.controller!.postMessage(type)
         },
         pjaxUpdate: {
             default: (url: string) => {
@@ -97,7 +106,7 @@ function buildCommon(compilation: CompilationData) {
             }
         },
         messageEvent: {
-            default: async (event: MessageEvent) => {
+            default: (event: MessageEvent) => {
                 const data = event.data
                 sessionStorage.setItem(SESSION_KEY, data.type)
                 const list = data.data?.filter((url: string) => /\.(js|css)$/.test(url))

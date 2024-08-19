@@ -188,6 +188,8 @@ export const exceptionNames = {
     invalidKey: 'invalid_key',
     /** 无效的插入值 */
     invalidValue: 'invalid_value',
+    /** KV 库已经被冻结无法修改 */
+    isFrozen: 'is_frozen',
     /** 不支持的版本号 */
     unsupportedVersion: 'unsupported_version',
     /** 不支持的文件类型 */

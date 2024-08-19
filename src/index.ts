@@ -8,8 +8,6 @@ export {JsonBuilder, UpdateJson, UpdateChangeExp, TrackerHeaderDiff} from './swp
 export {SwCompiler, CompilationData, RuntimeData, BrowserVersion} from './swpp/SwCompiler'
 export {NetworkFileHandler, FiniteConcurrencyFetcher} from './swpp/NetworkFileHandler'
 
-export {ConfigLoader} from './swpp/config/ConfigLoader'
-
 export {KeyValueDatabase} from './swpp/database/KeyValueDatabase'
 export {RuntimeKeyValueDatabase} from './swpp/database/RuntimeKeyValueDatabase'
 export {RuntimeEventCode} from './swpp/database/RuntimeEventCode'
@@ -21,10 +19,12 @@ export {CompilationEnv, AllowNotFoundEnum} from './swpp/database/CompilationEnv'
 export {FileMark, FileParser} from './swpp/database/CompilationFileParser'
 export {DomCode} from './swpp/database/DomCode'
 
+export {ConfigLoader} from './swpp/config/ConfigLoader'
+export {SpecialConfig, IndivisibleConfig, NoCacheConfigGetter} from './swpp/config/SpecialConfig'
 export {
-    defineIndivisibleConfig, defineConfig,
+    defineConfig,
     defineRuntimeEvent, defineDomConfig, defineRuntimeCore, defineCrossDep,
-    defineRuntimeDep, defineCrossEnv, defineCompilationEnv,
-    defineCompilationFP,
-    defineModifier
+    defineRuntimeDep, defineCrossEnv, defineCompilationEnv, defineCompilationFP,
+    defineModifier,
+    defineNoCacheConfig, defineIndivisibleConfig
 } from './swpp/config/ConfigCluster'

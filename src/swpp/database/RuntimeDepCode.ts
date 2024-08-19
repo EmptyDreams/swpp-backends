@@ -15,10 +15,10 @@ let matchFromCaches: (request: RequestInfo | URL) => Promise<Response | undefine
 let writeResponseToCache: (request: RequestInfo | URL, response: Response, date?: boolean) => Promise<void>
 let fetchWrapper: (request: RequestInfo | URL, banCache: boolean, cors: boolean, optional?: RequestInit) => Promise<Response>
 let isCors: (request: Request) => boolean
-let getFastestRequests: (request: Request) => Request[]
-let getStandbyRequests: (request: Request) => {t: number, l: Request[]}
+let getFastestRequests: (request: Request) => Request[] | undefined
+let getStandbyRequests: (request: Request) => {t: number, l: (() => Request[])} | undefined
 let isFetchSuccessful: (response: Response) => boolean
-let fetchStandby: (request: Request, standbyRequests: {t: number, l: Request[]}, optional?: RequestInit) => Promise<Response>
+let fetchStandby: (request: Request, standbyRequests: {t: number, l: (() => Request[])}, optional?: RequestInit) => Promise<Response>
 let fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
 
 export type COMMON_KEY_RUNTIME_DEP = ReturnType<typeof buildCommon>
@@ -126,8 +126,7 @@ function buildCommon() {
         },
         /** 判断指定的缓存是否是有效缓存 */
         isValidCache: {
-            default: (response: Response, rule: number | false | null | undefined) => {
-                if (!rule) return false
+            default: (response: Response, rule: number) => {
                 const headers = response.headers
                 if (headers.has(INVALID_KEY)) return false
                 if (rule < 0) return true
@@ -189,7 +188,7 @@ function buildCommon() {
         },
         /** 是否启用 cors */
         isCors: {
-            default: (() => true) as (request: Request) => boolean
+            default: (() => false) as (request: Request) => boolean
         },
         /** 获取竞速列表 */
         getFastestRequests: {
@@ -219,7 +218,7 @@ function buildCommon() {
         fetchFastest: {
             default: async (list: Request[], optional?: RequestInit): Promise<Response> => {
                 const fallbackFetch = (request: Request, controller?: AbortController) => {
-                    return fetchWrapper(request, true, isCors(request), {
+                    return fetchWrapper(request, true, true, {
                         ...optional,
                         signal: controller?.signal
                     })
@@ -242,9 +241,9 @@ function buildCommon() {
         },
         /** 备用 URL */
         fetchStandby: {
-            default: async (request: Request, standbyRequests: {t: number, l: Request[]}, optional?: RequestInit): Promise<Response> => {
+            default: async (request: Request, standbyRequests: {t: number, l: () => Request[]}, optional?: RequestInit): Promise<Response> => {
                 const fallbackFetch = (request: Request, controller?: AbortController) => {
-                    return fetchWrapper(request, true, isCors(request), {
+                    return fetchWrapper(request, true, true, {
                         ...optional,
                         signal: controller?.signal
                     })
@@ -254,10 +253,10 @@ function buildCommon() {
                 // 尝试封装 response
                 const resolveResponse = (index: number, response: Response) =>
                     isFetchSuccessful(response) ? {i: index, r: response} : Promise.reject(response)
-                const {t: time, l: list} = standbyRequests
-                const controllers = new Array<AbortController>(list.length + 1)
+                const {t: time, l: listGetter} = standbyRequests
+                const controllers = new Array<AbortController>(listGetter.length + 1)
                 // 尝试同时拉取 standbyRequests 中的所有 Request
-                const task = () => Promise.any(list.map(
+                const task = () => Promise.any(listGetter().map(
                     (it, index) =>
                         fallbackFetch(it, controllers[index + 1] = new AbortController())
                             .then(response => resolveResponse(index + 1, response))
@@ -297,7 +296,7 @@ function buildCommon() {
             default: (request: RequestInfo | URL, optional?: RequestInit): Promise<Response> => {
                 // @ts-ignore
                 if (!request.url) request = new Request(request)
-                return fetchWrapper(request, true, isCors(request as Request), optional)
+                return fetchWrapper(request, true, true, optional)
             }
         },
         /** 是否阻断请求 */

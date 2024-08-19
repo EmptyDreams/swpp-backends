@@ -8,7 +8,8 @@ import {COMMON_TYPE_RUNTIME_CORE} from '../database/RuntimeCoreCode'
 import {COMMON_KEY_RUNTIME_DEP, FunctionInBrowser} from '../database/RuntimeDepCode'
 import {COMMON_TYPE_RUNTIME_EVENT} from '../database/RuntimeEventCode'
 import {CompilationData} from '../SwCompiler'
-import {IndivisibleName, SwppConfigModifier} from './ConfigLoader'
+import {SwppConfigModifier} from './ConfigLoader'
+import {IndivisibleConfig, NoCacheConfigGetter} from './SpecialConfig'
 
 /** 定义一个通过 `export default` 导出的配置 */
 export function defineConfig(config: SwppConfigTemplate): SwppConfigTemplate {
@@ -60,8 +61,6 @@ export function defineModifier(config: SwppConfigModifier): SwppConfigModifier {
     return config
 }
 
-export type IndivisibleConfig<T> = { [K in typeof IndivisibleName]: true } & T
-
 /**
  * 定义一个无法分割的对象配置，这对一些强依赖对象内部属性的设置很有用，可以避免对象被错误地拼接。
  *
@@ -96,13 +95,37 @@ export type IndivisibleConfig<T> = { [K in typeof IndivisibleName]: true } & T
  * ```
  */
 export function defineIndivisibleConfig<T extends object>(value: T): IndivisibleConfig<T> {
-    Object.defineProperty(value, IndivisibleName, {
-        value: true,
-        writable: false,
-        configurable: false,
-        enumerable: false
-    })
-    return value as IndivisibleConfig<T>
+    return new IndivisibleConfig(value)
+}
+
+/**
+ * 定义一个不会被缓存的配置项。
+ *
+ * 默认情况下，swpp 会缓存配置项的结果，下一次读取同一个配置项时便不需要经过类型检查等操作。
+ *
+ * 有些时候可能希望每一次读取值时都动态读取，那么可以使用此方法禁用缓存。
+ *
+ * 注意：该选项禁用缓存后对于性能有些许影响，计算结果和校验的成本越高影响越大，一般情况下无显著影响。
+ *
+ * ---
+ *
+ * 例：
+ *
+ * ```typescript
+ * // config 1
+ * export const xxx = defineXxx({
+ *     example: Date.now()
+ * })
+ * // config 2
+ * export const nnn = defineNnn({
+ *     example: defineNoCacheConfig(() => Date.now())
+ * })
+ * ```
+ *
+ * 对于上方这个例子，第一种写法每次读取该项配置时，结果都将相同，第一次为 `123456` 那么以后永远都将是 `123456`，而对于第二种写法，则每次调用时都能动态地获取当前系统时间。
+ */
+export function defineNoCacheConfig<T>(getter: () => T): NoCacheConfigGetter<T> {
+    return new NoCacheConfigGetter<T>(getter)
 }
 
 type ValueOrReturnValue<T> = T | ((this: CompilationData) => T)
@@ -150,7 +173,7 @@ export interface SwppConfigInterface { }
  *
  * 该配置项用于放置所有仅在浏览器 SW 环境下执行的工具函数。
  *
- * 对于每一项配置 `<KEY>: <function>`：<KEY> 是函数名（推荐使用小写驼峰式命名），<function> 是函数体。
+ * 对于每一项配置 `<KEY>: <function>`：`<KEY>` 是函数名（推荐使用小写驼峰式命名），`<function>` 是函数体。
  *
  * 如果函数体中需要使用其它运行时的环境变量、函数依赖等内容，直接调用即可，
  * 如果需要避免 IDE 报错/警告，可以在配置文件中声明一些不导出的变量，以此假装上下文中存在该函数。
@@ -170,7 +193,6 @@ export interface SwppConfigInterface { }
  * }
  * // 如果为了避免 IDE 报错，还可以在文件任意一个位置编写类似的代码：
  * // let example: () => void       good
- * // type example = () => void     good
  * // let example = any             不推荐，因为丢失了类型，会影响 IDE 的自动补全和静态类型推断
  * // 或者直接在函数调用的位置使用 @ts-ignore 也可以避免报错，同样不推荐，理由同上
  * ```
@@ -178,6 +200,7 @@ export interface SwppConfigInterface { }
 export type SwppConfigRuntimeDep = {
     [K in keyof COMMON_KEY_RUNTIME_DEP | string]?: K extends keyof COMMON_KEY_RUNTIME_DEP ? COMMON_KEY_RUNTIME_DEP[K]['default'] : FunctionInBrowser<any[], any>
 } & SwppConfigInterface
+
 /**
  * 运行时核心功能.
  *
@@ -195,14 +218,14 @@ export type SwppConfigRuntimeCore = {
  *
  * 该配置项用于放置所有同时在浏览器和 NodeJs 环境下执行的工具函数。
  *
- * 对于每一项配置 `<KEY>: { <runOnBrowser>, <runOnNode> }`：<KEY> 是函数名，
- * <runOnBrowser> 是在浏览器环境下执行的代码，<runOnNode> 是在 NodeJs 环境下执行的代码。
+ * 对于每一项配置 `<KEY>: { <runOnBrowser>, <runOnNode> }`：`<KEY>` 是函数名，
+ * `<runOnBrowser>` 是在浏览器环境下执行的代码，`<runOnNode>` 是在 NodeJs 环境下执行的代码。
  *
  * 对于在浏览器环境下执行的代码，可以像 {@link SwppConfigRuntimeDep} 一样引用其它运行时的环境变量、依赖函数等内容。
  *
- * 对于在 NodeJs 环境下执行的代码，可以使用 `this` 调用 <runOnBrowser>（前提是 <runOnBrowser> 中没有依赖浏览器环境的代码）。
+ * 对于在 NodeJs 环境下执行的代码，可以使用 `this` 调用 `<runOnBrowser>`（前提是 `<runOnBrowser>` 中没有依赖浏览器环境的代码）。
  *
- * <runOnBrowser> 和 <runOnNode> 中的代码的行为应当完全一致。注意：此处说的行为一致是两者应当产生相同的副作用，内部具体实现可以不一样。
+ * `<runOnBrowser>` 和 `<runOnNode>` 中的代码的行为应当完全一致。注意：此处说的行为一致是两者应当产生相同的副作用，内部具体实现可以不一样。
  *
  * ---
  *
@@ -232,7 +255,7 @@ export type SwppConfigCrossDep = {
  *
  * 该配置项用于在 sw 中注册指定的事件，可以和 {@link SwppConfigRuntimeDep} 一样引用运行时的内容。
  *
- * 对于每一项配置 `<KEY>: <function>`：<KEY> 是事件名，<function> 是事件执行体。
+ * 对于每一项配置 `<KEY>: <function>`：`<KEY>` 是事件名，`<function>` 是事件执行体。
  *
  * ---
  *
@@ -261,7 +284,7 @@ export type SwppConfigRuntimeEvent = {
  *
  * 该配置项用于放置需要同时在浏览器环境和 NodeJs 环境中使用的环境变量。
  *
- * 对于每一项配置 `<KEY>: <value | function(): value>`：<KEY> 是函数名（推荐使用大写下划线式命名），`value` 是环境变量的值。
+ * 对于每一项配置 `<KEY>: <value | function(): value>`：`<KEY>` 是函数名（推荐使用大写下划线式命名），`value` 是环境变量的值。
  *
  * 环境变量中应对仅包含非函数内容，当填写的配置项为函数时，swpp 会将函数返回的内容插入到环境变量中。
  *
@@ -292,9 +315,7 @@ export type SwppConfigCrossEnv = {
  *
  * 该配置项用于放置仅需要在 NodeJs 环境中使用的环境变量。
  *
- * 对于每一项配置 `<KEY>: <value | function(): value>`：<KEY> 是函数名（推荐使用大写下划线式命名），`value` 是环境变量的值。
- *
- * 环境变量中应对仅包含非函数内容，当填写的配置项为函数时，swpp 会将函数返回的内容插入到环境变量中。
+ * 对于每一项配置 `<KEY>: <value | function(): value>`：`<KEY>` 是属性名（推荐函数使用小写驼峰，常量使用大写下划线式命名），`<value>` 是环境变量的值。
  *
  * 该环境变量中的代码在 NodeJs 环境下执行，执行结果不会被放入 sw.js 中。
  */
@@ -323,6 +344,8 @@ export type SwppConfigCompilationFileParser = {
  * 对于每一项配置 `<KEY>: <value>`：<KEY> 是常量名或函数名，常量推荐大写下划线命名，函数推荐小写驼峰命名，<value> 是值。
  *
  * 该配置项中的值只能使用本配置项中包含的内容，不能使用其它编译期、运行期的内容。
+ *
+ * 该配置项中所有以 `_inline` 开头的内容必须为 `() => void` 类型的函数，其将会以 `(function content)()` 的形式在插入的位置执行。
  */
 export type SwppConfigDomConfig = {
     [K in keyof COMMON_TYPE_DOM_CODE | string]?: K extends keyof COMMON_TYPE_DOM_CODE ? COMMON_TYPE_DOM_CODE[K]['default'] : any

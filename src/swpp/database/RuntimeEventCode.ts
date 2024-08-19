@@ -29,6 +29,13 @@ export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<
 
 function buildCommon() {
     return {
+        /** SW 注册后立即激活 */
+        install: {
+            default: (_event: Event) => {
+                // @ts-ignore
+                skipWaiting()
+            }
+        },
         /** sw 激活后立即对所有页面生效，而非等待刷新 */
         activate: {
             // @ts-ignore

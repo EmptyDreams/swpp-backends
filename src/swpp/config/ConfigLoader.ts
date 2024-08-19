@@ -1,10 +1,10 @@
 import {createJiti} from 'jiti'
 import nodePath from 'path'
+import {KeyValueDatabase} from '../database/KeyValueDatabase'
 import {CompilationData, RuntimeData} from '../SwCompiler'
 import {exceptionNames, RuntimeException} from '../untils'
-import {IndivisibleConfig, SwppConfigTemplate} from './ConfigCluster'
-
-export const IndivisibleName = '1indivisible__'
+import {SwppConfigTemplate} from './ConfigCluster'
+import {SpecialConfig} from './SpecialConfig'
 
 export class ConfigLoader {
 
@@ -66,20 +66,25 @@ export class ConfigLoader {
             return {runtime, compilation}
         }))()
         const config = this.config!
+        const writeConfigToKv = (key: string, value: any, database: KeyValueDatabase<any, any>) => {
+            if (SpecialConfig.isNoCacheConfig(value)) {
+                database.update(key, value)
+            } else {
+                if (typeof value === 'object') {
+                    const def = database.readDefault(key)
+                    ConfigLoader.mergeConfig(value, def, false)
+                }
+                database.update(key, () => value ?? null)
+            }
+        }
         // 写入运行时信息
         const writeRuntime = () => {
-            const insertList = ['runtimeDep', 'runtimeCore', 'runtimeEvent', 'domConfig'] as const
-            for (let str of insertList) {
-                const configValue = config[str as keyof SwppConfigTemplate] as any
-                const database = runtime[str]
-                if (!configValue) continue
+            for (let configKey in config) {
+                if (!/^(runtime|dom)[A-Z_]/.test(configKey)) continue
+                const configValue = config[configKey as keyof SwppConfigTemplate] as any
+                const database = runtime.getDatabase(configKey)
                 for (let key in configValue) {
-                    const value = configValue[key]
-                    if (typeof value == 'object') {
-                        const def = database.readDefault(key)
-                        ConfigLoader.mergeConfig(value, def, false)
-                    }
-                    database.update(key, () => value ?? null)
+                    writeConfigToKv(key, configValue[key], database)
                 }
             }
         }
@@ -88,12 +93,7 @@ export class ConfigLoader {
             if (!config.compilationEnv)
                 throw new RuntimeException(exceptionNames.nullPoint, '配置项必须包含 compilationEnv 选项！')
             for (let key in config.compilationEnv) {
-                const value = config.compilationEnv[key]
-                if (typeof value == 'object') {
-                    const def = compilation.compilationEnv.readDefault(key)
-                    ConfigLoader.mergeConfig(value, def, false)
-                }
-                compilation.compilationEnv.update(key, () => value)
+                writeConfigToKv(key, config.compilationEnv[key], compilation.compilationEnv)
             }
         }
         // 写入 cross
@@ -108,11 +108,7 @@ export class ConfigLoader {
                             `crossEnv[${key}] 应当返回一个非函数对象，却返回了：${value.toString()}`
                         )
                     }
-                    if (typeof value == 'object') {
-                        const def = runtime.crossEnv.readDefault(key)
-                        ConfigLoader.mergeConfig(value, def, false)
-                    }
-                    runtime.crossEnv.update(key, () => value)
+                    writeConfigToKv(key, value, runtime.crossEnv)
                 }
             }
             if (config.crossDep) {
@@ -151,12 +147,17 @@ export class ConfigLoader {
         writeRuntime()
         writeCompilation()
         writeCross()
-        // 运行 dynamic
+        // 运行 dynamicUpdate
         for (let i = this.modifierList.length - 1; i >= 0; i--) {
             const modifier = this.modifierList[i]
-            modifier.dynamic?.(runtime, compilation)
+            modifier.dynamicUpdate?.(runtime, compilation)
         }
 
+        runtime.freezeAll()
+        compilation.freezeAll()
+        Object.freeze(runtime.insertOrder)
+        Object.freeze(runtime)
+        Object.freeze(compilation)
         return Object.freeze({runtime, compilation})
     }
 
@@ -173,7 +174,7 @@ export class ConfigLoader {
                         continue
                     }
                     if (typeof highValue != typeof lowValue) continue
-                    if (typeof highValue == 'object' && !highValue[IndivisibleName] && !lowValue[IndivisibleName]) {
+                    if (typeof highValue == 'object' && !SpecialConfig.isIndivisibleConfig(highValue)) {
                         mergeHelper(highValue, lowValue, false)
                     }
                 } else {
@@ -197,8 +198,8 @@ export interface SwppConfigModifier {
      * 优先级越高越优先生效
      */
     build?: () => {
-        runtime: IndivisibleConfig<RuntimeData>,
-        compilation: IndivisibleConfig<CompilationData>
+        runtime: RuntimeData,
+        compilation: CompilationData
     }
 
     /**
@@ -217,6 +218,6 @@ export interface SwppConfigModifier {
      *
      * 优先级越低该函数越早执行
      */
-    dynamic?: (runtime: RuntimeData, compilation: CompilationData) => void
+    dynamicUpdate?: (runtime: RuntimeData, compilation: CompilationData) => void
 
 }

@@ -1,3 +1,4 @@
+import {NoCacheConfigGetter, SpecialConfig} from '../config/SpecialConfig'
 import {exceptionNames, RuntimeException} from '../untils'
 
 /** 键值对存储器 */
@@ -29,24 +30,32 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         }
         const item = this.dataValues[key]
         if (!item) throw new RuntimeException(exceptionNames.invalidKey, `输入的 key[${key}] 不存在`)
-        let value = item.getter ? item.getter() : item.default
+        // 获取真实值
+        let value: any = item.default
+        let isNoCache = false
+        if (item.getter) {
+            if (SpecialConfig.isNoCacheConfig(item.getter)) {
+                value = item.getter.get()
+                isNoCache = true
+            } else {
+                value = item.getter()
+            }
+        }
+        // 进行类型预检
         if (!(value === null || value === undefined) && typeof value != typeof item.default) {
             throw new RuntimeException(
                 exceptionNames.invalidValue,
                 '用户传入的值类型与缺省值类型不统一',
                 { default: item.default, value }
             )
-
         }
+        // 执行用户数据检查
         const checkResult = item.checker?.(value)
         if (checkResult) {
             throw new RuntimeException(exceptionNames.invalidValue, `设置的值非法`, {key, ...checkResult})
         }
-        if (item.getter) {
-            const getter = item.getter
-            if ('1NoCache' in getter && getter['1NoCache'])
-                return value as any
-        }
+        // 如果不需要缓存直接返回，否则存入缓存后返回
+        if (isNoCache) return value as any
         return this.valueCaches[key] = value as any
     }
 
@@ -61,7 +70,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     /**
      * 设置指定键对应的值
      */
-    update<K extends keyof CONTAINER | string>(key: K, valueGetter: () => T) {
+    update<K extends keyof CONTAINER | string>(key: K, valueGetter: (() => T) | NoCacheConfigGetter<T>) {
         if (!(key in this.dataValues))
             throw new RuntimeException(exceptionNames.invalidKey, `传入的 key[${key as string}] 不存在`)
         this.dataValues[key as string].getter = valueGetter
@@ -74,6 +83,8 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     append(key: string, env: DatabaseValue<T>) {
         if (key in this.dataValues)
             throw new RuntimeException(exceptionNames.invalidKey, `追加的 key[${key}] 已存在`)
+        if ('getter' in env)
+            throw new RuntimeException(exceptionNames.invalidValue, `追加的属性中不应当包含 getter 字段`)
         this.dataValues[key] = env
     }
 
@@ -97,26 +108,24 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         return result
     }
 
-    // noinspection JSUnusedGlobalSymbols
-    /** 定义一个不被缓存的 getter */
-    static defineNoCacheGetter<T>(getter: () => T): NoCacheGetter<T> {
-        const result = getter as NoCacheGetter<T>
-        Object.defineProperty(result, '1NoCache', {
-            value: true,
-            writable: false,
-            configurable: false,
-            enumerable: false
-        })
-        return result
+    /** 冻结 KV 库，冻结后无法再添加和修改内容 */
+    freeze() {
+        if (Object.isFrozen(this.dataValues)) return
+        this.dataValues = Object.freeze(new Proxy(this.dataValues, {
+            set(): boolean {
+                throw new RuntimeException(exceptionNames.isFrozen, 'KV 库已经被冻结无法修改')
+            },
+            setPrototypeOf(): boolean {
+                throw new RuntimeException(exceptionNames.isFrozen, 'KV 库已经被冻结无法修改')
+            },
+            deleteProperty(): boolean {
+                throw new RuntimeException(exceptionNames.isFrozen, 'KV 库已经被冻结无法修改')
+            },
+            defineProperty(): boolean {
+                throw new RuntimeException(exceptionNames.isFrozen, 'KV 库已经被冻结无法修改')
+            }
+        }))
     }
-
-}
-
-export interface NoCacheGetter<T> extends Function {
-
-    '1NoCache': true
-
-    (): T
 
 }
 
@@ -131,9 +140,11 @@ export function buildEnv<T>(env: DatabaseValue<T>): DatabaseValue<T> {
 export interface DatabaseValue<T> {
 
     /** 缺省值 */
-    default: T
+    default: T | NoCacheConfigGetter<T>
+
     /** 用户填入的值 */
-    getter?: () => T
+    getter?: (() => T) | NoCacheConfigGetter<T>
+
     /** 检查器，返回 false 表示无错误 */
     checker?: (value: T) => false | RuntimeEnvErrorTemplate<T>
 

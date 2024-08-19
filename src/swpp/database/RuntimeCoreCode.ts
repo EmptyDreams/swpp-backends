@@ -49,13 +49,13 @@ function buildCommon() {
     return {
         /** 逃生门功能实现 */
         handleEscape: {
-            default: (): Promise<void> => readVersion()
-                .then(async oldVersion => {
-                    if (oldVersion && oldVersion.escape !== ESCAPE) {
-                        await caches.delete(CACHE_NAME)
-                        await postMessage('escape', null)
-                    }
-                })
+            default: async (): Promise<void> => {
+                const oldVersion = await readVersion()
+                if (ESCAPE && oldVersion && oldVersion.escape !== ESCAPE) {
+                    await caches.delete(CACHE_NAME)
+                    await postMessage('escape', null)
+                }
+            }
         },
         /**
          * 缓存增量更新功能实现
