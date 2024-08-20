@@ -8,7 +8,7 @@ export {JsonBuilder, UpdateJson, UpdateChangeExp, TrackerHeaderDiff} from './swp
 export {SwCompiler, CompilationData, RuntimeData, BrowserVersion} from './swpp/SwCompiler'
 export {NetworkFileHandler, FiniteConcurrencyFetcher} from './swpp/NetworkFileHandler'
 
-export {KeyValueDatabase, readThisValue} from './swpp/database/KeyValueDatabase'
+export {KeyValueDatabase} from './swpp/database/KeyValueDatabase'
 export {RuntimeKeyValueDatabase} from './swpp/database/RuntimeKeyValueDatabase'
 export {RuntimeEventCode} from './swpp/database/RuntimeEventCode'
 export {RuntimeCoreCode} from './swpp/database/RuntimeCoreCode'
@@ -26,5 +26,5 @@ export {
     defineRuntimeEvent, defineDomConfig, defineRuntimeCore, defineCrossDep,
     defineRuntimeDep, defineCrossEnv, defineCompilationEnv, defineCompilationFP,
     defineModifier,
-    defineNoCacheConfig, defineIndivisibleConfig
+    defineNoCacheConfig, defineIndivisibleConfig, defineLazyInitConfig
 } from './swpp/config/ConfigCluster'

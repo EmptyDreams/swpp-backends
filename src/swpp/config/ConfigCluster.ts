@@ -9,7 +9,7 @@ import {COMMON_KEY_RUNTIME_DEP, FunctionInBrowser} from '../database/RuntimeDepC
 import {COMMON_TYPE_RUNTIME_EVENT} from '../database/RuntimeEventCode'
 import {CompilationData} from '../SwCompiler'
 import {SwppConfigModifier} from './ConfigLoader'
-import {IndivisibleConfig, NoCacheConfigGetter} from './SpecialConfig'
+import {IndivisibleConfig, LazyInitConfig, NoCacheConfigGetter, RuntimeSupplier} from './SpecialConfig'
 
 /** 定义一个通过 `export default` 导出的配置 */
 export function defineConfig(config: SwppConfigTemplate): SwppConfigTemplate {
@@ -129,8 +129,33 @@ export function defineIndivisibleConfig<T extends object>(value: T): Indivisible
  *
  * @see {defineIndivisibleConfig}
  */
-export function defineNoCacheConfig<T>(getter: () => T): NoCacheConfigGetter<T> {
+export function defineNoCacheConfig<T>(getter: RuntimeSupplier<T>): NoCacheConfigGetter<T> {
     return new NoCacheConfigGetter<T>(getter)
+}
+
+/**
+ * 定义一个延迟初始化的配置项。
+ *
+ * 默认情况下，swpp 会在加载配置文件时对各项配置的值进行计算，此时就出现了一个问题，您无法在设置配置时访问其它配置内容。
+ *
+ * 如果您希望能够延后计算配置项的值以访问其它配置项，则可以使用该函数定义配置。
+ *
+ * ---
+ *
+ * 例：
+ *
+ * ```typescript
+ * export const xxx = defineXxx({
+ *     example: defineLazyInitConfig((runtime, compilation) => {
+ *         // 这里的代码将在第一次读取配置时执行
+ *         // do something
+ *         return <value>
+ *     })
+ * })
+ * ```
+ */
+export function defineLazyInitConfig<T>(getter: RuntimeSupplier<T>): LazyInitConfig<T> {
+    return new LazyInitConfig(getter)
 }
 
 type ValueOrReturnValue<T> = T | ((this: CompilationData) => T)
