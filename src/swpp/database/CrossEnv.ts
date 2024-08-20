@@ -1,6 +1,6 @@
 import nodePath from 'path'
+import {defineLazyInitConfig} from '../config/ConfigCluster'
 import {exceptionNames, RuntimeException, utils} from '../untils'
-import {CompilationEnv} from './CompilationEnv'
 import {buildEnv} from './KeyValueDatabase'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
@@ -14,8 +14,8 @@ export type COMMON_TYPE_CROSS_ENV = ReturnType<typeof buildCommon>
 /** 环境变量存储器 */
 export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE_CROSS_ENV> {
 
-    constructor(compilationEnv: CompilationEnv) {
-        super(buildCommon(compilationEnv), (key, value) => {
+    constructor() {
+        super(buildCommon(), (key, value) => {
             if (typeof value === 'function') {
                 throw new RuntimeException(
                     exceptionNames.invalidVarType,
@@ -32,7 +32,7 @@ export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE_CROSS_ENV
 
 }
 
-function buildCommon(compilationEnv: CompilationEnv) {
+function buildCommon() {
     return {
         /** 缓存库名称 */
         CACHE_NAME: buildEnv({default: 'kmarBlogCache'}),
@@ -73,10 +73,10 @@ function buildCommon(compilationEnv: CompilationEnv) {
         }),
         /** 版本文件所在目录 */
         UPDATE_JSON_URL: buildEnv({
-            default: (() => {
-                const info = compilationEnv.read('SWPP_JSON_FILE')
+            default: defineLazyInitConfig((_, compilation) => {
+                const info = compilation.compilationEnv.read('SWPP_JSON_FILE')
                 return nodePath.posix.join(info.swppPath, info.versionPath)
-            })(),
+            }),
             checker(value: string) {
                 if (this.getter) return {value, message: '不应当手动设置该项！'}
                 return false

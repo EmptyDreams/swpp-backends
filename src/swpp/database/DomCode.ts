@@ -1,4 +1,4 @@
-import {CompilationData} from '../SwCompiler'
+import {defineLazyInitConfig} from '../config/ConfigCluster'
 import {utils} from '../untils'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
@@ -6,8 +6,8 @@ export type COMMON_TYPE_DOM_CODE = ReturnType<typeof buildCommon>
 
 export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> {
 
-    constructor(compilation: CompilationData) {
-        super(buildCommon(compilation))
+    constructor() {
+        super(buildCommon())
     }
 
     buildJsSource(): string {
@@ -42,10 +42,10 @@ let onSuccess: () => void
 let pjaxUpdate: (url: string) => void
 let postMessage2Sw: (type: string) => void
 
-function buildCommon(compilation: CompilationData) {
+function buildCommon() {
     return {
         registry: {
-            default: () => {
+            default: defineLazyInitConfig((_, compilation) => {
                 const value = (() => {
                     const sw = navigator.serviceWorker
                     if (sw) {
@@ -68,7 +68,7 @@ function buildCommon(compilation: CompilationData) {
                 }).toString()
                 const path = compilation.compilationEnv.read('SERVICE_WORKER')
                 return value.replace(`'$$sw.js'`, path + '.js')
-            }
+            })
         },
         postMessage2Sw: {
             default: (type: string) => navigator.serviceWorker.controller!.postMessage(type)

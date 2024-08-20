@@ -49,12 +49,11 @@ export class RuntimeData {
     /** 运行时/编译时工具函数 */
     crossDep: CrossDepCode
     /** DOM 相关设置 */
-    domConfig: DomCode
+    domConfig = new DomCode()
 
     constructor(compilationData: CompilationData) {
         this.crossDep = compilationData.crossDep
         this.crossEnv = compilationData.crossEnv
-        this.domConfig = new DomCode(compilationData)
     }
 
     getDatabase(key: string): RuntimeKeyValueDatabase<any, {}> {
@@ -83,8 +82,8 @@ export class CompilationData {
 
     compilationEnv = new CompilationEnv()
     crossDep: CrossDepCode = new CrossDepCode()
-    crossEnv: CrossEnv = new CrossEnv(this.compilationEnv)
-    fileParser = new CompilationFileParser(this)
+    crossEnv: CrossEnv = new CrossEnv()
+    fileParser = new CompilationFileParser()
 
     initRuntime(runtime: RuntimeData) {
         for (let key in this) {

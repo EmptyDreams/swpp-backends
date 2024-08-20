@@ -144,11 +144,11 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         }))
     }
 
-    private get runtime(): RuntimeData {
+    protected get runtime(): RuntimeData {
         return this._runtime!
     }
 
-    private get compilation(): CompilationData {
+    protected get compilation(): CompilationData {
         return this._compilation!
     }
 
