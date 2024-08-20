@@ -68,6 +68,7 @@ export class ConfigLoader {
         runtime.initCompilation(compilation)
         compilation.initRuntime(runtime)
         const config = this.config!
+        /** 将指定配置项目写入到 KV 库中 */
         const writeConfigToKv = (key: string, value: any, database: KeyValueDatabase<any, any>) => {
             if (SpecialConfig.isNoCacheConfig(value)) {
                 database.update(key, value)
@@ -94,22 +95,25 @@ export class ConfigLoader {
         const writeCompilation = () => {
             if (!config.compilationEnv)
                 throw new RuntimeException(exceptionNames.nullPoint, '配置项必须包含 compilationEnv 选项！')
-            for (let key in config.compilationEnv) {
-                writeConfigToKv(key, config.compilationEnv[key], compilation.compilationEnv)
+            for (let configKey in config) {
+                if (!/^compilation[A-Z_]/.test(configKey)) continue
+                if (!(configKey in compilation)) {
+                    throw new RuntimeException(exceptionNames.nullPoint, `配置项中传入了一个不存在的分类[${configKey}]`)
+                }
+                const env = config[configKey as keyof SwppConfigTemplate]
+                for (let key in env) {
+                    writeConfigToKv(key, (env as any)[key], (compilation as any)[configKey])
+                }
             }
         }
         // 写入 cross
         const writeCross = () => {
-            if (config.crossEnv) {
-                for (let key in config.crossEnv) {
-                    const env = config.crossEnv[key]
-                    const value = typeof env === 'function' ? env.call(compilation) : env
-                    writeConfigToKv(key, value, runtime.crossEnv)
-                }
-            }
-            if (config.crossDep) {
-                for (let key in config.crossDep) {
-                    writeConfigToKv(key, config.crossDep[key], runtime.crossDep)
+            for (let configKey in config) {
+                if (!/^cross[A-Z_]/.test(configKey)) continue
+                const env = config[configKey as keyof SwppConfigTemplate]
+                const database = runtime.getDatabase(configKey)
+                for (let key in env) {
+                    writeConfigToKv(key, (env as any)[key], database)
                 }
             }
         }
@@ -127,7 +131,7 @@ export class ConfigLoader {
             const modifier = this.modifierList[i]
             modifier.dynamicUpdate?.(runtime, compilation)
         }
-
+        // 冻结 KV 库
         runtime.freezeAll()
         compilation.freezeAll()
         Object.freeze(runtime.insertOrder)

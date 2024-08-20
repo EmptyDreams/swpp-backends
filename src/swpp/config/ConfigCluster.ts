@@ -4,12 +4,19 @@ import {COMMON_TYPE_COMP_FP, FileParser} from '../database/CompilationFileParser
 import {COMMON_TYPE_CROSS_DEP} from '../database/CrossDepCode'
 import {COMMON_TYPE_CROSS_ENV} from '../database/CrossEnv'
 import {COMMON_TYPE_DOM_CODE} from '../database/DomCode'
+import {DatabaseValue} from '../database/KeyValueDatabase'
 import {COMMON_TYPE_RUNTIME_CORE} from '../database/RuntimeCoreCode'
 import {COMMON_KEY_RUNTIME_DEP, FunctionInBrowser} from '../database/RuntimeDepCode'
 import {COMMON_TYPE_RUNTIME_EVENT} from '../database/RuntimeEventCode'
-import {CompilationData} from '../SwCompiler'
 import {SwppConfigModifier} from './ConfigLoader'
-import {IndivisibleConfig, LazyInitConfig, NoCacheConfigGetter, RuntimeSupplier} from './SpecialConfig'
+import {
+    IndivisibleConfig,
+    LazyInitConfig,
+    NoCacheConfigGetter,
+    RuntimeSpecialConfig,
+    RuntimeSupplier,
+    SpecialConfig
+} from './SpecialConfig'
 
 /** 定义一个通过 `export default` 导出的配置 */
 export function defineConfig(config: SwppConfigTemplate): SwppConfigTemplate {
@@ -158,8 +165,6 @@ export function defineLazyInitConfig<T>(getter: RuntimeSupplier<T>): LazyInitCon
     return new LazyInitConfig(getter)
 }
 
-type ValueOrReturnValue<T> = T | ((this: CompilationData) => T)
-
 /**
  * SWPP 配置模板
  *
@@ -196,7 +201,13 @@ export interface SwppConfigTemplate {
 
 }
 
-export interface SwppConfigInterface { }
+type SwppConfigValueExp<T> = T extends SpecialConfig & RuntimeSpecialConfig<any> ? (T | ReturnType<T['get']>) : (T | RuntimeSpecialConfig<T>)
+
+type SwppConfigHelper<R, C extends Record<string, DatabaseValue<R>>> = {
+    [K in keyof C]?: SwppConfigValueExp<C[K]['default']>
+} & {
+    [K in string]: SwppConfigValueExp<R>
+}
 
 /**
  * 运行时函数依赖。
@@ -227,9 +238,7 @@ export interface SwppConfigInterface { }
  * // 或者直接在函数调用的位置使用 @ts-ignore 也可以避免报错，同样不推荐，理由同上
  * ```
  */
-export type SwppConfigRuntimeDep = {
-    [K in keyof COMMON_KEY_RUNTIME_DEP | string]?: K extends keyof COMMON_KEY_RUNTIME_DEP ? COMMON_KEY_RUNTIME_DEP[K]['default'] : FunctionInBrowser<any[], any>
-} & SwppConfigInterface
+export type SwppConfigRuntimeDep = SwppConfigHelper<FunctionInBrowser<any[], any> | null, COMMON_KEY_RUNTIME_DEP>
 
 /**
  * 运行时核心功能.
@@ -239,9 +248,7 @@ export type SwppConfigRuntimeDep = {
  * 该配置项与 RuntimeDep 不同的是两者的定位，RuntimeDep 中主要放置一些简单的工具函数，而 RuntimeCore 则放置一些核心代码。
  * 默认情况下，RuntimeCore 也将被插入到 RuntimeDep 的后面，在一些特殊情况下可以避免一些声明顺序导致的问题。
  */
-export type SwppConfigRuntimeCore = {
-    [K in keyof COMMON_TYPE_RUNTIME_CORE | string]?: K extends keyof COMMON_TYPE_RUNTIME_CORE ? COMMON_TYPE_RUNTIME_CORE[K]['default'] : FunctionInBrowser<any[], any>
-} & SwppConfigInterface
+export type SwppConfigRuntimeCore = SwppConfigHelper<FunctionInBrowser<any[], any>, COMMON_TYPE_RUNTIME_CORE>
 
 /**
  * 运行时 & 编译期的函数依赖。
@@ -276,9 +283,7 @@ export type SwppConfigRuntimeCore = {
  * }
  * ```
  */
-export type SwppConfigCrossDep = {
-    [K in keyof COMMON_TYPE_CROSS_DEP | string]?: K extends keyof COMMON_TYPE_CROSS_DEP ? COMMON_TYPE_CROSS_DEP[K]['default'] : any
-} & SwppConfigInterface
+export type SwppConfigCrossDep = SwppConfigHelper<any, COMMON_TYPE_CROSS_DEP>
 
 /**
  * 运行时事件注册。
@@ -305,18 +310,14 @@ export type SwppConfigCrossDep = {
  * }
  * ```
  */
-export type SwppConfigRuntimeEvent = {
-    [K in keyof COMMON_TYPE_RUNTIME_EVENT | string]?: K extends keyof COMMON_TYPE_RUNTIME_EVENT ? COMMON_TYPE_RUNTIME_EVENT[K]['default'] : FunctionInBrowser<[Event], any>
-} & SwppConfigInterface
+export type SwppConfigRuntimeEvent = SwppConfigHelper<FunctionInBrowser<[Event], any>, COMMON_TYPE_RUNTIME_EVENT>
 
 /**
  * 运行时 & 编译期环境变量。
  *
  * 该配置项用于放置需要同时在浏览器环境和 NodeJs 环境中使用的环境变量。
  *
- * 对于每一项配置 `<KEY>: <value | function(): value>`：`<KEY>` 是函数名（推荐使用大写下划线式命名），`value` 是环境变量的值。
- *
- * 环境变量中应对仅包含非函数内容，当填写的配置项为函数时，swpp 会将函数返回的内容插入到环境变量中。
+ * 对于每一项配置 `<KEY>: <value>`：`<KEY>` 是变量名（推荐使用大写下划线式命名），`value` 是环境变量的值，环境变量中应对仅包含非函数内容。
  *
  * 配置项填写的函数的执行环境为 NodeJs，所以不要编写依赖浏览器环境的代码。
  *
@@ -325,20 +326,14 @@ export type SwppConfigRuntimeEvent = {
  * 例：
  *
  * ```typescript
- * // 该代码将在 sw.js 中插入一系列常量，同时在编译期也可以动态读取
+ * // 该代码将在 sw.js 中插入一个常量
  * // const EXAMPLE = 'hello swpp'
- * // const FUN_EXAMPLE = 'fun hello swpp'
  * crossEnv: {
- *     EXAMPLE: 'hello swpp',
- *     FUN_EXAMPLE: function() {
- *         return 'fun ' + this.crossEnv.read('EXAMPLE')
- *     }
+ *     EXAMPLE: 'hello swpp'
  * }
  * ```
  */
-export type SwppConfigCrossEnv = {
-    [K in keyof COMMON_TYPE_CROSS_ENV | string]: ValueOrReturnValue<K extends keyof COMMON_TYPE_CROSS_ENV ? COMMON_TYPE_CROSS_ENV[K]['default'] : any>
-} & SwppConfigInterface
+export type SwppConfigCrossEnv = SwppConfigHelper<any, COMMON_TYPE_CROSS_ENV>
 
 /**
  * 构建期使用的环境变量。
@@ -349,9 +344,7 @@ export type SwppConfigCrossEnv = {
  *
  * 该环境变量中的代码在 NodeJs 环境下执行，执行结果不会被放入 sw.js 中。
  */
-export type SwppConfigCompilationEnv = {
-    [K in keyof COMMON_TYPE_COMP_ENV | string]?: K extends keyof COMMON_TYPE_COMP_ENV ? COMMON_TYPE_COMP_ENV[K]['default'] : any
-} & SwppConfigInterface
+export type SwppConfigCompilationEnv = SwppConfigHelper<any, COMMON_TYPE_COMP_ENV>
 
 /**
  * 构建期使用的文件处理器。
@@ -362,9 +355,7 @@ export type SwppConfigCompilationEnv = {
  *
  * @see {FileParser}
  */
-export type SwppConfigCompilationFileParser = {
-    [K in keyof COMMON_TYPE_COMP_FP | string]?: FileParser<crypto.BinaryLike>
-}
+export type SwppConfigCompilationFileParser = SwppConfigHelper<FileParser<crypto.BinaryLike>, COMMON_TYPE_COMP_FP>
 
 /**
  * 运行时使用的常量、函数。
@@ -377,6 +368,4 @@ export type SwppConfigCompilationFileParser = {
  *
  * 该配置项中所有以 `_inline` 开头的内容必须为 `() => void` 类型的函数，其将会以 `(function content)()` 的形式在插入的位置执行。
  */
-export type SwppConfigDomConfig = {
-    [K in keyof COMMON_TYPE_DOM_CODE | string]?: K extends keyof COMMON_TYPE_DOM_CODE ? COMMON_TYPE_DOM_CODE[K]['default'] : any
-} & SwppConfigInterface
+export type SwppConfigDomConfig = SwppConfigHelper<any, COMMON_TYPE_DOM_CODE>

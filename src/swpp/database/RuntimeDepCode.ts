@@ -192,8 +192,8 @@ function buildCommon() {
         },
         /** 获取竞速列表 */
         getFastestRequests: {
-            default: null,
-            checker(value: FunctionInBrowser<any, any> | null) {
+            default: null as FunctionInBrowser<any[], any> | null,
+            checker(value: FunctionInBrowser<any[], any> | null) {
                 if (value != null && typeof value != 'function') {
                     return {
                         value, message: '传入的对象应当为 function 或 null'
@@ -204,8 +204,8 @@ function buildCommon() {
         },
         /** 获取备用 URL 列表 */
         getStandbyRequests: {
-            default: null,
-            checker(value: FunctionInBrowser<any, any> | null) {
+            default: null as FunctionInBrowser<any[], any> | null,
+            checker(value: FunctionInBrowser<any[], any> | null) {
                 if (value != null && typeof value != 'function') {
                     return {
                         value, message: '传入的对象应当为 function 或 null'
