@@ -18,56 +18,6 @@ import {
     SpecialConfig
 } from './SpecialConfig'
 
-/** 定义一个通过 `export default` 导出的配置 */
-export function defineConfig(config: SwppConfigTemplate): SwppConfigTemplate {
-    return config
-}
-
-/** 定义一个通过 `export const compilationEnv` 导出的配置 */
-export function defineCompilationEnv(config: SwppConfigCompilationEnv): SwppConfigCompilationEnv {
-    return config
-}
-
-/** 定义一个通过 `export const compilationFileParser` 导出的配置 */
-export function defineCompilationFP(config: SwppConfigCompilationFileParser): SwppConfigCompilationFileParser {
-    return config
-}
-
-/** 定义一个通过 `export const crossEnv` 导出的配置 */
-export function defineCrossEnv(config: SwppConfigCrossEnv): SwppConfigCrossDep {
-    return config
-}
-
-/** 定义一个通过 `export const runtimeDep` 导出的配置 */
-export function defineRuntimeDep(config: SwppConfigRuntimeDep): SwppConfigRuntimeDep {
-    return config
-}
-
-/** 定义一个通过 `export const crossDep` 导出的配置 */
-export function defineCrossDep(config: SwppConfigCrossDep): SwppConfigCrossDep {
-    return config
-}
-
-/** 定义一个通过 `export const runtimeCore` 导出的配置 */
-export function defineRuntimeCore(config: SwppConfigRuntimeCore): SwppConfigRuntimeCore {
-    return config
-}
-
-/** 定义一个通过 `export const domConfig` 导出的配置 */
-export function defineDomConfig(config: SwppConfigDomConfig): SwppConfigDomConfig {
-    return config
-}
-
-/** 定义一个通过 `export const runtimeEvent` 导出的配置 */
-export function defineRuntimeEvent(config: SwppConfigRuntimeEvent): SwppConfigRuntimeEvent {
-    return config
-}
-
-/** 定义一个通过 `export const modifier` 导出的配置 */
-export function defineModifier(config: SwppConfigModifier): SwppConfigModifier {
-    return config
-}
-
 /**
  * 定义一个无法分割的对象配置，这对一些强依赖对象内部属性的设置很有用，可以避免对象被错误地拼接。
  *

@@ -3,8 +3,22 @@ import nodePath from 'path'
 import {KeyValueDatabase} from '../database/KeyValueDatabase'
 import {CompilationData, RuntimeData} from '../SwCompiler'
 import {exceptionNames, RuntimeException} from '../untils'
-import {SwppConfigTemplate} from './ConfigCluster'
+import {
+    SwppConfigCompilationEnv,
+    SwppConfigCompilationFileParser,
+    SwppConfigCrossDep,
+    SwppConfigCrossEnv,
+    SwppConfigDomConfig,
+    SwppConfigRuntimeCore,
+    SwppConfigRuntimeDep,
+    SwppConfigRuntimeEvent,
+    SwppConfigTemplate
+} from './ConfigCluster'
 import {SpecialConfig} from './SpecialConfig'
+
+/** 正在加载配置的 loader */
+let activeConfigLoader: ConfigLoaderLock | null = null
+const TMP_PW = Math.random().toString()
 
 export class ConfigLoader {
 
@@ -17,8 +31,25 @@ export class ConfigLoader {
         fsCache: false
     })
 
+    private static prevTask: Promise<any> | null = null
+
     private config: SwppConfigTemplate | undefined
     private modifierList: SwppConfigModifier[] = []
+
+    constructor() {
+        Object.defineProperty(this, '9zLoadFromInside', {
+            value: (config: SwppConfigTemplate, pw: string) => {
+                if (pw !== TMP_PW) throw new RuntimeException(exceptionNames.error, '该函数仅能由内部调用')
+                if ('modifier' in config) {
+                    this.modifierList.push(config.modifier as SwppConfigModifier)
+                }
+                if (this.config) ConfigLoader.mergeConfig(this.config, config)
+                else this.config = config
+            },
+            writable: false,
+            enumerable: false
+        })
+    }
 
     // noinspection JSUnusedGlobalSymbols
     /**
@@ -34,21 +65,33 @@ export class ConfigLoader {
                 { configPath: file }
             )
         }
-        // @ts-ignore
-        const content: any = await ConfigLoader.jiti.import(file)
-        let newConfig: SwppConfigTemplate = 'default' in content ? content.default : content
-        this.loadFromCode(newConfig)
+        await ConfigLoader.waitLoad()
+        let error = true
+        activeConfigLoader?.onRelease?.()
+        activeConfigLoader = new ConfigLoaderLock(this, () => {
+            if (error) throw new RuntimeException(exceptionNames.error, '锁竞争时出现异常')
+        })
+        ConfigLoader.prevTask = ConfigLoader.jiti.import(file).then(() => {
+            error = false
+        })
     }
 
     /**
      * 加载一个在代码层面编写的配置
      */
-    loadFromCode(config: SwppConfigTemplate) {
-        if ('modifier' in config) {
-            this.modifierList.push(config.modifier as SwppConfigModifier)
-        }
-        if (this.config) ConfigLoader.mergeConfig(this.config, config)
-        else this.config = config
+    // noinspection JSUnusedGlobalSymbols
+    async loadFromCode(config: SwppConfigTemplate) {
+        await ConfigLoader.waitLoad()
+        // @ts-ignore
+        this['9zLoadFromInside'](config, TMP_PW)
+    }
+
+    private static async waitLoad() {
+        let prev: Promise<any> | null
+        do {
+            prev = ConfigLoader.prevTask
+            await prev
+        } while (prev !== ConfigLoader.prevTask)
     }
 
     // noinspection JSUnusedGlobalSymbols
@@ -199,4 +242,65 @@ export interface SwppConfigModifier {
      */
     dynamicUpdate?: (runtime: RuntimeData, compilation: CompilationData) => void
 
+}
+
+class ConfigLoaderLock {
+
+    constructor(public readonly loader: ConfigLoader, public readonly onRelease: () => void) { }
+
+}
+
+function invokeLoader(loader: ConfigLoader, config: SwppConfigTemplate) {
+    // @ts-ignore
+    loader['9zLoadFromInside'](config, TMP_PW)
+}
+
+/** 定义一个通过 `export default` 导出的配置 */
+export function defineConfig(config: SwppConfigTemplate) {
+    invokeLoader(activeConfigLoader!.loader, config)
+}
+
+/** 定义一个通过 `export const compilationEnv` 导出的配置 */
+export function defineCompilationEnv(config: SwppConfigCompilationEnv) {
+    invokeLoader(activeConfigLoader!.loader, {compilationEnv: config})
+}
+
+/** 定义一个通过 `export const compilationFileParser` 导出的配置 */
+export function defineCompilationFP(config: SwppConfigCompilationFileParser) {
+    invokeLoader(activeConfigLoader!.loader, {compilationFileParser: config})
+}
+
+/** 定义一个通过 `export const crossEnv` 导出的配置 */
+export function defineCrossEnv(config: SwppConfigCrossEnv) {
+    invokeLoader(activeConfigLoader!.loader, {crossEnv: config})
+}
+
+/** 定义一个通过 `export const runtimeDep` 导出的配置 */
+export function defineRuntimeDep(config: SwppConfigRuntimeDep) {
+    invokeLoader(activeConfigLoader!.loader, {runtimeDep: config})
+}
+
+/** 定义一个通过 `export const crossDep` 导出的配置 */
+export function defineCrossDep(config: SwppConfigCrossDep) {
+    invokeLoader(activeConfigLoader!.loader, {crossDep: config})
+}
+
+/** 定义一个通过 `export const runtimeCore` 导出的配置 */
+export function defineRuntimeCore(config: SwppConfigRuntimeCore) {
+    invokeLoader(activeConfigLoader!.loader, {runtimeCore: config})
+}
+
+/** 定义一个通过 `export const domConfig` 导出的配置 */
+export function defineDomConfig(config: SwppConfigDomConfig) {
+    invokeLoader(activeConfigLoader!.loader, {domConfig: config})
+}
+
+/** 定义一个通过 `export const runtimeEvent` 导出的配置 */
+export function defineRuntimeEvent(config: SwppConfigRuntimeEvent) {
+    invokeLoader(activeConfigLoader!.loader, {runtimeEvent: config})
+}
+
+/** 定义一个通过 `export const modifier` 导出的配置 */
+export function defineModifier(config: SwppConfigModifier) {
+    invokeLoader(activeConfigLoader!.loader, {modifier: config})
 }

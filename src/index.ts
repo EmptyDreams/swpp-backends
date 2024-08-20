@@ -20,12 +20,14 @@ export {CompilationEnv, AllowNotFoundEnum} from './swpp/database/CompilationEnv'
 export {FileMark, FileParser} from './swpp/database/CompilationFileParser'
 export {DomCode} from './swpp/database/DomCode'
 
-export {ConfigLoader} from './swpp/config/ConfigLoader'
-export {SpecialConfig, IndivisibleConfig, NoCacheConfigGetter} from './swpp/config/SpecialConfig'
 export {
+    ConfigLoader,
     defineConfig,
     defineRuntimeEvent, defineDomConfig, defineRuntimeCore, defineCrossDep,
     defineRuntimeDep, defineCrossEnv, defineCompilationEnv, defineCompilationFP,
-    defineModifier,
+    defineModifier
+} from './swpp/config/ConfigLoader'
+export {SpecialConfig, IndivisibleConfig, NoCacheConfigGetter} from './swpp/config/SpecialConfig'
+export {
     defineNoCacheConfig, defineIndivisibleConfig, defineLazyInitConfig
 } from './swpp/config/ConfigCluster'
