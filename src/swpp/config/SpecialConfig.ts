@@ -20,14 +20,14 @@ export class IndivisibleConfig<T> extends SpecialConfig {
 }
 
 /** 不被缓存的配置 */
-export class NoCacheConfigGetter<T> extends SpecialConfig {
+export class NoCacheConfigGetter<T> extends IndivisibleConfig<() => T> {
 
-    constructor(private readonly getter: () => T) {
-        super()
+    constructor(getter: () => T) {
+        super(getter)
     }
 
     get(): T {
-        return this.getter()
+        return this.value()
     }
 
 }

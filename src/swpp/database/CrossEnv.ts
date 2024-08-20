@@ -1,5 +1,5 @@
 import nodePath from 'path'
-import {utils} from '../untils'
+import {exceptionNames, RuntimeException, utils} from '../untils'
 import {CompilationEnv} from './CompilationEnv'
 import {buildEnv} from './KeyValueDatabase'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
@@ -15,7 +15,14 @@ export type COMMON_TYPE_CROSS_ENV = ReturnType<typeof buildCommon>
 export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE_CROSS_ENV> {
 
     constructor(compilationEnv: CompilationEnv) {
-        super(buildCommon(compilationEnv))
+        super(buildCommon(compilationEnv), (key, value) => {
+            if (typeof value === 'function') {
+                throw new RuntimeException(
+                    exceptionNames.invalidVarType,
+                    `crossEnv[${key}] 应当返回一个非函数`, {value: value.toString()}
+                )
+            }
+        })
     }
 
     /** 构建 JS 源代码 */

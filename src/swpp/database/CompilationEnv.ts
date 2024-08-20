@@ -86,7 +86,9 @@ function buildCommon(_env: any) {
                     const fetcher = env.read('NETWORK_FILE_FETCHER')
                     const isNotFound = env.read('isNotFound')
                     try {
-                        const response = await fetcher.fetch(utils.splicingUrl(baseUrl, this.swppPath, this.versionPath))
+                        const swppPath = (this as any).swppPath
+                        const versionPath = (this as any).versionPath
+                        const response = await fetcher.fetch(utils.splicingUrl(baseUrl, swppPath, versionPath))
                         if (!isNotFound.response(response)) {
                             const json = await response.json()
                             return json as UpdateJson

@@ -102,39 +102,12 @@ export class ConfigLoader {
                 for (let key in config.crossEnv) {
                     const env = config.crossEnv[key]
                     const value = typeof env === 'function' ? env.call(compilation) : env
-                    if (typeof value === 'function') {
-                        throw new RuntimeException(
-                            exceptionNames.invalidVarType,
-                            `crossEnv[${key}] 应当返回一个非函数对象，却返回了：${value.toString()}`
-                        )
-                    }
                     writeConfigToKv(key, value, runtime.crossEnv)
                 }
             }
             if (config.crossDep) {
                 for (let key in config.crossDep) {
-                    const value = config.crossDep[key]
-                    if (typeof value != 'object') {
-                        throw new RuntimeException(
-                            exceptionNames.invalidVarType,
-                            `crossDep[${key}] 返回的内容应当为一个对象，却返回了：${value}`
-                        )
-                    }
-                    if (!('runOnNode' in value)) {
-                        throw new RuntimeException(
-                            exceptionNames.invalidVarName,
-                            `crossDep[${key}] 返回的对象应当包含 {runOnNode} 字段，却返回了：${JSON.stringify(value, null, 2)}`
-                        )
-                    }
-                    if (!('runOnBrowser' in value)) {
-                        throw new RuntimeException(
-                            exceptionNames.invalidVarType,
-                            `crossDep[${key}] 返回的对象应当包含 {runOnBrowser} 字段，却返回了：${JSON.stringify(value, null, 2)}`
-                        )
-                    }
-                    const def = runtime.crossDep.readDefault(key)
-                    ConfigLoader.mergeConfig(value, def, false)
-                    runtime.crossDep.update(key, () => value)
+                    writeConfigToKv(key, config.crossDep[key], runtime.crossDep)
                 }
             }
         }

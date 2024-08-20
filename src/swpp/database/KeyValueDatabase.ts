@@ -7,7 +7,11 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     private dataValues: Record<string, DatabaseValue<T>> = {}
     private valueCaches: Record<string, T> = {}
 
-    constructor(map?: CONTAINER) {
+    /**
+     * @param map 默认值
+     * @param globalChecker 全局检查器（优先于每个属性设置的 checker 执行），遇到问题直接抛出异常
+     */
+    constructor(map?: CONTAINER, private readonly globalChecker?: (key: string, value: T) => void) {
         if (map) {
             Object.assign(this.dataValues, map)
         }
@@ -23,7 +27,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
      *
      * 注意：允许被缓存的值返回后是不允许被修改的，不缓存的值是允许修改的。
      */
-    read<K extends keyof CONTAINER | string>(_key: K): K extends keyof CONTAINER ? CONTAINER[K]['default'] : T {
+    read<K extends keyof CONTAINER | string>(_key: K): K extends keyof CONTAINER ? Exclude<CONTAINER[K]['default'], NoCacheConfigGetter<any>> : T {
         const key = _key as string
         if (key in this.valueCaches) {
             return this.valueCaches[key] as any
@@ -49,6 +53,8 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
                 { default: item.default, value }
             )
         }
+        // 执行全局检查
+        this.globalChecker?.(key, value)
         // 执行用户数据检查
         const checkResult = item.checker?.(value)
         if (checkResult) {
@@ -136,6 +142,19 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
 export function buildEnv<T>(env: DatabaseValue<T>): DatabaseValue<T> {
     return env
 }
+
+// /**
+//  * 读取指定对象中的指定字段。
+//  *
+//  * 由于配置文件中允许同时写入 T 或 `NoCacheConfigGetter<T>`，当在配置项中使用 `this` 时，需要先判定 `this` 是哪一个类型
+//  */
+// export function readThisValue<
+//     T extends NoCacheConfigGetter<object> | object,
+//     K extends keyof (T extends NoCacheConfigGetter<any> ? ReturnType<T['get']> : T)
+//     // @ts-ignore
+// >(obj: T, key: K): T extends NoCacheConfigGetter<any> ? ReturnType<T['get']>[K] : T[K] {
+//     return SpecialConfig.isNoCacheConfig(obj) ? obj.get()[key] : (obj as any)[key]
+// }
 
 export interface DatabaseValue<T> {
 

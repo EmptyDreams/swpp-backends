@@ -1,5 +1,5 @@
 import {UpdateChangeExp} from '../JsonBuilder'
-import {utils} from '../untils'
+import {exceptionNames, RuntimeException, utils} from '../untils'
 import {FunctionInBrowser} from './RuntimeDepCode'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
@@ -22,7 +22,26 @@ export type COMMON_TYPE_CROSS_DEP = ReturnType<typeof buildCommon>
 export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNode<any, any>, COMMON_TYPE_CROSS_DEP> {
 
     constructor() {
-        super(buildCommon())
+        super(buildCommon(), (key, value) => {
+            if (typeof value != 'object') {
+                throw new RuntimeException(
+                    exceptionNames.invalidVarType,
+                    `crossDep[${key}] 返回的内容应当为一个 object`, {value}
+                )
+            }
+            if (!('runOnNode' in value)) {
+                throw new RuntimeException(
+                    exceptionNames.invalidVarType,
+                    `crossDep[${key}] 返回的对象应当包含 {runOnNode} 字段`, {value}
+                )
+            }
+            if (!('runOnBrowser' in value)) {
+                throw new RuntimeException(
+                    exceptionNames.invalidVarType,
+                    `crossDep[${key}] 返回的对象应当包含 {runOnBrowser} 字段`, {value}
+                )
+            }
+        })
     }
 
     /** 构建 JS 源代码 */
