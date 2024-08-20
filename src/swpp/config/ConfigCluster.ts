@@ -126,6 +126,8 @@ export function defineIndivisibleConfig<T extends object>(value: T): Indivisible
  * ```
  *
  * 对于上方这个例子，第一种写法每次读取该项配置时，结果都将相同，第一次为 `123456` 那么以后永远都将是 `123456`，而对于第二种写法，则每次调用时都能动态地获取当前系统时间。
+ *
+ * @see {defineIndivisibleConfig}
  */
 export function defineNoCacheConfig<T>(getter: () => T): NoCacheConfigGetter<T> {
     return new NoCacheConfigGetter<T>(getter)
