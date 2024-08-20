@@ -1,4 +1,4 @@
-import {NoCacheConfigGetter, SpecialConfig} from '../config/SpecialConfig'
+import {NoCacheConfigGetter, RuntimeSpecialConfig, SpecialConfig} from '../config/SpecialConfig'
 import {exceptionNames, RuntimeException} from '../untils'
 
 /** 键值对存储器 */
@@ -27,7 +27,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
      *
      * 注意：允许被缓存的值返回后是不允许被修改的，不缓存的值是允许修改的。
      */
-    read<K extends keyof CONTAINER | string>(_key: K): K extends keyof CONTAINER ? Exclude<CONTAINER[K]['default'], NoCacheConfigGetter<any>> : T {
+    read<K extends keyof CONTAINER | string>(_key: K): K extends keyof CONTAINER ? Exclude<CONTAINER[K]['default'], RuntimeSpecialConfig<any>> : T {
         const key = _key as string
         if (key in this.valueCaches) {
             return this.valueCaches[key] as any
@@ -38,9 +38,11 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         let value: any = item.default
         let isNoCache = false
         if (item.getter) {
-            if (SpecialConfig.isNoCacheConfig(item.getter)) {
+            if (SpecialConfig.isSpecialConfig(item.getter)) {
                 value = item.getter.get()
-                isNoCache = true
+                if (SpecialConfig.isNoCacheConfig(item.getter)) {
+                    isNoCache = true
+                }
             } else {
                 value = item.getter()
             }
@@ -159,10 +161,10 @@ export function buildEnv<T>(env: DatabaseValue<T>): DatabaseValue<T> {
 export interface DatabaseValue<T> {
 
     /** 缺省值 */
-    default: T | NoCacheConfigGetter<T>
+    default: T | RuntimeSpecialConfig<T>
 
     /** 用户填入的值 */
-    getter?: (() => T) | NoCacheConfigGetter<T>
+    getter?: (() => T) | RuntimeSpecialConfig<T>
 
     /** 检查器，返回 false 表示无错误 */
     checker?: (value: T) => false | RuntimeEnvErrorTemplate<T>
