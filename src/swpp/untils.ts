@@ -215,8 +215,9 @@ export class RuntimeException extends Error {
         public readonly message: string,
         public readonly addOn?: any
     ) {
-        super(JSON.stringify({code, message, addOn}, null, 2))
-        this.name = 'SwppRuntimeException'
+        super()
+        this.name = 'top.kmar.swpp.RuntimeException'
+        this.message = '运行时发生异常 ' + JSON.stringify({code, message, addOn}, null, 2)
         Object.setPrototypeOf(this, RuntimeException.prototype)
     }
 

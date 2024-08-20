@@ -1,4 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
+
 /** 版本号 */
 export const swppVersion = require('../package.json').version
 
