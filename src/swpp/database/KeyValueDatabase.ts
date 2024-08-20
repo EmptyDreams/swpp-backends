@@ -1,4 +1,5 @@
 import {NoCacheConfigGetter, RuntimeSpecialConfig, SpecialConfig} from '../config/SpecialConfig'
+import {CompilationData, RuntimeData} from '../SwCompiler'
 import {exceptionNames, RuntimeException} from '../untils'
 
 /** 键值对存储器 */
@@ -6,6 +7,8 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
 
     private dataValues: Record<string, DatabaseValue<T>> = {}
     private valueCaches: Record<string, T> = {}
+    private _runtime: RuntimeData | null = null
+    private _compilation: CompilationData | null = null
 
     /**
      * @param map 默认值
@@ -20,6 +23,12 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     /** 延迟初始化 */
     protected lazyInit(map: CONTAINER) {
         Object.assign(this.dataValues, map)
+    }
+
+    /** 初始化各项数据 */
+    initRuntimeAndCompilation(runtime: RuntimeData, compilation: CompilationData) {
+        this.runtime = runtime
+        this.compilation = compilation
     }
 
     /**
@@ -39,7 +48,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         let isNoCache = false
         if (item.getter) {
             if (SpecialConfig.isSpecialConfig(item.getter)) {
-                value = item.getter.get()
+                value = item.getter.get(this.runtime, this.compilation)
                 if (SpecialConfig.isNoCacheConfig(item.getter)) {
                     isNoCache = true
                 }
@@ -133,6 +142,22 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
                 throw new RuntimeException(exceptionNames.isFrozen, 'KV 库已经被冻结无法修改')
             }
         }))
+    }
+
+    private get runtime(): RuntimeData {
+        return this._runtime!
+    }
+
+    private get compilation(): CompilationData {
+        return this._compilation!
+    }
+
+    private set runtime(value: RuntimeData) {
+        this._runtime = value
+    }
+
+    private set compilation(value: CompilationData) {
+        this._compilation = value
     }
 
 }

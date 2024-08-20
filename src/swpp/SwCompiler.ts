@@ -66,6 +66,12 @@ export class RuntimeData {
         return this[key]
     }
 
+    initCompilation(compilation: CompilationData) {
+        for (let key of this.insertOrder) {
+            this.getDatabase(key).initRuntimeAndCompilation(this, compilation)
+        }
+    }
+
     freezeAll() {
         this.insertOrder.forEach(it => this.getDatabase(it).freeze())
     }
@@ -79,6 +85,15 @@ export class CompilationData {
     crossDep: CrossDepCode = new CrossDepCode()
     crossEnv: CrossEnv = new CrossEnv(this.compilationEnv)
     fileParser = new CompilationFileParser(this)
+
+    initRuntime(runtime: RuntimeData) {
+        for (let key in this) {
+            const value = this[key]
+            if (value instanceof KeyValueDatabase) {
+                value.initRuntimeAndCompilation(runtime, this)
+            }
+        }
+    }
 
     freezeAll() {
         for (let key in this) {

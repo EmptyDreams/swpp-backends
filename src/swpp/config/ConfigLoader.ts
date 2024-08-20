@@ -65,6 +65,8 @@ export class ConfigLoader {
             const runtime = new RuntimeData(compilation)
             return {runtime, compilation}
         }))()
+        runtime.initCompilation(compilation)
+        compilation.initRuntime(runtime)
         const config = this.config!
         const writeConfigToKv = (key: string, value: any, database: KeyValueDatabase<any, any>) => {
             if (SpecialConfig.isNoCacheConfig(value)) {
