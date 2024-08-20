@@ -7,14 +7,18 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
 
     private dataValues: Record<string, DatabaseValue<T>> = {}
     private valueCaches: Record<string, T> = {}
+
     private _runtime: RuntimeData | null = null
     private _compilation: CompilationData | null = null
 
+    private readCallChain: string[] = []
+
     /**
+     * @param namespace 命名空间
      * @param map 默认值
      * @param globalChecker 全局检查器（优先于每个属性设置的 checker 执行），遇到问题直接抛出异常
      */
-    constructor(map?: CONTAINER, private readonly globalChecker?: (key: string, value: T) => void) {
+    constructor(public readonly namespace: string, map?: CONTAINER, private readonly globalChecker?: (key: string, value: T) => void) {
         if (map) {
             Object.assign(this.dataValues, map)
         }
@@ -48,7 +52,9 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         let isNoCache = false
         if (item.manual) {
             if (SpecialConfig.isSpecialConfig(item.manual)) {
+                this.runtime.debugCallChain.push(this.namespace, key)
                 value = item.manual.get(this.runtime, this.compilation)
+                this.runtime.debugCallChain.pop(this.namespace, key)
                 if (SpecialConfig.isNoCacheConfig(item.manual)) {
                     isNoCache = true
                 }
@@ -71,6 +77,11 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         if (checkResult) {
             throw new RuntimeException(exceptionNames.invalidValue, `设置的值非法`, {key, ...checkResult})
         }
+        // 从调用链中弹出当前值
+        const popValue = this.readCallChain.pop()
+        if (popValue !== key) throw new RuntimeException(exceptionNames.error, '调用链追踪错误', {
+            chain: this.readCallChain, popValue, expected: key
+        })
         // 如果不需要缓存直接返回，否则存入缓存后返回
         if (isNoCache) return value as any
         return this.valueCaches[key] = value as any

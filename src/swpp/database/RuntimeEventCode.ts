@@ -12,7 +12,7 @@ export type COMMON_TYPE_RUNTIME_EVENT = ReturnType<typeof buildCommon>
 export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<[Event], any>, COMMON_TYPE_RUNTIME_EVENT> {
 
     constructor() {
-        super(buildCommon())
+        super('RuntimeEventCode', buildCommon())
     }
 
     /** 构建 JS 源代码 */

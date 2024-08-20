@@ -8,6 +8,7 @@ import {RuntimeDepCode} from './database/RuntimeDepCode'
 import {CrossEnv} from './database/CrossEnv'
 import {RuntimeEventCode} from './database/RuntimeEventCode'
 import {RuntimeKeyValueDatabase} from './database/RuntimeKeyValueDatabase'
+import {CallChainRecorder} from './debug/CallChainRecorder'
 import {exceptionNames, RuntimeException} from './untils'
 
 export class SwCompiler {
@@ -50,6 +51,8 @@ export class RuntimeData {
     crossDep: CrossDepCode
     /** DOM 相关设置 */
     domConfig = new DomCode()
+    /** 追踪调用链 */
+    debugCallChain = new CallChainRecorder()
 
     constructor(compilationData: CompilationData) {
         this.crossDep = compilationData.crossDep

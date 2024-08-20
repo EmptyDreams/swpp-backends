@@ -15,7 +15,7 @@ export type COMMON_TYPE_CROSS_ENV = ReturnType<typeof buildCommon>
 export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE_CROSS_ENV> {
 
     constructor() {
-        super(buildCommon(), (key, value) => {
+        super('CrossEnv', buildCommon(), (key, value) => {
             if (typeof value === 'function') {
                 throw new RuntimeException(
                     exceptionNames.invalidVarType,

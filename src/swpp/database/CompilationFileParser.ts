@@ -11,7 +11,7 @@ export type COMMON_TYPE_COMP_FP = ReturnType<typeof buildCommon>
 export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.BinaryLike>, COMMON_TYPE_COMP_FP> {
 
     constructor() {
-        super()
+        super('CompilationFileParser')
         this.lazyInit(buildCommon(this))
     }
 

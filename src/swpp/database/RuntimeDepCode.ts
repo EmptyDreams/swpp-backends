@@ -27,7 +27,7 @@ export type COMMON_KEY_RUNTIME_DEP = ReturnType<typeof buildCommon>
 export class RuntimeDepCode extends RuntimeKeyValueDatabase<FunctionInBrowser<any[], any> | null, COMMON_KEY_RUNTIME_DEP> {
 
     constructor() {
-        super(buildCommon())
+        super('RuntimeDepCode', buildCommon())
     }
 
     /** 修正函数 */

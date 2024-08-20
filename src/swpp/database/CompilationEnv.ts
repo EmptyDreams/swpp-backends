@@ -14,7 +14,7 @@ export type COMMON_TYPE_COMP_ENV = ReturnType<typeof buildCommon>
 export class CompilationEnv extends KeyValueDatabase<any, COMMON_TYPE_COMP_ENV> {
 
     constructor() {
-        super()
+        super('CompilationEnv')
         this.lazyInit(buildCommon(this))
     }
 

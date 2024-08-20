@@ -35,7 +35,7 @@ export type COMMON_TYPE_RUNTIME_CORE = ReturnType<typeof buildCommon>
 export class RuntimeCoreCode extends RuntimeKeyValueDatabase<FunctionInBrowser<any[], any> | null, COMMON_TYPE_RUNTIME_CORE> {
 
     constructor() {
-        super(buildCommon())
+        super('RuntimeCoreCode', buildCommon())
     }
 
     /** 构建 JS 源代码 */

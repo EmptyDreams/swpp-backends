@@ -7,7 +7,7 @@ export type COMMON_TYPE_DOM_CODE = ReturnType<typeof buildCommon>
 export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> {
 
     constructor() {
-        super(buildCommon())
+        super('DomCode', buildCommon())
     }
 
     buildJsSource(): string {

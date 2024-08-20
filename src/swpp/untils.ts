@@ -180,6 +180,8 @@ export const utils = {
 }
 
 export const exceptionNames = {
+    /** 循环依赖 */
+    circularDependencies: 'circular_dependencies',
     /** 无效的变量名 */
     invalidVarName: 'invalid_var_name',
     /** 无效的变量类型 */

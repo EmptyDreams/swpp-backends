@@ -22,7 +22,7 @@ export type COMMON_TYPE_CROSS_DEP = ReturnType<typeof buildCommon>
 export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNode<any, any>, COMMON_TYPE_CROSS_DEP> {
 
     constructor() {
-        super(buildCommon(), (key, value) => {
+        super('CrossDepCode', buildCommon(), (key, value) => {
             if (typeof value != 'object') {
                 throw new RuntimeException(
                     exceptionNames.invalidVarType,
