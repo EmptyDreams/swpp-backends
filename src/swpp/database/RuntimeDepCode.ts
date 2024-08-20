@@ -32,23 +32,22 @@ export class RuntimeDepCode extends RuntimeKeyValueDatabase<FunctionInBrowser<an
 
     /** 修正函数 */
     fixDepFunction() {
-        const emptyLambda = () => null
         const hasFastestRequests = this.hasValue('getFastestRequests')
         const hasStandbyRequests = this.hasValue('getStandbyRequests')
         const hasFetchFile = this.hasValue('fetchFile')
         if (!hasFastestRequests) {
-            this.update('fetchFastest', emptyLambda)
+            this.update('fetchFastest', null)
         }
         if (!hasStandbyRequests) {
-            this.update('fetchStandby', emptyLambda)
+            this.update('fetchStandby', null)
         }
         if (!hasFetchFile) {
             if (hasFastestRequests && hasStandbyRequests) {
-                this.update('fetchFile', () => fetchFastestAndStandbyRequests)
+                this.update('fetchFile', fetchFastestAndStandbyRequests)
             } else if (hasFastestRequests) {
-                this.update('fetchFile', () => fetchFastestRequests)
+                this.update('fetchFile', fetchFastestRequests)
             } else if (hasStandbyRequests) {
-                this.update('fetchFile', () => fetchStandbyRequests)
+                this.update('fetchFile', fetchStandbyRequests)
             }
         }
     }

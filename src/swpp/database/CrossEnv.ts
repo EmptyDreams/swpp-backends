@@ -78,7 +78,7 @@ function buildCommon() {
                 return nodePath.posix.join(info.swppPath, info.versionPath)
             }),
             checker(value: string) {
-                if (this.getter) return {value, message: '不应当手动设置该项！'}
+                if (this.manual) return {value, message: '不应当手动设置该项！'}
                 return false
             }
         }),

@@ -77,7 +77,7 @@ export class ConfigLoader {
                     const def = database.readDefault(key)
                     ConfigLoader.mergeConfig(value, def, false)
                 }
-                database.update(key, () => value ?? null)
+                database.update(key, value ?? null)
             }
         }
         // 写入运行时信息

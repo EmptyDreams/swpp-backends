@@ -1,4 +1,4 @@
-import {NoCacheConfigGetter, RuntimeSpecialConfig, SpecialConfig} from '../config/SpecialConfig'
+import {RuntimeSpecialConfig, SpecialConfig} from '../config/SpecialConfig'
 import {CompilationData, RuntimeData} from '../SwCompiler'
 import {exceptionNames, RuntimeException} from '../untils'
 
@@ -46,14 +46,14 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         // 获取真实值
         let value: any = item.default
         let isNoCache = false
-        if (item.getter) {
-            if (SpecialConfig.isSpecialConfig(item.getter)) {
-                value = item.getter.get(this.runtime, this.compilation)
-                if (SpecialConfig.isNoCacheConfig(item.getter)) {
+        if (item.manual) {
+            if (SpecialConfig.isSpecialConfig(item.manual)) {
+                value = item.manual.get(this.runtime, this.compilation)
+                if (SpecialConfig.isNoCacheConfig(item.manual)) {
                     isNoCache = true
                 }
             } else {
-                value = item.getter()
+                value = item.manual
             }
         }
         // 进行类型预检
@@ -87,10 +87,10 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     /**
      * 设置指定键对应的值
      */
-    update<K extends keyof CONTAINER | string>(key: K, valueGetter: (() => T) | NoCacheConfigGetter<T>) {
+    update<K extends keyof CONTAINER | string>(key: K, manual: T | RuntimeSpecialConfig<T>) {
         if (!(key in this.dataValues))
             throw new RuntimeException(exceptionNames.invalidKey, `传入的 key[${key as string}] 不存在`)
-        this.dataValues[key as string].getter = valueGetter
+        this.dataValues[key as string].manual = manual
         delete this.valueCaches[key as string]
     }
 
@@ -100,7 +100,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     append(key: string, env: DatabaseValue<T>) {
         if (key in this.dataValues)
             throw new RuntimeException(exceptionNames.invalidKey, `追加的 key[${key}] 已存在`)
-        if ('getter' in env)
+        if ('manual' in env)
             throw new RuntimeException(exceptionNames.invalidValue, `追加的属性中不应当包含 getter 字段`)
         this.dataValues[key] = env
     }
@@ -113,7 +113,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
 
     /** 判断指定键对应的环境变量是否存在用户设置的值 */
     hasValue<K extends keyof CONTAINER | string>(key: K): boolean {
-        return this.hasKey(key) && !!this.dataValues[key as string].getter
+        return this.hasKey(key) && !!this.dataValues[key as string].manual
     }
 
     /** 获取所有键值对 */
@@ -189,7 +189,7 @@ export interface DatabaseValue<T> {
     default: T | RuntimeSpecialConfig<T>
 
     /** 用户填入的值 */
-    getter?: (() => T) | RuntimeSpecialConfig<T>
+    manual?: T | RuntimeSpecialConfig<T>
 
     /** 检查器，返回 false 表示无错误 */
     checker?: (value: T) => false | RuntimeEnvErrorTemplate<T>
