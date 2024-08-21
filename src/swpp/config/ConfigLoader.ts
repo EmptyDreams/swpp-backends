@@ -71,7 +71,8 @@ export class ConfigLoader {
         activeConfigLoader = new ConfigLoaderLock(this, () => {
             if (error) throw new RuntimeException(exceptionNames.error, '锁竞争时出现异常')
         }, nodePath.normalize(file))
-        ConfigLoader.prevTask = ConfigLoader.jiti.import(file).then(() => error = false)
+        const task = ConfigLoader.prevTask = ConfigLoader.jiti.import(file).then(() => error = false)
+        await task
     }
 
     /**
