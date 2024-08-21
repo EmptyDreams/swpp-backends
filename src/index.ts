@@ -27,7 +27,7 @@ export {
     defineRuntimeDep, defineCrossEnv, defineCompilationEnv, defineCompilationFP,
     defineModifier
 } from './swpp/config/ConfigLoader'
-export {SpecialConfig, IndivisibleConfig, NoCacheConfigGetter} from './swpp/config/SpecialConfig'
+export {SpecialConfig, IndivisibleConfig, NoCacheConfig} from './swpp/config/SpecialConfig'
 export {
     defineNoCacheConfig, defineIndivisibleConfig, defineLazyInitConfig
 } from './swpp/config/ConfigCluster'

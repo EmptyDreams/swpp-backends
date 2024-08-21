@@ -12,8 +12,8 @@ export class SpecialConfig {
         return config instanceof IndivisibleConfig || config instanceof RuntimeSpecialConfig
     }
 
-    static isNoCacheConfig(config: any): config is NoCacheConfigGetter<any> {
-        return config instanceof NoCacheConfigGetter
+    static isNoCacheConfig(config: any): config is NoCacheConfig<any> {
+        return config instanceof NoCacheConfig
     }
 
 }
@@ -35,7 +35,7 @@ export class IndivisibleConfig<T> extends SpecialConfig {
 }
 
 /** 不被缓存的配置 */
-export class NoCacheConfigGetter<T> extends RuntimeSpecialConfig<T> {
+export class NoCacheConfig<T> extends RuntimeSpecialConfig<T> {
 
     constructor(private getter: RuntimeSupplier<T>) {
         super()
