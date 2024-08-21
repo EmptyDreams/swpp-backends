@@ -45,12 +45,12 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         }
         const item = this.dataValues[key]
         if (!item) throw new RuntimeException(exceptionNames.invalidKey, `输入的 key[${key}] 不存在`)
-        // 获取真实值
-        let value: any = item.default
-        let isNoCache = false
-        if (item.manual) {
-            value = item.manual
+        if (SpecialConfig.isSpecialConfig(item.default)) {
+            item.default = item.default.get(this.runtime, this.compilation)
         }
+        // 获取真实值
+        let value: any = item.manual ?? item.default
+        let isNoCache = false
         if (SpecialConfig.isSpecialConfig(value)) {
             this.runtime.debugCallChain.push(this.namespace, key)
             value = value.get(this.runtime, this.compilation)
@@ -64,7 +64,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
             throw new RuntimeException(
                 exceptionNames.invalidValue,
                 '用户传入的值类型与缺省值类型不统一',
-                { default: item.default, value }
+                { key, default: item.default, value }
             )
         }
         // 执行全局检查
