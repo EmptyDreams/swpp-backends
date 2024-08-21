@@ -70,10 +70,8 @@ export class ConfigLoader {
         activeConfigLoader?.onRelease?.()
         activeConfigLoader = new ConfigLoaderLock(this, () => {
             if (error) throw new RuntimeException(exceptionNames.error, '锁竞争时出现异常')
-        })
-        ConfigLoader.prevTask = ConfigLoader.jiti.import(file).then(() => {
-            error = false
-        })
+        }, nodePath.posix.resolve(file))
+        ConfigLoader.prevTask = ConfigLoader.jiti.import(file).then(() => error = false)
     }
 
     /**
@@ -246,11 +244,26 @@ export interface SwppConfigModifier {
 
 class ConfigLoaderLock {
 
-    constructor(public readonly loader: ConfigLoader, public readonly onRelease: () => void) { }
+    constructor(
+        public readonly loader: ConfigLoader,
+        public readonly onRelease: () => void,
+        private readonly file: string
+    ) { }
+
+    check(file: string) {
+        if (file !== this.file)
+            throw new RuntimeException(exceptionNames.error, `错误地在 ${this.file} 加载时期载入了 ${file} 中的配置`)
+    }
 
 }
 
 function invokeLoader(loader: ConfigLoader, config: SwppConfigTemplate) {
+    const stack = new Error().stack!.split('\n')
+    const dist = stack[3]
+    const startIndex = dist.lastIndexOf('(')
+    const endIndex = dist.lastIndexOf(')')
+    const filePath = nodePath.posix.resolve(dist.substring(startIndex + 1, endIndex))
+    activeConfigLoader!.check(filePath)
     // @ts-ignore
     loader['9zLoadFromInside'](config, TMP_PW)
 }
