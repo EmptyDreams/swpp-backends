@@ -11,8 +11,6 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     private _runtime: RuntimeData | null = null
     private _compilation: CompilationData | null = null
 
-    private readCallChain: string[] = []
-
     /**
      * @param namespace 命名空间
      * @param map 默认值
@@ -134,7 +132,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
     /** 冻结 KV 库，冻结后无法再添加和修改内容 */
     freeze() {
         if (Object.isFrozen(this.dataValues)) return
-        this.dataValues = Object.freeze(new Proxy(this.dataValues, {
+        this.dataValues = new Proxy(Object.freeze(this.dataValues), {
             set(): boolean {
                 throw new RuntimeException(exceptionNames.isFrozen, 'KV 库已经被冻结无法修改')
             },
@@ -147,7 +145,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
             defineProperty(): boolean {
                 throw new RuntimeException(exceptionNames.isFrozen, 'KV 库已经被冻结无法修改')
             }
-        }))
+        })
     }
 
     protected get runtime(): RuntimeData {
