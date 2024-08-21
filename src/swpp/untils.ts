@@ -175,6 +175,15 @@ export const utils = {
             ++index
         }
         return result
+    },
+
+    /**
+     * 查找一个字符串中倒数第二次出现的子串的下标
+     */
+    findSecondLastIndex(str: string, searchString: string, position: number = str.length): number {
+        const lastIndex = str.lastIndexOf(searchString, position)
+        if (lastIndex < 0) return lastIndex
+        return str.lastIndexOf(searchString, lastIndex - 1)
     }
 
 }

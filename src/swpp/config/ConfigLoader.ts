@@ -2,7 +2,7 @@ import {createJiti} from 'jiti'
 import nodePath from 'path'
 import {KeyValueDatabase} from '../database/KeyValueDatabase'
 import {CompilationData, RuntimeData} from '../SwCompiler'
-import {exceptionNames, RuntimeException} from '../untils'
+import {exceptionNames, RuntimeException, utils} from '../untils'
 import {
     SwppConfigCompilationEnv,
     SwppConfigCompilationFileParser,
@@ -54,7 +54,7 @@ export class ConfigLoader {
     // noinspection JSUnusedGlobalSymbols
     /**
      * 加载一个配置文件，越早加载的优先级越高
-     * @param file
+     * @param file 配置文件的绝对路径
      */
     async load(file: string) {
         const extensionName = nodePath.extname(file).substring(1)
@@ -70,7 +70,7 @@ export class ConfigLoader {
         activeConfigLoader?.onRelease?.()
         activeConfigLoader = new ConfigLoaderLock(this, () => {
             if (error) throw new RuntimeException(exceptionNames.error, '锁竞争时出现异常')
-        }, nodePath.posix.resolve(file))
+        }, nodePath.normalize(file))
         ConfigLoader.prevTask = ConfigLoader.jiti.import(file).then(() => error = false)
     }
 
@@ -260,10 +260,17 @@ class ConfigLoaderLock {
 function invokeLoader(loader: ConfigLoader, config: SwppConfigTemplate) {
     const stack = new Error().stack!.split('\n')
     const dist = stack[3]
-    const startIndex = dist.lastIndexOf('(')
-    const endIndex = dist.lastIndexOf(')')
-    const filePath = nodePath.posix.resolve(dist.substring(startIndex + 1, endIndex))
-    activeConfigLoader!.check(filePath)
+    let filePath: string
+    if (dist.endsWith(')')) {
+        const startIndex = dist.lastIndexOf('(')
+        const endIndex = utils.findSecondLastIndex(dist, ':')
+        filePath = dist.substring(startIndex + 1, endIndex)
+    } else {
+        const startIndex = dist.indexOf('at ')
+        const endIndex = utils.findSecondLastIndex(dist, ':')
+        filePath = dist.substring(startIndex + 3, endIndex)
+    }
+    activeConfigLoader!.check(nodePath.normalize(filePath))
     // @ts-ignore
     loader['9zLoadFromInside'](config, TMP_PW)
 }
