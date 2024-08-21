@@ -4,7 +4,7 @@ import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {FileUpdateTracker} from '../ResourcesScanner'
 import {CompilationData} from '../SwCompiler'
 import {utils} from '../untils'
-import {buildEnv, KeyValueDatabase, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
+import {buildEnv, KeyValueDatabase, readThisValue, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 
 export type COMMON_TYPE_COMP_ENV = ReturnType<typeof buildCommon>
 
@@ -86,8 +86,8 @@ function buildCommon(_env: any) {
                     const fetcher = env.read('NETWORK_FILE_FETCHER')
                     const isNotFound = env.read('isNotFound')
                     try {
-                        const swppPath = (this as any).swppPath
-                        const versionPath = (this as any).versionPath
+                        const swppPath = readThisValue(this, 'swppPath')
+                        const versionPath = readThisValue(this, 'versionPath')
                         const response = await fetcher.fetch(utils.splicingUrl(baseUrl, swppPath, versionPath))
                         if (!isNotFound.response(response)) {
                             const json = await response.json()

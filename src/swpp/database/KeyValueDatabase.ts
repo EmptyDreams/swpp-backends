@@ -174,18 +174,18 @@ export function buildEnv<T>(env: DatabaseValue<T>): DatabaseValue<T> {
     return env
 }
 
-// /**
-//  * 读取指定对象中的指定字段。
-//  *
-//  * 由于配置文件中允许同时写入 T 或 `NoCacheConfigGetter<T>`，当在配置项中使用 `this` 时，需要先判定 `this` 是哪一个类型
-//  */
-// export function readThisValue<
-//     T extends NoCacheConfigGetter<object> | object,
-//     K extends keyof (T extends NoCacheConfigGetter<any> ? ReturnType<T['get']> : T)
-//     // @ts-ignore
-// >(obj: T, key: K): T extends NoCacheConfigGetter<any> ? ReturnType<T['get']>[K] : T[K] {
-//     return SpecialConfig.isNoCacheConfig(obj) ? obj.get()[key] : (obj as any)[key]
-// }
+/**
+ * 读取指定对象中的指定字段。
+ *
+ * 由于配置文件中允许同时写入 T 或 `Runtime<T>`，当在配置项中使用 `this` 时，需要先判定 `this` 是哪一个类型
+ */
+export function readThisValue<
+    T extends RuntimeSpecialConfig<object> | object,
+    K extends keyof (T extends RuntimeSpecialConfig<any> ? ReturnType<T['get']> : T)
+    // @ts-ignore
+>(obj: T, key: K): T extends RuntimeSpecialConfig<any> ? ReturnType<T['get']>[K] : T[K] {
+    return (obj as any)[key]
+}
 
 export interface DatabaseValue<T> {
 

@@ -9,7 +9,7 @@ export {JsonBuilder, UpdateJson, UpdateChangeExp, TrackerHeaderDiff} from './swp
 export {SwCompiler, CompilationData, RuntimeData, BrowserVersion} from './swpp/SwCompiler'
 export {NetworkFileHandler, FiniteConcurrencyFetcher} from './swpp/NetworkFileHandler'
 
-export {KeyValueDatabase} from './swpp/database/KeyValueDatabase'
+export {KeyValueDatabase, readThisValue} from './swpp/database/KeyValueDatabase'
 export {RuntimeKeyValueDatabase} from './swpp/database/RuntimeKeyValueDatabase'
 export {RuntimeEventCode} from './swpp/database/RuntimeEventCode'
 export {RuntimeCoreCode} from './swpp/database/RuntimeCoreCode'
