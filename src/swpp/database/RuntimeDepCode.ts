@@ -1,3 +1,4 @@
+import {defineLazyInitConfig} from '../config/ConfigCluster'
 import {BrowserVersion} from '../SwCompiler'
 import {utils} from '../untils'
 import {RuntimeEnvErrorTemplate} from './KeyValueDatabase'
@@ -28,28 +29,6 @@ export class RuntimeDepCode extends RuntimeKeyValueDatabase<FunctionInBrowser<an
 
     constructor() {
         super('RuntimeDepCode', buildCommon())
-    }
-
-    /** 修正函数 */
-    fixDepFunction() {
-        const hasFastestRequests = this.hasValue('getFastestRequests')
-        const hasStandbyRequests = this.hasValue('getStandbyRequests')
-        const hasFetchFile = this.hasValue('fetchFile')
-        if (!hasFastestRequests) {
-            this.update('fetchFastest', null)
-        }
-        if (!hasStandbyRequests) {
-            this.update('fetchStandby', null)
-        }
-        if (!hasFetchFile) {
-            if (hasFastestRequests && hasStandbyRequests) {
-                this.update('fetchFile', fetchFastestAndStandbyRequests)
-            } else if (hasFastestRequests) {
-                this.update('fetchFile', fetchFastestRequests)
-            } else if (hasStandbyRequests) {
-                this.update('fetchFile', fetchStandbyRequests)
-            }
-        }
     }
 
     /** 构建 JS 源代码 */
@@ -292,11 +271,24 @@ function buildCommon() {
         },
         /** 拉取文件 */
         fetchFile: {
-            default: (request: RequestInfo | URL, optional?: RequestInit): Promise<Response> => {
-                // @ts-ignore
-                if (!request.url) request = new Request(request)
-                return fetchWrapper(request, true, true, optional)
-            }
+            default: defineLazyInitConfig((runtime) => {
+                const runtimeDep = runtime.runtimeDep
+                const hasFastestRequests = runtimeDep.hasValue('getFastestRequests')
+                const hasStandbyRequests = runtimeDep.hasValue('getStandbyRequests')
+                if (hasFastestRequests && hasStandbyRequests) {
+                    return fetchFastestAndStandbyRequests
+                } else if (hasFastestRequests) {
+                    return fetchFastestRequests
+                } else if (hasStandbyRequests) {
+                    return fetchStandbyRequests
+                } else {
+                    return (request: RequestInfo | URL, optional?: RequestInit): Promise<Response> => {
+                        // @ts-ignore
+                        if (!request.url) request = new Request(request)
+                        return fetchWrapper(request, true, true, optional)
+                    }
+                }
+            })
         },
         /** 是否阻断请求 */
         isBlockRequest: {
