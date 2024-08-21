@@ -28,16 +28,8 @@ export abstract class RuntimeSpecialConfig<T> extends SpecialConfig {
 /** 不可分割的配置 */
 export class IndivisibleConfig<T> extends SpecialConfig {
 
-    constructor(private _value: T) {
+    constructor(public readonly value: T) {
         super()
-    }
-
-    get value(): T {
-        return this._value
-    }
-
-    protected set value(value: T) {
-        this._value = value
     }
 
 }
