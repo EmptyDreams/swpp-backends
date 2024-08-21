@@ -28,8 +28,16 @@ export interface RuntimeSpecialConfig<T> {
 /** 不可分割的配置 */
 export class IndivisibleConfig<T> extends SpecialConfig {
 
-    constructor(public readonly value: T) {
+    constructor(private _value: T) {
         super()
+    }
+
+    get value(): T {
+        return this._value
+    }
+
+    protected set value(value: T) {
+        this._value = value
     }
 
 }
@@ -48,20 +56,18 @@ export class NoCacheConfigGetter<T> extends IndivisibleConfig<RuntimeSupplier<T>
 }
 
 /** 延迟初始化配置 */
-export class LazyInitConfig<T> extends SpecialConfig implements RuntimeSpecialConfig<T> {
+export class LazyInitConfig<T> extends IndivisibleConfig<RuntimeSupplier<T> | null> implements RuntimeSpecialConfig<T> {
 
-    private getter: RuntimeSupplier<T> | null
     private cache: T | undefined
 
     constructor(getter: RuntimeSupplier<T>) {
-        super()
-        this.getter = getter
+        super(getter)
     }
 
     get(runtime: RuntimeData, compilation: CompilationData) {
-        if (this.getter) {
-            this.cache = this.getter(runtime, compilation)
-            this.getter = null
+        if (this.value) {
+            this.cache = this.value(runtime, compilation)
+            this.value = null
         }
         return this.cache as T
     }
