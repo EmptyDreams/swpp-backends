@@ -116,8 +116,6 @@ async function traverseDirectory(dir: string, callback: (file: string) => Promis
  */
 export class FileUpdateTracker {
 
-    /** 附加信息 */
-    protected headers = new Map<string, any>()
     /** 存储列表，key 为文件路径，value 为文件的唯一标识符 */
     protected map = new Map<string, string>()
     /** 存储所有存在的 URL */
@@ -171,16 +169,6 @@ export class FileUpdateTracker {
         return value.startsWith('[') ? JSON.parse(value) : value
     }
 
-    /** 设置一个 header */
-    putHeader(key: string, value: any) {
-        this.headers.set(key, value)
-    }
-
-    /** 读取一个 header */
-    getHeader(key: string): any | undefined {
-        return this.headers.get(key)
-    }
-
     /** 归一化 uri */
     normalizeUri(uri: string): URL {
         if (uri.startsWith('http:'))
@@ -217,12 +205,6 @@ export class FileUpdateTracker {
                 diff.update(utils.splicingUrl(baseUrl, key).href, value)
             }
         })
-        this.headers.forEach((value, key) => {
-            diff.putHeader(key, {
-                oldValue: oldTracker.getHeader(key),
-                newValue: value
-            })
-        })
         return diff
     }
 
@@ -235,9 +217,6 @@ export class FileUpdateTracker {
      * ```json
      * {
      *   "version": 4,
-     *   "headers": {
-     *     [key: string]: any
-     *   },
      *   "tracker" {
      *     [uri: string]: string
      *   }
@@ -247,14 +226,10 @@ export class FileUpdateTracker {
     json(): string {
         const result = {
             version: 4,
-            tracker: {} as { [key: string]: string },
-            headers: {} as { [key: string]: any }
+            tracker: {} as { [key: string]: string }
         }
         this.map.forEach((value, key) => {
             result.tracker[key] = value
-        })
-        this.headers.forEach((value, key) => {
-            result.headers[key] = value
         })
         return JSON.stringify(result)
     }
@@ -265,17 +240,11 @@ export class FileUpdateTracker {
         const json = JSON.parse(jsonStr)
         switch (json.version) {
             case 4:
-                for (let key in json.headers) {
-                    tracker.headers.set(key, json.headers[key])
-                }
                 for (let key in json.tracker) {
                     tracker.map.set(key, json.tracker[key])
                 }
                 break
             case 3:
-                for (let key in json['external']) {
-                    tracker.headers.set(key, json['external'][key])
-                }
                 for (let key in json.list) {
                     const value = json.list[key]
                     tracker.map.set(key, value.length === 32 ? value : '')

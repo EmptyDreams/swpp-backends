@@ -14,8 +14,7 @@ import {
     LazyInitConfig,
     NoCacheConfig,
     RuntimeSpecialConfig,
-    RuntimeSupplier,
-    SpecialConfig
+    RuntimeSupplier
 } from './SpecialConfig'
 
 /**

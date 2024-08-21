@@ -6,16 +6,11 @@ export class JsonBuilder {
     constructor(
         private compilation: CompilationData,
         private urls: Set<string>,
-        private headers: Map<string, TrackerHeaderDiff> = new Map(),
         private map: Map<string, string> = new Map()
     ) { }
 
     update(key: string, value: string) {
         this.map.set(key, value)
-    }
-
-    putHeader(key: string, value: TrackerHeaderDiff) {
-        this.headers.set(key, value)
     }
 
     // noinspection JSUnusedGlobalSymbols
