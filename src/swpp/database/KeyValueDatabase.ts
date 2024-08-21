@@ -49,15 +49,14 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         let value: any = item.default
         let isNoCache = false
         if (item.manual) {
-            if (SpecialConfig.isSpecialConfig(item.manual)) {
-                this.runtime.debugCallChain.push(this.namespace, key)
-                value = item.manual.get(this.runtime, this.compilation)
-                this.runtime.debugCallChain.pop(this.namespace, key)
-                if (SpecialConfig.isNoCacheConfig(item.manual)) {
-                    isNoCache = true
-                }
-            } else {
-                value = item.manual
+            value = item.manual
+        }
+        if (SpecialConfig.isSpecialConfig(value)) {
+            this.runtime.debugCallChain.push(this.namespace, key)
+            value = value.get(this.runtime, this.compilation)
+            this.runtime.debugCallChain.pop(this.namespace, key)
+            if (SpecialConfig.isNoCacheConfig(value)) {
+                isNoCache = true
             }
         }
         // 进行类型预检
