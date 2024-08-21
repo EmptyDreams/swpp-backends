@@ -4,12 +4,12 @@ export type RuntimeSupplier<T> = (runtime: RuntimeData, compilation: Compilation
 
 export class SpecialConfig {
 
-    static isSpecialConfig(config: any): config is RuntimeSpecialConfig<any> & SpecialConfig {
-        return config instanceof SpecialConfig
+    static isSpecialConfig(config: any): config is RuntimeSpecialConfig<any> {
+        return config instanceof RuntimeSpecialConfig
     }
 
-    static isIndivisibleConfig(config: any): config is IndivisibleConfig<any> {
-        return config instanceof IndivisibleConfig
+    static isIndivisibleConfig(config: any): config is IndivisibleConfig<any> | RuntimeSpecialConfig<any> {
+        return config instanceof IndivisibleConfig || config instanceof RuntimeSpecialConfig
     }
 
     static isNoCacheConfig(config: any): config is NoCacheConfigGetter<any> {
@@ -19,9 +19,9 @@ export class SpecialConfig {
 }
 
 /** 运行时特殊配置 */
-export interface RuntimeSpecialConfig<T> {
+export abstract class RuntimeSpecialConfig<T> extends SpecialConfig {
 
-    get(runtime: RuntimeData, compilation: CompilationData): T
+    abstract get(runtime: RuntimeData, compilation: CompilationData): T
 
 }
 
@@ -43,31 +43,33 @@ export class IndivisibleConfig<T> extends SpecialConfig {
 }
 
 /** 不被缓存的配置 */
-export class NoCacheConfigGetter<T> extends IndivisibleConfig<RuntimeSupplier<T>> implements RuntimeSpecialConfig<T> {
+export class NoCacheConfigGetter<T> extends RuntimeSpecialConfig<T> {
 
-    constructor(getter: RuntimeSupplier<T>) {
-        super(getter)
+    constructor(private getter: RuntimeSupplier<T>) {
+        super()
     }
 
-    get(runtime: RuntimeData, compilation: CompilationData): T {
-        return this.value(runtime, compilation)
+    override get(runtime: RuntimeData, compilation: CompilationData): T {
+        return this.getter(runtime, compilation)
     }
 
 }
 
 /** 延迟初始化配置 */
-export class LazyInitConfig<T> extends IndivisibleConfig<RuntimeSupplier<T> | null> implements RuntimeSpecialConfig<T> {
+export class LazyInitConfig<T> extends RuntimeSpecialConfig<T> {
 
+    private getter: RuntimeSupplier<T> | null
     private cache: T | undefined
 
     constructor(getter: RuntimeSupplier<T>) {
-        super(getter)
+        super()
+        this.getter = getter
     }
 
-    get(runtime: RuntimeData, compilation: CompilationData) {
-        if (this.value) {
-            this.cache = this.value(runtime, compilation)
-            this.value = null
+    override get(runtime: RuntimeData, compilation: CompilationData) {
+        if (this.getter) {
+            this.cache = this.getter(runtime, compilation)
+            this.getter = null
         }
         return this.cache as T
     }
