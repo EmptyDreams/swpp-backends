@@ -77,11 +77,6 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         if (checkResult) {
             throw new RuntimeException(exceptionNames.invalidValue, `设置的值非法`, {key, ...checkResult})
         }
-        // 从调用链中弹出当前值
-        const popValue = this.readCallChain.pop()
-        if (popValue !== key) throw new RuntimeException(exceptionNames.error, '调用链追踪错误', {
-            chain: this.readCallChain, popValue, expected: key
-        })
         // 如果不需要缓存直接返回，否则存入缓存后返回
         if (isNoCache) return value as any
         return this.valueCaches[key] = value as any
