@@ -45,7 +45,7 @@ export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNo
     }
 
     /** 构建 JS 源代码 */
-    buildJsSource(): string {
+    override buildJsSource(): string {
         const map = utils.objMap(this.entries(), item => item.runOnBrowser)
         return utils.anyToSource(map, false, 'const')
     }

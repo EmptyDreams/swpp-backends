@@ -26,7 +26,7 @@ export class CrossEnv extends RuntimeKeyValueDatabase<any, COMMON_TYPE_CROSS_ENV
     }
 
     /** 构建 JS 源代码 */
-    buildJsSource(): string {
+    override buildJsSource(): string {
         return utils.anyToSource(this.entries(), true, 'const')
     }
 

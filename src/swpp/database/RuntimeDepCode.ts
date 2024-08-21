@@ -32,7 +32,7 @@ export class RuntimeDepCode extends RuntimeKeyValueDatabase<FunctionInBrowser<an
     }
 
     /** 构建 JS 源代码 */
-    buildJsSource(): string {
+    override buildJsSource(): string {
         return utils.anyToSource(this.entries(), true, 'const')
     }
 

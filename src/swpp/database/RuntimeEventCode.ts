@@ -16,7 +16,7 @@ export class RuntimeEventCode extends RuntimeKeyValueDatabase<FunctionInBrowser<
     }
 
     /** 构建 JS 源代码 */
-    buildJsSource(): string {
+    override buildJsSource(): string {
         const result: string[] = []
         const entries = this.entries()
         for (let eventName in entries) {

@@ -39,7 +39,7 @@ export class RuntimeCoreCode extends RuntimeKeyValueDatabase<FunctionInBrowser<a
     }
 
     /** 构建 JS 源代码 */
-    buildJsSource(): string {
+    override buildJsSource(): string {
         return utils.anyToSource(this.entries(), true, 'const')
     }
 

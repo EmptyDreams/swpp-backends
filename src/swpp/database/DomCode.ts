@@ -10,7 +10,7 @@ export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> 
         super('DomCode', buildCommon())
     }
 
-    buildJsSource(): string {
+    override buildJsSource(): string {
         return `
             document.addEventListener('DOMContentLoaded', () => {
                 ${this.buildInnerSource()}
