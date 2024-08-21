@@ -71,10 +71,12 @@ export class RuntimeData {
         for (let key of this.insertOrder) {
             this.getDatabase(key).initRuntimeAndCompilation(this, compilation)
         }
+        this.domConfig.initRuntimeAndCompilation(this, compilation)
     }
 
     freezeAll() {
         this.insertOrder.forEach(it => this.getDatabase(it).freeze())
+        this.domConfig.freeze()
     }
 
 }
