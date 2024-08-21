@@ -17,8 +17,13 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
 
     /** 解析本地文件 */
     async parserLocalFile(path: string, cb?: (content: crypto.BinaryLike) => void, force?: boolean): Promise<Set<string>> {
-        const parser = this.read(nodePath.extname(path).substring(1))
-        if (!parser) {
+        const extname = nodePath.extname(path).substring(1)
+        if (this.hasKey(extname)) {
+            const parser = this.read(extname)
+            const content = await parser.readFromLocal(this.compilation, path)
+            cb?.(content)
+            return await parser.extractUrls(this.compilation, content)
+        } else {
             if (force && cb) {
                 const reader = this.compilation.compilationEnv.read('readLocalFile')
                 const content = await reader(path)
@@ -26,17 +31,18 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
             }
             return new Set<string>()
         }
-        const content = await parser.readFromLocal(this.compilation, path)
-        cb?.(content)
-        return await parser.extractUrls(this.compilation, content)
     }
 
     /** 解析网络文件 */
     async parserNetworkFile(response: Response, callback?: (content: crypto.BinaryLike) => Promise<any> | any): Promise<Set<string>> {
         const fileHandler = this.compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
         const contentType = fileHandler.getUrlContentType(response.url, response)
-        const parser = this.read(contentType)
-        if (!parser) {
+        if (this.hasKey(contentType)) {
+            const parser = this.read(contentType)
+            const content = await parser.readFromNetwork(this.compilation, response)
+            if (callback) await callback(content)
+            return await parser.extractUrls(this.compilation, content)
+        } else {
             if (callback) {
                 const blob = await response.blob()
                 const array = await blob.stream().getReader().read()
@@ -44,9 +50,6 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
             }
             return new Set<string>()
         }
-        const content = await parser.readFromNetwork(this.compilation, response)
-        if (callback) await callback(content)
-        return await parser.extractUrls(this.compilation, content)
     }
 
     /**
@@ -58,7 +61,7 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
         const fileHandler = this.compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
         const contentType = fileHandler.getUrlContentType(url)
         if (!contentType && !isCached) return { file: url, mark: '', urls: new Set<string>() }
-        const parser = this.read(contentType)
+        const parser = this.hasKey(contentType) ? this.read(contentType) : undefined
         if (!parser && !isCached) return { file: url, mark: '', urls: new Set<string>() }
         if (parser?.calcUrl) {
             const result = await parser.calcUrl(url)
@@ -80,8 +83,8 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
 
     /** 解析指定类型的文件内容 */
     async parserContent(type: string, content: string): Promise<Set<string>> {
+        if (!this.hasKey(type)) return new Set<string>()
         const parser = this.read(type)
-        if (!parser) return new Set<string>()
         return await parser.extractUrls(this.compilation, content)
     }
 
