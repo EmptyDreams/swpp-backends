@@ -151,7 +151,9 @@ export interface SwppConfigTemplate {
 
 }
 
-type SwppConfigValueExp<T> = T extends SpecialConfig & RuntimeSpecialConfig<any> ? (T | ReturnType<T['get']>) : (T | RuntimeSpecialConfig<T>)
+type OptionalMap<T> = T extends object ? {[K in keyof T]?: T[K]} : T
+
+type SwppConfigValueExp<T> = T extends SpecialConfig & RuntimeSpecialConfig<any> ? (T | OptionalMap<ReturnType<T['get']>>) : (OptionalMap<T> | RuntimeSpecialConfig<T>)
 
 type SwppConfigHelper<R, C extends Record<string, DatabaseValue<R>>> = {
     [K in keyof C]?: SwppConfigValueExp<C[K]['default']>
