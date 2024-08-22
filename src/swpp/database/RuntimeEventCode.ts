@@ -2,10 +2,13 @@ import {BrowserVersion} from '../SwCompiler'
 import {FunctionInBrowser} from './RuntimeDepCode'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
+let ESCAPE: number
+
 let handleFetchEvent: (event: Event) => void
 let handleUpdate: (oldVersion: BrowserVersion | undefined, force?: boolean) => Promise<1 | -1 | 2 | undefined | null | void | string[]>
 let postMessage: (type: string, data: any, ...goals: any) => Promise<void>
 let readVersion: () => Promise<BrowserVersion | undefined>
+let handleEscape: () => Promise<void>
 
 export type COMMON_TYPE_RUNTIME_EVENT = ReturnType<typeof buildCommon>
 
@@ -34,6 +37,10 @@ function buildCommon() {
             default: (_event: Event) => {
                 // @ts-ignore
                 skipWaiting()
+                if (ESCAPE) {
+                    // noinspection JSIgnoredPromiseFromCall
+                    handleEscape()
+                }
             }
         },
         /** sw 激活后立即对所有页面生效，而非等待刷新 */
