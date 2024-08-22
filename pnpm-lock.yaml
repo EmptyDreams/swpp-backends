@@ -16,8 +16,8 @@ importers:
         version: 2.0.0-beta.3
     devDependencies:
       '@types/fast-html-parser':
-        specifier: ^1.0.2
-        version: 1.0.2
+        specifier: ^1.0.4
+        version: 1.0.4
       '@types/node':
         specifier: ^22.0.2
         version: 22.0.2
@@ -27,8 +27,8 @@ importers:
 
 packages:
 
-  '@types/fast-html-parser@1.0.2':
-    resolution: {integrity: sha512-xRnXJUtccAkrGJDyaHUo9ioKwHrT3OMANfg25U2MGkHvXiSMwpZXX/JLbU5KTtZLzpW/NcNIXHISaAcTLQ1jxg==}
+  '@types/fast-html-parser@1.0.4':
+    resolution: {integrity: sha512-iGxE+AIAbDQOi6fZdPLg1u0A/gEkMzGljWzNOYBFXtRj65kjFYZqfZ6AuaUNEW8l9Jw5Gc8BLP4AqzTAylVUvw==}
 
   '@types/node@22.0.2':
     resolution: {integrity: sha512-yPL6DyFwY5PiMVEwymNeqUTKsDczQBJ/5T7W/46RwLU/VH+AA8aT5TZkvBviLKLbbm0hlfftEkGrNzfRk/fofQ==}
@@ -57,7 +57,7 @@ packages:
 
 snapshots:
 
-  '@types/fast-html-parser@1.0.2': {}
+  '@types/fast-html-parser@1.0.4': {}
 
   '@types/node@22.0.2':
     dependencies:
