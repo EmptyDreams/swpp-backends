@@ -1,6 +1,7 @@
 import {program} from 'commander'
 import fs from 'fs'
 import nodePath from 'path'
+import {swppVersion} from '../index'
 import {ConfigLoader} from './config/ConfigLoader'
 import {ResourcesScanner, traverseDirectory} from './ResourcesScanner'
 import {CompilationData, SwCompiler} from './SwCompiler'
@@ -21,6 +22,7 @@ export interface SwppCliConfig {
 }
 
 export async function initCommand() {
+    program.version(swppVersion, '-v, --version', '查看当前 swpp backends 的版本号')
     program.option('-b, --build [config]', '构建网站的 sw 与版本文件')
     program.parse()
     if (program.opts().build) {

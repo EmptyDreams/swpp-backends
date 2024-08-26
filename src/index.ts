@@ -4,7 +4,7 @@ import {initCommand} from './swpp/cli'
 import {utils} from './swpp/untils'
 
 /** 版本号 */
-export const swppVersion = require('../package.json').version
+export const swppVersion = require('../package.json').version as string
 
 export {utils, RuntimeException} from './swpp/untils'
 export {ResourcesScanner, FileUpdateTracker,} from './swpp/ResourcesScanner'
