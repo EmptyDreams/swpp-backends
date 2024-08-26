@@ -25,14 +25,15 @@ export async function initCommand() {
     program.version(swppVersion, '-v, --version', '查看当前 swpp backends 的版本号')
     program.addHelpText('after', '  每行显示一条指令信息，指令后跟方括号表示可选参数，尖括号表示必填参数')
     program.option('-b, --build [config: string]', '构建网站的 sw 与版本文件')
+    program.option('--prod', '设置构建模式为生产模式（默认开发模式）')
     program.parse()
     if (program.opts().build) {
         const build = program.opts().build
-        await runBuild(typeof build === 'string' ? build : undefined)
+        await runBuild(typeof build === 'string' ? build : undefined, program.opts().prod ? 'prod' : 'dev')
     }
 }
 
-async function runBuild(cliJsonPath: string = './swpp.cli.json') {
+async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' | 'prod') {
     if (!cliJsonPath.endsWith('.json')) {
         throw new RuntimeException(exceptionNames.unsupportedFileType, 'CLI 配置文件仅支持 JSON 格式', { yourPath: cliJsonPath })
     }
@@ -52,7 +53,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json') {
         }
     })
     // 加载配置项
-    const loader = new ConfigLoader()
+    const loader = new ConfigLoader(context)
     for (let item of cliConfig.configFiles) {
         const path = nodePath.isAbsolute(item) ? item : nodePath.resolve(item)
         await loader.load(path)
