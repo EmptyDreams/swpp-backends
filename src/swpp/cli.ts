@@ -21,11 +21,15 @@ export interface SwppCliConfig {
 }
 
 export async function initCommand() {
-    // 加载指令及 json 配置文件
-    const cliJsonPathDefault = './swpp.cli.json'
-    program.option('-b, --build <config>', '构建网站的 sw 与版本文件', cliJsonPathDefault)
-    program.parse(["", __filename])
-    const cliJsonPath = program.opts().build as string ?? cliJsonPathDefault
+    program.option('-b, --build [config]', '构建网站的 sw 与版本文件')
+    program.parse()
+    if (program.opts().build) {
+        const build = program.opts().build
+        await runBuild(typeof build === 'string' ? build : undefined)
+    }
+}
+
+async function runBuild(cliJsonPath: string = './swpp.cli.json') {
     if (!cliJsonPath.endsWith('.json')) {
         throw new RuntimeException(exceptionNames.unsupportedFileType, 'CLI 配置文件仅支持 JSON 格式', { yourPath: cliJsonPath })
     }
