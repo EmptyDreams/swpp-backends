@@ -28,7 +28,11 @@ export class ConfigLoader {
     ]
 
     private static jiti = createJiti(__filename, {
-        fsCache: false
+        fsCache: false,
+        alias: {
+            'swpp-backends/dist': nodePath.join(__dirname, '..', '..'),
+            'swpp-backends': nodePath.join(__dirname, '..', '..')
+        }
     })
 
     private static prevTask: Promise<any> | null = null
