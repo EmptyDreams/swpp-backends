@@ -27,8 +27,11 @@ export class ResourcesScanner {
             nodePath.posix.join(path, jsonInfo.swppPath, jsonInfo.trackerPath),
             nodePath.posix.join(path, this.compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
         ]
+        if (!this.oldTracker) {
+            this.oldTracker = await jsonInfo.fetchTrackerFile(this.compilation)
+        }
         const urls = new Set<string>()
-        const tracker = new FileUpdateTracker(this.compilation)
+        const tracker = new FileUpdateTracker(this.compilation, this.oldTracker)
         await traverseDirectory(path, async file => {
             if (excludes.includes(file)) return
             const localUrl = tracker.normalizeUri(file.substring(path.length))
@@ -93,7 +96,7 @@ export class ResourcesScanner {
  * @param dir
  * @param callback
  */
-async function traverseDirectory(dir: string, callback: (file: string) => Promise<any> | any): Promise<void> {
+export async function traverseDirectory(dir: string, callback: (file: string) => Promise<any> | any): Promise<void> {
     const stats = fs.lstatSync(dir)
     if (stats.isDirectory()) {
         await new Promise<void>((resolve, reject) => {
@@ -121,7 +124,7 @@ export class FileUpdateTracker {
     /** 存储所有存在的 URL */
     protected allUrl = new Set<string>()
 
-    constructor(protected compilation: CompilationData) { }
+    constructor(protected compilation: CompilationData, private oldTracker?: FileUpdateTracker) { }
 
     /** 更新一个文件的标识符 */
     update(uri: string, value: string | Set<string> | string[]) {
@@ -196,8 +199,9 @@ export class FileUpdateTracker {
     async diff(): Promise<JsonBuilder> {
         const baseUrl = this.compilation.compilationEnv.read('DOMAIN_HOST')
         const diff = new JsonBuilder(this.compilation, this.allUrl)
-        const oldTracker = await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetchTrackerFile(this.compilation)
-        oldTracker.map.forEach((value, key) => {
+        const oldTracker = this.oldTracker ??
+            await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetchTrackerFile(this.compilation)
+        oldTracker?.map?.forEach?.((value, key) => {
             if (this.map.has(key)) {
                 if (this.get(key) !== value)
                     diff.update(utils.splicingUrl(baseUrl, key).href, value)

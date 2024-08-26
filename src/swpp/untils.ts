@@ -1,7 +1,10 @@
+import fs, {PathOrFileDescriptor, WriteFileOptions} from 'fs'
 import * as crypto from 'node:crypto'
+import {Abortable} from 'node:events'
 
 export type ValuesOf<T> = T[keyof T]
 
+// @ts-ignore
 export const utils = {
 
     /** 检查指定 URL 是否是合法的 URL */
@@ -184,6 +187,26 @@ export const utils = {
         const lastIndex = str.lastIndexOf(searchString, position)
         if (lastIndex < 0) return lastIndex
         return str.lastIndexOf(searchString, lastIndex - 1)
+    },
+
+    /** 写入一个文件 */
+    writeFile(path: PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView, optional: WriteFileOptions = 'utf-8'): Promise<void> {
+        return new Promise((resolve, reject) => {
+            fs.writeFile(path, data, optional, err => {
+                if (err) reject(err)
+                else resolve()
+            })
+        })
+    },
+
+    /** 读取一个文件 */
+    readFileUtf8(path: PathOrFileDescriptor): Promise<string> {
+        return new Promise((resolve, reject) => {
+            fs.readFile(path, 'utf-8', (err, data) => {
+                if (err) reject(err)
+                else resolve(data)
+            })
+        })
     }
 
 }

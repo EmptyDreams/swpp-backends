@@ -13,14 +13,17 @@
     "dist",
     "types"
   ],
+  "bin": {
+    "swpp-cli": "dist/index.js"
+  },
   "devDependencies": {
-    "@types/fast-html-parser": "^1.0.4",
     "@types/node": "^22.0.2",
     "typescript": "^5.5.4"
   },
   "dependencies": {
-    "fast-html-parser": "^1.0.1",
-    "jiti": "^2.0.0-beta.3"
+    "commander": "^12.1.0",
+    "jiti": "^2.0.0-beta.3",
+    "node-html-parser": "^6.1.13"
   },
   "repository": {
     "type": "git",

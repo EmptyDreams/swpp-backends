@@ -1,5 +1,4 @@
-import * as HTMLParser from 'fast-html-parser'
-import {HTMLElement} from 'fast-html-parser'
+import * as HTMLParser from 'node-html-parser'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
 import {CompilationData} from '../SwCompiler'
@@ -104,12 +103,14 @@ function buildCommon($this: any) {
                 async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
                     const baseUrl = compilation.compilationEnv.read("DOMAIN_HOST")
                     const html = HTMLParser.parse(content, {
-                        script: true, style: true
+                        blockTextElements: {
+                            script: true, style: true
+                        }
                     })
                     const queue = [html]
                     const result = new Set<string>()
                     async function handleItem(item: HTMLParser.HTMLElement) {
-                        queue.push(...(item.childNodes ?? []))
+                        queue.push(...(item.childNodes ?? []).filter(it => it instanceof HTMLParser.HTMLElement))
                         if (!item.tagName) return
                         switch (item.tagName.toLowerCase()) {
                             case 'script': {
@@ -159,7 +160,7 @@ function buildCommon($this: any) {
                     }
                     try {
                         do {
-                            const item = queue.pop() as HTMLElement
+                            const item = queue.pop()!
                             await handleItem(item)
                         } while (queue.length > 0)
                     } catch (e) {

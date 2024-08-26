@@ -1,4 +1,3 @@
-import fs from 'fs'
 import {UpdateJson} from '../JsonBuilder'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {FileUpdateTracker} from '../ResourcesScanner'
@@ -105,14 +104,7 @@ function buildCommon(_env: any) {
         }),
         /** 读取一个本地文件 */
         readLocalFile: buildEnv({
-            default: (path: string): Promise<string> => {
-                return new Promise((resolve, reject) => {
-                    fs.readFile(path, 'utf8', (err, data) => {
-                        if (err) reject(err)
-                        else resolve(data)
-                    })
-                })
-            }
+            default: utils.readFileUtf8
         }),
         /** 拉取网络文件 */
         NETWORK_FILE_FETCHER: buildEnv({

@@ -67,7 +67,7 @@ function buildCommon() {
                     }
                 }).toString()
                 const path = compilation.compilationEnv.read('SERVICE_WORKER')
-                return value.replace(`'$$sw.js'`, path + '.js')
+                return value.replace(`$$sw.js`, path + '.js')
             })
         },
         postMessage2Sw: {

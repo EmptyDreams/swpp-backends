@@ -57,6 +57,7 @@ export class ConfigLoader {
      * @param file 配置文件的绝对路径
      */
     async load(file: string) {
+        file = nodePath.normalize(file)
         const extensionName = nodePath.extname(file).substring(1)
         if (!ConfigLoader.extensions.includes(extensionName)) {
             throw new RuntimeException(
@@ -70,7 +71,7 @@ export class ConfigLoader {
         activeConfigLoader?.onRelease?.()
         activeConfigLoader = new ConfigLoaderLock(this, () => {
             if (error) throw new RuntimeException(exceptionNames.error, '锁竞争时出现异常')
-        }, nodePath.normalize(file))
+        }, file)
         const task = ConfigLoader.prevTask = ConfigLoader.jiti.import(file).then(() => error = false)
         await task
     }
