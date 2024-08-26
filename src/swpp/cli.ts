@@ -30,6 +30,8 @@ export async function initCommand() {
     if (program.opts().build) {
         const build = program.opts().build
         await runBuild(typeof build === 'string' ? build : undefined, program.opts().prod ? 'prod' : 'dev')
+    } else if (program.opts().prod) {
+        throw new RuntimeException(exceptionNames.unsupportedOperate, '--prod 选项必须搭配 --build 使用')
     }
 }
 
