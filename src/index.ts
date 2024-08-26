@@ -32,7 +32,8 @@ export {
 } from './swpp/config/ConfigLoader'
 export {SpecialConfig, IndivisibleConfig, NoCacheConfig} from './swpp/config/SpecialConfig'
 export {
-    defineNoCacheConfig, defineIndivisibleConfig, defineLazyInitConfig
+    defineIndivisibleConfig, defineContextConfig,
+    defineNoCacheConfig, defineLazyInitConfig
 } from './swpp/config/ConfigCluster'
 
 initCommand().catch(e => {

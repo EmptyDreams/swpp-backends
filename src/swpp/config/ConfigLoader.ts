@@ -40,10 +40,15 @@ export class ConfigLoader {
     private config: SwppConfigTemplate | undefined
     private modifierList: SwppConfigModifier[] = []
 
-    constructor() {
+    constructor(public readonly context: 'dev' | 'prod' = 'dev') {
         Object.defineProperty(this, '9zLoadFromInside', {
             value: (config: SwppConfigTemplate, pw: string) => {
                 if (pw !== TMP_PW) throw new RuntimeException(exceptionNames.error, '该函数仅能由内部调用')
+                for (let configKey in config) {
+                    const key = configKey as keyof SwppConfigTemplate
+                    const item = config[key]!
+                    config[key] = utils.objMap<any, any>(item, it => SpecialConfig.isContextConfig(it) ? it[this.context] : it)
+                }
                 if ('modifier' in config) {
                     this.modifierList.push(config.modifier as SwppConfigModifier)
                 }

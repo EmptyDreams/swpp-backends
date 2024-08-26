@@ -1,10 +1,15 @@
 import {CompilationData, RuntimeData} from '../SwCompiler'
+import {SwppConfigValueExp} from './ConfigCluster'
 
 export type RuntimeSupplier<T> = (runtime: RuntimeData, compilation: CompilationData) => T
 
-export class SpecialConfig {
+export class SpecialConfig<_T> {
 
-    static isSpecialConfig(config: any): config is RuntimeSpecialConfig<any> {
+    static isSpecialConfig(config: any): config is SpecialConfig<any> {
+        return config instanceof SpecialConfig && !this.isRuntimeSpecialConfig(config)
+    }
+    
+    static isRuntimeSpecialConfig(config: any): config is RuntimeSpecialConfig<any> {
         return config instanceof RuntimeSpecialConfig
     }
 
@@ -16,19 +21,32 @@ export class SpecialConfig {
         return config instanceof NoCacheConfig
     }
 
+    static isContextConfig(config: any): config is ContextConfig<any> {
+        return config instanceof ContextConfig
+    }
+
 }
 
 /** 运行时特殊配置 */
-export abstract class RuntimeSpecialConfig<T> extends SpecialConfig {
+export abstract class RuntimeSpecialConfig<T> extends SpecialConfig<T> {
 
     abstract get(runtime: RuntimeData, compilation: CompilationData): T
 
 }
 
 /** 不可分割的配置 */
-export class IndivisibleConfig<T> extends SpecialConfig {
+export class IndivisibleConfig<T> extends SpecialConfig<T> {
 
     constructor(public readonly value: T) {
+        super()
+    }
+
+}
+
+/** 区分开发环境和生产环境的配置项 */
+export class ContextConfig<T> extends SpecialConfig<SwppConfigValueExp<T>> {
+
+    constructor(public readonly dev: SwppConfigValueExp<T>, public readonly prod: SwppConfigValueExp<T>) {
         super()
     }
 

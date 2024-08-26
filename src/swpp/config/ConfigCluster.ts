@@ -10,11 +10,12 @@ import {COMMON_KEY_RUNTIME_DEP, FunctionInBrowser} from '../database/RuntimeDepC
 import {COMMON_TYPE_RUNTIME_EVENT} from '../database/RuntimeEventCode'
 import {SwppConfigModifier} from './ConfigLoader'
 import {
+    ContextConfig,
     IndivisibleConfig,
     LazyInitConfig,
     NoCacheConfig,
     RuntimeSpecialConfig,
-    RuntimeSupplier
+    RuntimeSupplier, SpecialConfig
 } from './SpecialConfig'
 
 /**
@@ -52,6 +53,13 @@ import {
  */
 export function defineIndivisibleConfig<T extends object>(value: T): IndivisibleConfig<T> {
     return new IndivisibleConfig(value)
+}
+
+/**
+ * 定义一个区分开发环境和生产环境的配置项。
+ */
+export function defineContextConfig<T>(config: {dev: SwppConfigValueExp<T>, prod: SwppConfigValueExp<T>}): ContextConfig<T> {
+    return new ContextConfig(config.dev, config.prod)
 }
 
 /**
@@ -150,12 +158,12 @@ export interface SwppConfigTemplate {
 
 type OptionalMap<T> = T extends object ? {[K in keyof T]?: T[K]} : T
 
-type SwppConfigValueExp<T> = T extends RuntimeSpecialConfig<any> ? (T | OptionalMap<ReturnType<T['get']>>) : (OptionalMap<T> | RuntimeSpecialConfig<T>)
+export type SwppConfigValueExp<T> = T extends RuntimeSpecialConfig<any> ? (T | OptionalMap<ReturnType<T['get']>>) : (OptionalMap<T> | RuntimeSpecialConfig<T>)
 
 type SwppConfigHelper<R, C extends Record<string, DatabaseValue<R>>> = {
-    [K in keyof C]?: SwppConfigValueExp<C[K]['default']>
+    [K in keyof C]?: SwppConfigValueExp<C[K]['default']> | SpecialConfig<C[K]['default']>
 } & {
-    [K in string]: SwppConfigValueExp<R>
+    [K in string]: SwppConfigValueExp<R> | SpecialConfig<R>
 }
 
 /**

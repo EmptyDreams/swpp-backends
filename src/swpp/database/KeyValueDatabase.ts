@@ -45,13 +45,13 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         }
         const item = this.dataValues[key]
         if (!item) throw new RuntimeException(exceptionNames.invalidKey, `输入的 key[${key}] 不存在`)
-        if (SpecialConfig.isSpecialConfig(item.default)) {
+        if (SpecialConfig.isRuntimeSpecialConfig(item.default)) {
             item.default = item.default.get(this.runtime, this.compilation)
         }
         // 获取真实值
         let value: any = item.manual ?? item.default
         let isNoCache = false
-        if (SpecialConfig.isSpecialConfig(value)) {
+        if (SpecialConfig.isRuntimeSpecialConfig(value)) {
             this.runtime.debugCallChain.push(this.namespace, key)
             value = value.get(this.runtime, this.compilation)
             this.runtime.debugCallChain.pop(this.namespace, key)
