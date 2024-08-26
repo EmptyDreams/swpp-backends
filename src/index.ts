@@ -1,8 +1,5 @@
 // noinspection JSUnusedGlobalSymbols
 
-import {initCommand} from './swpp/cli'
-import {utils} from './swpp/untils'
-
 /** 版本号 */
 export const swppVersion = require('../package.json').version as string
 
@@ -35,8 +32,3 @@ export {
     defineIndivisibleConfig, defineContextConfig,
     defineNoCacheConfig, defineLazyInitConfig
 } from './swpp/config/ConfigCluster'
-
-initCommand().catch(e => {
-    utils.printError('COMMAND', '执行指令时出现异常')
-    throw e
-})

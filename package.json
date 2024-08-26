@@ -14,7 +14,7 @@
     "types"
   ],
   "bin": {
-    "swpp-cli": "dist/index.js"
+    "swpp-cli": "dist/cli-index.js"
   },
   "devDependencies": {
     "@types/node": "^22.0.2",
