@@ -1,6 +1,5 @@
 import fs, {PathOrFileDescriptor, WriteFileOptions} from 'fs'
 import * as crypto from 'node:crypto'
-import {Abortable} from 'node:events'
 
 export type ValuesOf<T> = T[keyof T]
 

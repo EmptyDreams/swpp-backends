@@ -5,10 +5,11 @@ export type RuntimeSupplier<T> = (runtime: RuntimeData, compilation: Compilation
 
 export class SpecialConfig<_T> {
 
+    // noinspection JSUnusedGlobalSymbols
     static isSpecialConfig(config: any): config is SpecialConfig<any> {
         return config instanceof SpecialConfig && !this.isRuntimeSpecialConfig(config)
     }
-    
+
     static isRuntimeSpecialConfig(config: any): config is RuntimeSpecialConfig<any> {
         return config instanceof RuntimeSpecialConfig
     }
@@ -46,6 +47,7 @@ export class IndivisibleConfig<T> extends SpecialConfig<T> {
 /** 区分开发环境和生产环境的配置项 */
 export class ContextConfig<T> extends SpecialConfig<SwppConfigValueExp<T>> {
 
+    // noinspection JSUnusedGlobalSymbols
     constructor(public readonly dev: SwppConfigValueExp<T>, public readonly prod: SwppConfigValueExp<T>) {
         super()
     }
