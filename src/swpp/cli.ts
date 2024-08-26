@@ -23,7 +23,8 @@ export interface SwppCliConfig {
 
 export async function initCommand() {
     program.version(swppVersion, '-v, --version', '查看当前 swpp backends 的版本号')
-    program.option('-b, --build [config]', '构建网站的 sw 与版本文件')
+    program.addHelpText('after', '  每行显示一条指令信息，指令后跟方括号表示可选参数，尖括号表示必填参数')
+    program.option('-b, --build [config: string]', '构建网站的 sw 与版本文件')
     program.parse()
     if (program.opts().build) {
         const build = program.opts().build
