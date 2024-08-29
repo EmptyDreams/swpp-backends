@@ -23,7 +23,7 @@ export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> 
         delete map['registry']
         const inlineCode = Object.keys(map)
             .filter(it => it.startsWith('_inline'))
-            .map(it => `(${it.toString()})();`)
+            .map(it => `${it}()`)
         return `
             const controller = navigator.serviceWorker?.controller
             if (!controller) return
