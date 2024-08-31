@@ -20,6 +20,10 @@ export interface SwppCliConfig {
     excludes?: string[]
     /** 是否生成 sw 文件 */
     serviceWorker?: boolean
+    /** 是否向 HTML 中插入注册代码 */
+    auto_register?: boolean
+    /** 是否自动生成 DOM JS 并在 HTML 插入 <script> */
+    gen_dom?: boolean
 
 }
 
@@ -54,6 +58,8 @@ function checkAndInitConfig(cliConfig: SwppCliConfig) {
         }
     })
     cliConfig.serviceWorker = cliConfig.serviceWorker ?? true
+    cliConfig.auto_register = cliConfig.auto_register ?? true
+    cliConfig.gen_dom = cliConfig.gen_dom ?? true
 }
 
 /** 执行 build 指令 */
@@ -90,16 +96,19 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         // 生成 dom js
         utils.writeFile(nodePath.join(cliConfig.webRoot, cliConfig.domJsPath ?? '/sw-dom.js'), runtime.domConfig.buildJsSource())
     ])
+    if (!cliConfig.auto_register && !cliConfig.gen_dom) return
     const regexes = cliConfig.excludes?.map?.(it => new RegExp(it)) ?? []
-    const swRegistry = `<script>(${runtime.domConfig.read('registry')})()</script>`
-    const domJsScript = `<script defer src="${cliConfig.domJsPath ?? '/sw-dom.js'}"></script>`
+    const swRegistry = cliConfig.auto_register ? `<script>(${runtime.domConfig.read('registry')})()</script>` : ''
+    const domJsScript = cliConfig.gen_dom ? `<script defer src="${cliConfig.domJsPath ?? '/sw-dom.js'}"></script>` : ''
     // 修改 html
     await traverseDirectory(cliConfig.webRoot, async file => {
         if (!file.endsWith('.html') || regexes.some(regex => regex.test(file))) return
         const html = await readHtml(compilation, file)
         const head = html.querySelector('head')!
-        head.insertAdjacentHTML('afterbegin', swRegistry)
-        head.insertAdjacentHTML('beforeend', domJsScript)
+        if (cliConfig.auto_register)
+            head.insertAdjacentHTML('afterbegin', swRegistry)
+        if (cliConfig.gen_dom)
+            head.insertAdjacentHTML('beforeend', domJsScript)
         await utils.writeFile(file, html.outerHTML)
     })
 }
