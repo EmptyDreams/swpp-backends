@@ -18,6 +18,8 @@ export interface SwppCliConfig {
     domJsPath?: string
     /** 需要被排除的 html 文件名，正则表达式，区分大小写 */
     excludes?: string[]
+    /** 是否生成 sw 文件 */
+    serviceWorker?: boolean
 
 }
 
@@ -35,11 +37,8 @@ export async function initCommand() {
     }
 }
 
-async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' | 'prod') {
-    if (!cliJsonPath.endsWith('.json')) {
-        throw new RuntimeException(exceptionNames.unsupportedFileType, 'CLI 配置文件仅支持 JSON 格式', { yourPath: cliJsonPath })
-    }
-    const cliConfig = JSON.parse(await utils.readFileUtf8(cliJsonPath)) as SwppCliConfig
+/** 检查并初始化 CLI 配置 */
+function checkAndInitConfig(cliConfig: SwppCliConfig) {
     if (!cliConfig.webRoot || !fs.existsSync(cliConfig.webRoot) || !fs.statSync(cliConfig.webRoot).isDirectory()) {
         throw new RuntimeException(exceptionNames.error, 'CLI 配置文件中缺少 webRoot 配置项或传入了一个非文件夹路径', { webRoot: cliConfig.webRoot })
     }
@@ -54,6 +53,16 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
             throw new RuntimeException(exceptionNames.notFound, 'CLI 配置文件的 configFiles 配置项中某项目录不存在', { path })
         }
     })
+    cliConfig.serviceWorker = cliConfig.serviceWorker ?? true
+}
+
+/** 执行 build 指令 */
+async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' | 'prod') {
+    if (!cliJsonPath.endsWith('.json')) {
+        throw new RuntimeException(exceptionNames.unsupportedFileType, 'CLI 配置文件仅支持 JSON 格式', { yourPath: cliJsonPath })
+    }
+    const cliConfig = JSON.parse(await utils.readFileUtf8(cliJsonPath)) as SwppCliConfig
+    checkAndInitConfig(cliConfig)
     // 加载配置项
     const loader = new ConfigLoader(context)
     for (let item of cliConfig.configFiles) {
@@ -74,7 +83,10 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         utils.writeFile(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.trackerPath), newTracker.json()),
         utils.writeFile(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.versionPath), JSON.stringify(updateJson)),
         // 生成 sw js
-        utils.writeFile(nodePath.join(cliConfig.webRoot, compilation.compilationEnv.read('SERVICE_WORKER') + '.js'), new SwCompiler().buildSwCode(runtime)),
+        cliConfig.serviceWorker ? utils.writeFile(
+            nodePath.join(cliConfig.webRoot, compilation.compilationEnv.read('SERVICE_WORKER') + '.js'),
+            new SwCompiler().buildSwCode(runtime)
+        ) : null,
         // 生成 dom js
         utils.writeFile(nodePath.join(cliConfig.webRoot, cliConfig.domJsPath ?? '/sw-dom.js'), runtime.domConfig.buildJsSource())
     ])
