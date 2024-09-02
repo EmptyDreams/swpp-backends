@@ -1,8 +1,16 @@
 import {CompilationData} from './SwCompiler'
 import {utils} from './untils'
 
+/**
+ * JSON 构建器，用于构建在前端使用的版本更新文件。
+ */
 export class JsonBuilder {
 
+    /**
+     * @param compilation 编译期属性
+     * @param urls 网站中所有可能被缓存的 URL
+     * @param map 新旧文件差异的 map，key 为 URL，value 为新的 md5 值
+     */
     constructor(
         private compilation: CompilationData,
         private urls: Set<string>,
@@ -15,11 +23,15 @@ export class JsonBuilder {
 
     /** 将 Builder 序列化为 JSON */
     serialize(): string {
-        const obj: any = {}
-        this.map.forEach((value, key) => obj[key] = value)
-        return JSON.stringify(obj)
+        const array = new Array<string>(this.map.size)
+        let index = 0
+        this.map.forEach(value => array[index++] = value)
+        return JSON.stringify(array)
     }
 
+    /**
+     * 构建在前端使用的版本信息文件
+     */
     // noinspection JSUnusedGlobalSymbols
     async buildJson(): Promise<UpdateJson> {
         const json = await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetchVersionFile()
