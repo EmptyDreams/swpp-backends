@@ -14,7 +14,7 @@ export interface SwppCliConfig {
     webRoot: string
     /** 配置文件所在的相对路径（越靠前优先级越高） */
     configFiles: string[]
-    /** dom js 的相对路径（以 `/` 开头 `.js` 结尾） */
+    /** dom js 的相对路径（相对于网站根目录，以 `/` 开头 `.js` 结尾） */
     domJsPath?: string
     /** 需要被排除的 html 文件名，正则表达式，区分大小写 */
     excludes?: string[]
@@ -24,6 +24,8 @@ export interface SwppCliConfig {
     auto_register?: boolean
     /** 是否自动生成 DOM JS 并在 HTML 插入 <script> */
     gen_dom?: boolean
+    /** diff json 的相对路径（相对于项目根目录）或绝对路径（以 .json 结尾） */
+    diffJsonPath?: string
 
 }
 
@@ -47,10 +49,13 @@ function checkAndInitConfig(cliConfig: SwppCliConfig) {
         throw new RuntimeException(exceptionNames.error, 'CLI 配置文件中缺少 webRoot 配置项或传入了一个非文件夹路径', { webRoot: cliConfig.webRoot })
     }
     if (cliConfig.domJsPath && (!cliConfig.domJsPath.startsWith('/') || !cliConfig.domJsPath.endsWith('.js'))) {
-        throw new RuntimeException(exceptionNames.invalidVarName, 'CLI 配置文件中的 domJsPath 应当传入一个 `/` 开头 `.js` 结尾的字符串')
+        throw new RuntimeException(exceptionNames.invalidValue, 'CLI 配置文件中的 domJsPath 应当传入一个 `/` 开头 `.js` 结尾的字符串')
     }
     if (!cliConfig.configFiles || cliConfig.configFiles.length === 0) {
         throw new RuntimeException(exceptionNames.nullPoint, 'CLI 配置文件中缺少 configFiles 配置项或数组长度为 0', { configFiles: cliConfig.configFiles })
+    }
+    if (cliConfig.diffJsonPath && !cliConfig.diffJsonPath.endsWith('.json')) {
+        throw new RuntimeException(exceptionNames.invalidValue, 'CLI 配置文件中的 diffJsonPath 应当传入一个以 `.json` 结尾的字符串')
     }
     cliConfig.configFiles.forEach(path => {
         if (!fs.existsSync(path)) {
@@ -88,6 +93,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         // 生成 json
         utils.writeFile(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.trackerPath), newTracker.json()),
         utils.writeFile(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.versionPath), JSON.stringify(updateJson)),
+        cliConfig.diffJsonPath ? utils.writeFile(cliConfig.diffJsonPath, updateJsonBuilder.serialize()) : null,
         // 生成 sw js
         cliConfig.serviceWorker ? utils.writeFile(
             nodePath.join(cliConfig.webRoot, compilation.compilationEnv.read('SERVICE_WORKER') + '.js'),

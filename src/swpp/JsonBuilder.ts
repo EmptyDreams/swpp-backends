@@ -13,6 +13,13 @@ export class JsonBuilder {
         this.map.set(key, value)
     }
 
+    /** 将 Builder 序列化为 JSON */
+    serialize(): string {
+        const obj: any = {}
+        this.map.forEach((value, key) => obj[key] = value)
+        return JSON.stringify(obj)
+    }
+
     // noinspection JSUnusedGlobalSymbols
     async buildJson(): Promise<UpdateJson> {
         const json = await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetchVersionFile()
