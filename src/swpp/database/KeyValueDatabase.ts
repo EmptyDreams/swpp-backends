@@ -84,7 +84,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         const key = _key as string
         const item = this.dataValues[key]
         if (!item) throw new RuntimeException(exceptionNames.invalidKey, `传入的 key[${key}] 不存在`)
-        return item.default as any
+        return SpecialConfig.isRuntimeSpecialConfig(item) ? item.get(this.runtime, this.compilation) : item.default
     }
 
     /**

@@ -192,24 +192,36 @@ export class ConfigLoader {
         return Object.freeze({runtime, compilation})
     }
 
+    private static mergeBlackList = ['constructor', 'hasOwnProperty', 'isPropertyOf', 'propertyIsEnumerable', 'toLocaleString', 'toString', 'valueOf']
+
     /** 将新配置合并到已有配置中 */
     private static mergeConfig(config: any, other: SwppConfigTemplate | any, isTop: boolean = true) {
         function mergeHelper(high: any, low: any, skip: boolean) {
-            for (let key in low) {
-                if (skip && key == 'modifier') continue
+            function loop(key: string) {
+                if (key.startsWith('_') || (skip && key == 'modifier')) return
                 const lowValue = low[key]
                 if (key in high) {
                     const highValue = high[key]
                     if (highValue === undefined) {
                         high[key] = lowValue
-                        continue
+                        return
                     }
-                    if (typeof highValue != typeof lowValue) continue
+                    if (typeof highValue != typeof lowValue) return
                     if (typeof highValue == 'object' && !SpecialConfig.isIndivisibleConfig(highValue)) {
                         mergeHelper(highValue, lowValue, false)
                     }
                 } else {
                     high[key] = lowValue
+                }
+            }
+            for (let key in low) {
+                loop(key)
+            }
+            if (other.constructor.name !== 'Object') {
+                const list = Object.getOwnPropertyNames(Object.getPrototypeOf(low))
+                for (let key of list) {
+                    if (!ConfigLoader.mergeBlackList.includes(key))
+                        loop(key)
                 }
             }
         }
