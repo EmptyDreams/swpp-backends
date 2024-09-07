@@ -14,8 +14,8 @@ export class SpecialConfig<_T> {
         return config instanceof RuntimeSpecialConfig
     }
 
-    static isIndivisibleConfig(config: any): config is IndivisibleConfig<any> | RuntimeSpecialConfig<any> {
-        return config instanceof IndivisibleConfig || config instanceof RuntimeSpecialConfig
+    static isIndivisibleConfig(config: any): boolean {
+        return config instanceof IndivisibleConfig || config instanceof RuntimeSpecialConfig || config instanceof URL
     }
 
     static isNoCacheConfig(config: any): config is NoCacheConfig<any> {
