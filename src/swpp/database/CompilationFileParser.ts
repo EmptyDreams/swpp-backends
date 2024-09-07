@@ -43,9 +43,9 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
             return await parser.extractUrls(this.compilation, content)
         } else {
             if (callback) {
-                const blob = await response.blob()
-                const array = await blob.stream().getReader().read()
-                callback(array.value!)
+                const buffer = await response.arrayBuffer()
+                const array = new Uint32Array(buffer)
+                callback(array)
             }
             return new Set<string>()
         }
