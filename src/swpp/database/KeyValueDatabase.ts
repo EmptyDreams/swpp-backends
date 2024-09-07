@@ -60,7 +60,7 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
             }
         }
         // 进行类型预检
-        if (!(value === null || value === undefined) && typeof value != typeof item.default) {
+        if (!(item.default === null || item.default === undefined || value === null || value === undefined) && typeof value != typeof item.default) {
             throw new RuntimeException(
                 exceptionNames.invalidValue,
                 '用户传入的值类型与缺省值类型不统一',
