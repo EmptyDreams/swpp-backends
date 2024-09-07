@@ -4,6 +4,8 @@ export interface NetworkFileHandler {
 
     /** 最大并发量 */
     limit: number
+    /** 超时时间（毫秒） */
+    timeout: number
     /** 拉取文件时使用的 referer */
     referer: string
     /** 拉取文件时使用的 ua */
@@ -30,6 +32,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     }[]
 
     limit = 100
+    timeout = 5000
     referer = 'https://swpp.example.com'
     userAgent = 'swpp-backends'
     headers = {}
@@ -47,13 +50,16 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     private async createFetchTask(url: RequestInfo | URL): Promise<Response> {
         ++this.fetchingCount
         try {
+            const controller  = new AbortController()
+            const clearId = setTimeout(() => controller.abort('timeout'), this.timeout)
             return await fetch(url, {
                 referrer: this.referer,
                 headers: {
                     ...this.headers,
                     'User-Agent': this.userAgent
-                }
-            })
+                },
+                signal: controller.signal
+            }).finally(() => clearTimeout(clearId))
         } finally {
             --this.fetchingCount
             if (this.waitList.length !== 0) {
