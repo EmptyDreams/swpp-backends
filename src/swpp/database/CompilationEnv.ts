@@ -4,6 +4,7 @@ import {FileUpdateTracker} from '../ResourcesScanner'
 import {CompilationData} from '../SwCompiler'
 import {utils} from '../untils'
 import {buildEnv, KeyValueDatabase, readThisValue, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
+import {PathOrFileDescriptor} from 'fs'
 
 export type COMMON_TYPE_COMP_ENV = ReturnType<typeof buildCommon>
 
@@ -34,6 +35,10 @@ export enum AllowNotFoundEnum {
 function buildCommon(_env: any) {
     const env = _env as CompilationEnv
     return {
+        /**
+         * 网站根目录
+         * @type {URL}
+         */
         DOMAIN_HOST: buildEnv({
             default: new URL("https://www.example.com"),
             checker(value: URL): false | RuntimeEnvErrorTemplate<any> {
@@ -49,6 +54,10 @@ function buildCommon(_env: any) {
                 return false
             }
         }),
+        /**
+         * SW 文件生成目录（'sw'），不需要包含 js 拓展名
+         * @type {string}
+         */
         SERVICE_WORKER: buildEnv({
             default: 'sw',
             checker(value: string): false | RuntimeEnvErrorTemplate<any> {
@@ -57,11 +66,17 @@ function buildCommon(_env: any) {
                 } : false
             }
         }),
-        /** HTML 数量限制，设置为 <= 0 表示不限制 */
+        /**
+         * HTML 数量限制，设置为 <= 0 表示不限制（`0`）
+         * @type {number}
+         */
         JSON_HTML_LIMIT: buildEnv({
             default: 0
         }),
-        /** 版本信息长度限制 */
+        /**
+         * 版本信息长度限制（`1024`）
+         * @type {number}
+         */
         VERSION_LENGTH_LIMIT: buildEnv({
             default: 1024,
             checker(value: number): false | RuntimeEnvErrorTemplate<any> {
@@ -102,22 +117,34 @@ function buildCommon(_env: any) {
                 }
             }
         }),
-        /** 读取一个本地文件 */
+        /**
+         * 读取一个本地文件
+         * @type {function(path: PathOrFileDescriptor): Promise<string>}
+         */
         readLocalFile: buildEnv({
             default: utils.readFileUtf8
         }),
-        /** 拉取网络文件 */
+        /**
+         * 拉取网络文件
+         * @type {NetworkFileHandler}
+         */
         NETWORK_FILE_FETCHER: buildEnv({
             default: new FiniteConcurrencyFetcher()
         }),
-        /** 判断文件是否是 404 */
+        /**
+         * 判断文件是否是 404
+         * @type {{response: (response: Response) => boolean, error: (err: any) => boolean}}
+         */
         isNotFound: buildEnv({
             default: {
                 response: (response: Response) => response.status == 404,
                 error: (err: any) => err?.cause?.code === 'ENOTFOUND'
             }
         }),
-        /** 是否允许 404 */
+        /**
+         * 是否允许 404
+         * @type {AllowNotFoundEnum}
+         */
         ALLOW_NOT_FOUND: buildEnv({
             default: AllowNotFoundEnum.ALLOW_STATUS,
             checker(value: AllowNotFoundEnum): false | RuntimeEnvErrorTemplate<any> {
@@ -131,7 +158,10 @@ function buildCommon(_env: any) {
                 }
             }
         }),
-        /** 检查一个链接是否是稳定的（也就是 URL 不变其返回的结果永远不变） */
+        /**
+         * 检查一个链接是否是稳定的（也就是 URL 不变其返回的结果永远不变）
+         * @type {function(url: URL): boolean}
+         */
         isStable: buildEnv({
             default: (_url: URL): boolean => false
         })
