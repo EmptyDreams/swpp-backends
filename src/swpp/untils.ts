@@ -246,7 +246,7 @@ export class RuntimeException extends Error {
 
     // noinspection JSUnusedGlobalSymbols
     constructor(
-        code: ValuesOf<typeof exceptionNames>,
+        public readonly code: ValuesOf<typeof exceptionNames>,
         message: string,
         public readonly addOn?: any
     ) {
