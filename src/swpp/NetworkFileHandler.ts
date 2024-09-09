@@ -88,11 +88,12 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                 },
                 signal: controller.signal
             })
+            clearTimeout(clearId)
             --this.fetchingCount
             return response
         } catch (e) {
-            --this.fetchingCount
             clearTimeout(clearId)
+            --this.fetchingCount
             if (this.isRetry(url, _count, e))
                 return this.fetchHelper(url, _count + 1)
             throw e
