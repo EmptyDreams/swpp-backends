@@ -1,4 +1,5 @@
 import nodePath from 'path'
+import {exceptionNames, RuntimeException, utils} from './untils'
 
 export interface NetworkFileHandler {
 
@@ -19,6 +20,14 @@ export interface NetworkFileHandler {
     /** 获取指定文件的类型 */
     getUrlContentType(url: string, response?: Response): string
 
+    /**
+     * 判断请求失败后是否重试
+     * @param request 请求内容
+     * @param count 已重试次数（不包括本次）
+     * @param err 失败的原因
+     */
+    isRetry(request: RequestInfo | URL, count: number, err: any): boolean
+
 }
 
 /** 支持并发控制的网络文件拉取工具 */
@@ -36,10 +45,18 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     referer = 'https://swpp.example.com'
     userAgent = 'swpp-backends'
     headers = {}
+    /** 最大重试次数 */
+    retryLimit = 3
+    /** 重试次数计数 */
+    private retryCount = 0
 
     fetch(request: RequestInfo | URL): Promise<Response> {
-        if (this.fetchingCount !== this.limit) {
-            return this.createFetchTask(request)
+        return this.fetchHelper(request, 0)
+    }
+
+    private fetchHelper(request: RequestInfo | URL, _count: number): Promise<Response> {
+        if (this.fetchingCount < this.limit) {
+            return this.createFetchTask(request, _count)
         } else {
             return new Promise((resolve, reject) => {
                 this.waitList.push({request, resolve, reject})
@@ -47,22 +64,40 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
         }
     }
 
-    private async createFetchTask(url: RequestInfo | URL): Promise<Response> {
+    private async createFetchTask(url: RequestInfo | URL, _count: number = 0): Promise<Response> {
         ++this.fetchingCount
+        let clearId = undefined
         try {
             const controller  = new AbortController()
-            const clearId = setTimeout(() => controller.abort('timeout'), this.timeout)
-            return await fetch(url, {
+            // noinspection JSUnusedAssignment
+            clearId = setTimeout(() => {
+                ++this.retryCount
+                if (this.retryCount > 10) {
+                    this.retryCount = 5
+                    this.limit = Math.round(this.limit * 2 / 3)
+                    utils.printWarning('FETCHER', `超时请求数量过多，已将阈值自动降低为 ${this.limit}`)
+                }
+                controller.abort(new RuntimeException(exceptionNames.timeout, `链接[${url.toString()}]访问超时`))
+            }, this.timeout)
+            const response = await fetch(url, {
                 referrer: this.referer,
+                keepalive: true,
                 headers: {
                     ...this.headers,
                     'User-Agent': this.userAgent
                 },
                 signal: controller.signal
-            }).finally(() => clearTimeout(clearId))
-        } finally {
+            })
             --this.fetchingCount
-            if (this.waitList.length !== 0) {
+            return response
+        } catch (e) {
+            --this.fetchingCount
+            clearTimeout(clearId)
+            if (this.isRetry(url, _count, e))
+                return this.fetchHelper(url, _count + 1)
+            throw e
+        } finally {
+            if (this.waitList.length !== 0 && this.fetchingCount < this.limit) {
                 const item = this.waitList.pop()!
                 this.createFetchTask(item.request)
                     .then(response => item.resolve(response))
@@ -87,6 +122,10 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                 contentType = 'js'
         }
         return contentType
+    }
+
+    isRetry(_request: RequestInfo | URL, count: number, _err: any): boolean {
+        return count < this.retryLimit
     }
 
 }

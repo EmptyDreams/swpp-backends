@@ -235,6 +235,8 @@ export const exceptionNames = {
     configBuilt: 'config_built',
     /** 404 错误 */
     notFound: 'not_found',
+    /** 超时 */
+    timeout: 'timeout',
     /** 未知分类错误 */
     error: 'error'
 } as const
