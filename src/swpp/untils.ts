@@ -241,16 +241,18 @@ export const exceptionNames = {
     error: 'error'
 } as const
 
+/** 运行时异常 */
 export class RuntimeException extends Error {
 
+    // noinspection JSUnusedGlobalSymbols
     constructor(
-        public readonly code: ValuesOf<typeof exceptionNames>,
-        public readonly message: string,
+        code: ValuesOf<typeof exceptionNames>,
+        message: string,
         public readonly addOn?: any
     ) {
         super()
-        this.name = 'top.kmar.swpp.RuntimeException'
-        this.message = '运行时发生异常 ' + JSON.stringify({code, message, addOn}, null, 2)
+        this.name = `top.kmar.swpp.RuntimeException[${code}]`
+        this.message = '运行时发生异常 ' + message
         Object.setPrototypeOf(this, RuntimeException.prototype)
     }
 
