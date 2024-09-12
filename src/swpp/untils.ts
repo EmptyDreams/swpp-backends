@@ -157,11 +157,11 @@ export const utils = {
      * @param obj
      * @param transfer
      */
-    objMap<T, R>(obj: Readonly<Record<string, T>>, transfer: (item: T) => R): { [key: string]: R } {
+    objMap<T, R>(obj: Readonly<Record<string, T>>, transfer: (item: T, key: string) => R): { [key: string]: R } {
         const result: any = {}
         for (let key in obj) {
             const value = obj[key]
-            result[key] = transfer(value)
+            result[key] = transfer(value, key)
         }
         return result
     },
