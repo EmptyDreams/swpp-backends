@@ -1,4 +1,4 @@
-import fs from 'fs'
+import fs from 'node:fs/promises'
 import * as crypto from 'node:crypto'
 import nodePath from 'path'
 import {AllowNotFoundEnum} from './database/CompilationEnv'
@@ -97,18 +97,12 @@ export class ResourcesScanner {
  * @param callback
  */
 export async function traverseDirectory(dir: string, callback: (file: string) => Promise<any> | any): Promise<void> {
-    const stats = fs.lstatSync(dir)
+    const stats = await fs.lstat(dir)
     if (stats.isDirectory()) {
-        await new Promise<void>((resolve, reject) => {
-            fs.readdir(dir, (err, files) => {
-                if (err) reject(err)
-                else {
-                    Promise.all(
-                        files.map(it => traverseDirectory(nodePath.posix.join(dir, it), callback))
-                    ).then(() => resolve())
-                }
-            })
-        })
+        const files = await fs.readdir(dir)
+        await Promise.all(
+            files.map(it => traverseDirectory(nodePath.posix.join(dir, it), callback))
+        )
     } else {
         await callback(dir)
     }

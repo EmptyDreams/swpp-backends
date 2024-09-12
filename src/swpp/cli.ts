@@ -44,8 +44,8 @@ export async function initCommand() {
 }
 
 /** 检查并初始化 CLI 配置 */
-function checkAndInitConfig(cliConfig: SwppCliConfig) {
-    if (!cliConfig.webRoot || !fs.existsSync(cliConfig.webRoot) || !fs.statSync(cliConfig.webRoot).isDirectory()) {
+async function checkAndInitConfig(cliConfig: SwppCliConfig) {
+    if (!cliConfig.webRoot || !fs.existsSync(cliConfig.webRoot) || !(await fs.promises.stat(cliConfig.webRoot)).isDirectory()) {
         throw new RuntimeException(exceptionNames.error, 'CLI 配置文件中缺少 webRoot 配置项或传入了一个非文件夹路径', { webRoot: cliConfig.webRoot })
     }
     if (cliConfig.domJsPath && (!cliConfig.domJsPath.startsWith('/') || !cliConfig.domJsPath.endsWith('.js'))) {
@@ -73,7 +73,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         throw new RuntimeException(exceptionNames.unsupportedFileType, 'CLI 配置文件仅支持 JSON 格式', { yourPath: cliJsonPath })
     }
     const cliConfig = JSON.parse(await utils.readFileUtf8(cliJsonPath)) as SwppCliConfig
-    checkAndInitConfig(cliConfig)
+    await checkAndInitConfig(cliConfig)
     // 加载配置项
     const loader = new ConfigLoader(context)
     for (let item of cliConfig.configFiles) {
@@ -108,7 +108,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
     const newTracker = await scanner.scanLocalFile(cliConfig.webRoot)
     const updateJsonBuilder = await newTracker.diff()
     const updateJson = await updateJsonBuilder.buildJson()
-    fs.mkdirSync(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath), {recursive: true})
+    await fs.promises.mkdir(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath), {recursive: true})
     // 生成各项文件
     await Promise.all(
         Object.values(utils.objMap(fileContent, (value, key) => utils.writeFile(key, value())))

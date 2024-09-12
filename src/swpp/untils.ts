@@ -1,4 +1,4 @@
-import fs, {PathOrFileDescriptor, WriteFileOptions} from 'fs'
+import fs, {WriteFileOptions} from 'fs'
 import * as crypto from 'node:crypto'
 
 export type ValuesOf<T> = T[keyof T]
@@ -189,23 +189,13 @@ export const utils = {
     },
 
     /** 写入一个文件 */
-    writeFile(path: PathOrFileDescriptor, data: string | NodeJS.ArrayBufferView, optional: WriteFileOptions = 'utf-8'): Promise<void> {
-        return new Promise((resolve, reject) => {
-            fs.writeFile(path, data, optional, err => {
-                if (err) reject(err)
-                else resolve()
-            })
-        })
+    writeFile(path: fs.PathLike, data: string | NodeJS.ArrayBufferView, optional: WriteFileOptions = 'utf-8'): Promise<void> {
+        return fs.promises.writeFile(path, data, optional)
     },
 
     /** 读取一个文件 */
-    readFileUtf8(path: PathOrFileDescriptor): Promise<string> {
-        return new Promise((resolve, reject) => {
-            fs.readFile(path, 'utf-8', (err, data) => {
-                if (err) reject(err)
-                else resolve(data)
-            })
-        })
+    readFileUtf8(path: fs.PathLike): Promise<string> {
+        return fs.promises.readFile(path, 'utf-8')
     }
 
 }
