@@ -235,6 +235,8 @@ export const exceptionNames = {
     configBuilt: 'config_built',
     /** 404 错误 */
     notFound: 'not_found',
+    /** 文件或目录已存在 */
+    fileDuplicate: 'file_duplicate',
     /** 超时 */
     timeout: 'timeout',
     /** 未知分类错误 */

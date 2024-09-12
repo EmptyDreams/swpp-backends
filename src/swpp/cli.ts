@@ -81,27 +81,38 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         await loader.load(path)
     }
     const {runtime, compilation} = loader.generate()
-    // 扫描目录
+    // 计算文件目录
     const jsonInfo = compilation.compilationEnv.read('SWPP_JSON_FILE')
+    const fileContent: Record<string, () => string> = {}
+    fileContent[nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.trackerPath)] = () => newTracker.json()
+    fileContent[nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.versionPath)] = () => JSON.stringify(updateJson)
+    if (cliConfig.diffJsonPath) {
+        fileContent[cliConfig.diffJsonPath] = () => updateJsonBuilder.serialize()
+    }
+    if (cliConfig.serviceWorker) {
+        fileContent[
+            nodePath.join(cliConfig.webRoot, compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
+            ] = () => new SwCompiler().buildSwCode(runtime)
+    }
+    if (cliConfig.gen_dom) {
+        fileContent[nodePath.join(cliConfig.webRoot, cliConfig.domJsPath ?? '/sw-dom.js')] = () => runtime.domConfig.buildJsSource()
+    }
+    // 检查文件是否已经存在
+    for (let path in fileContent) {
+        if (fs.existsSync(path)) {
+            throw new RuntimeException(exceptionNames.fileDuplicate, `指定文件[${path}]已存在`)
+        }
+    }
+    // 扫描目录
     const scanner = new ResourcesScanner(compilation)
     const newTracker = await scanner.scanLocalFile(cliConfig.webRoot)
     const updateJsonBuilder = await newTracker.diff()
     const updateJson = await updateJsonBuilder.buildJson()
     fs.mkdirSync(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath), {recursive: true})
     // 生成各项文件
-    await Promise.all([
-        // 生成 json
-        utils.writeFile(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.trackerPath), newTracker.json()),
-        utils.writeFile(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.versionPath), JSON.stringify(updateJson)),
-        cliConfig.diffJsonPath ? utils.writeFile(cliConfig.diffJsonPath, updateJsonBuilder.serialize()) : null,
-        // 生成 sw js
-        cliConfig.serviceWorker ? utils.writeFile(
-            nodePath.join(cliConfig.webRoot, compilation.compilationEnv.read('SERVICE_WORKER') + '.js'),
-            new SwCompiler().buildSwCode(runtime)
-        ) : null,
-        // 生成 dom js
-        utils.writeFile(nodePath.join(cliConfig.webRoot, cliConfig.domJsPath ?? '/sw-dom.js'), runtime.domConfig.buildJsSource())
-    ])
+    await Promise.all(
+        Object.values(utils.objMap(fileContent, (value, key) => utils.writeFile(key, value())))
+    )
     if (!cliConfig.auto_register && !cliConfig.gen_dom) return
     const regexes = cliConfig.excludes?.map?.(it => new RegExp(it)) ?? []
     const swRegistry = cliConfig.auto_register ? `<script>(${runtime.domConfig.read('registry')})()</script>` : ''
