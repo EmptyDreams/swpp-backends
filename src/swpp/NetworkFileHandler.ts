@@ -71,7 +71,6 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
             const controller  = new AbortController()
             // noinspection JSUnusedAssignment
             clearId = setTimeout(() => {    // 设置超时任务，超过指定时间中断请求
-                ++this.retryCount
                 if (this.retryCount > 10) { // 超时请求数量过多时自动降低并发量
                     this.retryCount = 5
                     this.limit = Math.round(this.limit * 2 / 3)
@@ -91,14 +90,17 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
             clearTimeout(clearId)
             --this.fetchingCount
             return response
-        } catch (e) {   // 出现异常时判断是否需要重试
+        } catch (e) {
             clearTimeout(clearId)
             --this.fetchingCount
+            // 出现异常时判断是否需要重试
             if (this.isRetry(url, _count, e)) {
+                ++this.retryCount
                 utils.printWarning('FETCHER', `自动重试请求：${url}，重试次数：${_count + 1}，重试原因：“${e}”`)
                 return this.fetchHelper(url, _count + 1)
             }
-            throw e     // 如果不需要重试直接向上级抛出异常
+            // 如果不需要重试直接向上级抛出异常
+            return new Response(null, { status: 600 })
         } finally { // 请求结束后触发等待队列中的任务
             if (this.waitList.length !== 0 && this.fetchingCount < this.limit) {
                 const item = this.waitList.pop()!

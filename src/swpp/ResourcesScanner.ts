@@ -276,10 +276,14 @@ export class FileUpdateTracker {
                     )
                     return new FileUpdateTracker(compilation)
                 }
+                if (![200, 301, 302, 307, 308].includes(response.status)) {
+                    // noinspection ExceptionCaughtLocallyJS
+                    throw response
+                }
                 const text = await response.text()
                 return FileUpdateTracker.unJson(compilation, text)
             } catch (e) {
-                if (isNotFound.error(e) && notFoundLevel == AllowNotFoundEnum.ALLOW_ALL) {
+                if (notFoundLevel == AllowNotFoundEnum.ALLOW_ALL && isNotFound.error(e)) {
                     utils.printWarning(
                         'SCANNER', '拉取 tracker 时 DNS 解析失败，如果是第一次携带 swpp v3 构建网站且网站暂时无法解析请忽视这条信息'
                     )

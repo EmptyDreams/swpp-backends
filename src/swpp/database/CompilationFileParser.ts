@@ -77,6 +77,17 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
                 mark = utils.calcHash(content)
             } : undefined))
             .then(urls => urls.forEach(it => urls.add(it)))
+            .catch(err => new Response(JSON.stringify({
+                type: err.type,
+                message: err.message,
+                stack: err.stack,
+                addition: err
+            }), {
+                status: 600,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }))
         return { file: url, mark, urls }
     }
 
