@@ -21,6 +21,7 @@ let getStandbyRequests: (request: Request) => {t: number, l: (() => Request[])} 
 let isFetchSuccessful: (response: Response) => boolean
 let fetchStandby: (request: Request, standbyRequests: {t: number, l: (() => Request[])}, optional?: RequestInit) => Promise<Response>
 let fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
+let transferError2Response: (err: Error) => Response
 
 export type COMMON_KEY_RUNTIME_DEP = ReturnType<typeof buildCommon>
 
@@ -45,7 +46,7 @@ const fetchFastestAndStandbyRequests = (requestOrUrl: RequestInfo | URL, optiona
     if (standbyList) return fetchStandby(request, standbyList, optional)
     const fastestList = getFastestRequests(request)
     if (fastestList) return fetchFastest(fastestList, optional)
-    return fetchWrapper(request, true, isCors(request), optional)
+    return fetchWrapper(request, true, isCors(request), optional).catch(transferError2Response)
 }
 
 const fetchFastestRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
@@ -53,7 +54,7 @@ const fetchFastestRequests = (requestOrUrl: RequestInfo | URL, optional?: Reques
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const fastestList = getFastestRequests(request)
     if (fastestList) return fetchFastest(fastestList, optional)
-    return fetchWrapper(request, true, isCors(request), optional)
+    return fetchWrapper(request, true, isCors(request), optional).catch(transferError2Response)
 }
 
 const fetchStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
@@ -61,7 +62,7 @@ const fetchStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: Reques
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const standbyList = getStandbyRequests(request)
     if (standbyList) return fetchStandby(request, standbyList, optional)
-    return fetchWrapper(request, true, isCors(request), optional)
+    return fetchWrapper(request, true, isCors(request), optional).catch(transferError2Response)
 }
 
 function buildCommon() {
@@ -149,6 +150,20 @@ function buildCommon() {
         isFetchSuccessful: {
             default: (response: Response) => [200, 301, 302, 307, 308].includes(response.status)
         },
+        /** 将 error 转换为一个 600 Response */
+        transferError2Response: {
+            default: (err: Error) => new Response(JSON.stringify({
+                type: err.name,
+                message: err.message,
+                stack: err.stack,
+                addition: err
+            }), {
+                status: 600,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+        },
         /** 拉取一个文件 */
         fetchWrapper: {
             default: (request: Request, banCache: boolean, cors: boolean, optional?: RequestInit): Promise<Response> => {
@@ -213,7 +228,7 @@ function buildCommon() {
                     return response
                 } catch (err: any) {
                     const value = err.errors[0]
-                    return value.body ? value : new Response(err.toString(), {status: -1})
+                    return value.body ? value : transferError2Response(err)
                 }
             }
         },
@@ -265,11 +280,19 @@ function buildCommon() {
                     return response
                 } catch (err: any) {
                     const value = err.errors[0]
-                    return value.body ? value : new Response(err.toString(), {status: -1})
+                    return value.body ? value : transferError2Response(err)
                 }
             }
         },
-        /** 拉取文件 */
+        /**
+         * 拉取文件。
+         *
+         * 该方法不得抛出任何形式的异常，当遇到异常时，应当封装为 response 返回，状态码设置为 `6xx`
+         *
+         * @param {RequestInfo | URL} request 请求头或 URL
+         * @param {?RequestInit} optional 配置项
+         * @return {Response}
+         */
         fetchFile: {
             default: defineLazyInitConfig((runtime) => {
                 const runtimeDep = runtime.runtimeDep
@@ -285,7 +308,7 @@ function buildCommon() {
                     return (request: RequestInfo | URL, optional?: RequestInit): Promise<Response> => {
                         // @ts-ignore
                         if (!request.url) request = new Request(request)
-                        return fetchWrapper(request, true, true, optional)
+                        return fetchWrapper(request, true, true, optional).catch(transferError2Response)
                     }
                 }
             })
