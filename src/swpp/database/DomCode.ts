@@ -58,7 +58,7 @@ function buildCommon() {
                                         minInterval: 24 * 60 * 60 * 1000
                                     })
                                 } catch (e) {
-                                    console.warn('Periodic Sync 注册失败', e)
+                                    console.log('Periodic Sync 注册失败', e)
                                 }
                             })
                             .catch(err => console.error('SWPP 注册失败', err))
