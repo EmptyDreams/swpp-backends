@@ -1,3 +1,4 @@
+import * as process from 'node:process'
 import nodePath from 'path'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
@@ -11,6 +12,10 @@ export interface NetworkFileHandler {
     referer: string
     /** 拉取文件时使用的 ua */
     userAgent: string
+    /** HTTP 代理 */
+    httpProxy?: string
+    /** HTTPS 代理 */
+    httpsProxy?: string
     /** 需要额外写入的 header（不包含 ua） */
     headers: { [name: string]: string }
 
@@ -39,6 +44,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
         resolve: (response: Response) => void,
         reject: (error: any) => void
     }[]
+    private isInit = false
 
     limit = 100
     timeout = 5000
@@ -51,6 +57,15 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     private retryCount = 0
 
     fetch(request: RequestInfo | URL): Promise<Response> {
+        if (!this.isInit) {
+            this.isInit = true
+            if ('httpProxy' in this && this.httpProxy) {
+                process.env.HTTP_PROXY = this.httpProxy as string
+            }
+            if ('httpsProxy' in this && this.httpsProxy) {
+                process.env.HTTPS_PROXY = this.httpsProxy as string
+            }
+        }
         return this.fetchHelper(request, 0)
     }
 
