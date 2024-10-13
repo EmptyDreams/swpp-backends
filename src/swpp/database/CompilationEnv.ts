@@ -1,3 +1,4 @@
+import {defineLazyInitConfig} from '../config/ConfigCluster'
 import {UpdateJson} from '../JsonBuilder'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {FileUpdateTracker} from '../ResourcesScanner'

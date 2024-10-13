@@ -1,7 +1,6 @@
 import * as http from 'node:http'
 import * as https from 'node:https'
 import nodePath from 'path'
-import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
 export interface NetworkFileHandler {
@@ -62,8 +61,6 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     /** 重试次数计数 */
     private retryCount = 0
 
-    constructor(protected compilation: CompilationData) { }
-
     async fetch(request: string | URL): Promise<Response> {
         const fetchBase = async (): Promise<Response> => {
             const list = this.getStandbyList(request)
@@ -84,9 +81,18 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
         }
         try {
             return await fetchBase()
-        } catch (e) {
-            const transfer = this.compilation.crossDep.read('transferError2Response')
-            return transfer.runOnNode(e as Error)
+        } catch (err: any) {
+            return new Response(JSON.stringify({
+                type: err.name,
+                message: err.message,
+                stack: err.stack,
+                addition: err
+            }), {
+                status: 600,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
         }
     }
 
