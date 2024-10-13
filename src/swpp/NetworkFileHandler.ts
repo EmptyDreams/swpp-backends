@@ -32,6 +32,13 @@ export interface NetworkFileHandler {
      */
     isRetry(request: RequestInfo | URL, count: number, err: any): boolean
 
+    /**
+     * 获取备用 URL 列表
+     * @param url
+     * @return 返回的数组中的第一个元素将用于替换原有的 URL
+     */
+    getStandbyList(url: string | URL): (string | URL)[]
+
 }
 
 /** 支持并发控制的网络文件拉取工具 */
@@ -55,7 +62,20 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     private retryCount = 0
 
     fetch(request: string | URL): Promise<Response> {
-        return this.fetchHelper(request, 0)
+        const list = this.getStandbyList(request)
+        if (!list || list.length === 0) {
+            throw new RuntimeException(exceptionNames.invalidValue, `#getStandByList(${request.toString()}) 返回了空值或空的数组`)
+        }
+        if (list.length === 1) return this.fetchHelper(list[0], 0)
+        return this.fetchHelper(list[0], 0)
+            .catch(err => {
+                list.shift()
+                return Promise.any(
+                    list.map(it => this.fetchHelper(it, 0))
+                ).catch(() => {
+                    throw err
+                })
+            })
     }
 
     private fetchHelper(url: string | URL, _count: number): Promise<Response> {
@@ -120,6 +140,10 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
 
     isRetry(_request: RequestInfo | URL, count: number, err: any): boolean {
         return count < this.retryLimit && err instanceof RuntimeException && err.code === exceptionNames.timeout
+    }
+
+    getStandbyList(url: string | URL): (string | URL)[] {
+        return [url]
     }
 
     private request(url: string, onTimeout?: () => void): Promise<Response> {
