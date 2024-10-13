@@ -1,6 +1,7 @@
 import * as http from 'node:http'
 import * as https from 'node:https'
 import nodePath from 'path'
+import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
 export interface NetworkFileHandler {
@@ -61,21 +62,32 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     /** 重试次数计数 */
     private retryCount = 0
 
-    fetch(request: string | URL): Promise<Response> {
-        const list = this.getStandbyList(request)
-        if (!list || list.length === 0) {
-            throw new RuntimeException(exceptionNames.invalidValue, `#getStandByList(${request.toString()}) 返回了空值或空的数组`)
-        }
-        if (list.length === 1) return this.fetchHelper(list[0], 0)
-        return this.fetchHelper(list[0], 0)
-            .catch(err => {
+    constructor(protected compilation: CompilationData) { }
+
+    async fetch(request: string | URL): Promise<Response> {
+        const fetchBase = async (): Promise<Response> => {
+            const list = this.getStandbyList(request)
+            if (!list || list.length === 0) {
+                throw new RuntimeException(exceptionNames.invalidValue, `#getStandByList(${request.toString()}) 返回了空值或空的数组`)
+            }
+            if (list.length === 1) return this.fetchHelper(list[0], 0)
+            try {
+                return await this.fetchHelper(list[0], 0)
+            } catch (err) {
                 list.shift()
-                return Promise.any(
-                    list.map(it => this.fetchHelper(it, 0))
-                ).catch(() => {
+                try {
+                    return await Promise.any(list.map(it => this.fetchHelper(it, 0)))
+                } catch {
                     throw err
-                })
-            })
+                }
+            }
+        }
+        try {
+            return await fetchBase()
+        } catch (e) {
+            const transfer = this.compilation.crossDep.read('transferError2Response')
+            return transfer.runOnNode(e as Error)
+        }
     }
 
     private fetchHelper(url: string | URL, _count: number): Promise<Response> {

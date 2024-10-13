@@ -150,20 +150,6 @@ function buildCommon() {
         isFetchSuccessful: {
             default: (response: Response) => [200, 301, 302, 307, 308].includes(response.status)
         },
-        /** 将 error 转换为一个 600 Response */
-        transferError2Response: {
-            default: (err: Error) => new Response(JSON.stringify({
-                type: err.name,
-                message: err.message,
-                stack: err.stack,
-                addition: err
-            }), {
-                status: 600,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-        },
         /** 拉取一个文件 */
         fetchWrapper: {
             default: (request: Request, banCache: boolean, cors: boolean, optional?: RequestInit): Promise<Response> => {

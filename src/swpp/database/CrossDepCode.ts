@@ -116,6 +116,27 @@ function buildCommon() {
                     return this.runOnBrowser(exp)
                 }
             })
+        },
+        /** 将 error 转换为一个 600 Response */
+        transferError2Response: {
+            default: buildFunction({
+                runOnBrowser: (err: Error) => {
+                    return new Response(JSON.stringify({
+                        type: err.name,
+                        message: err.message,
+                        stack: err.stack,
+                        addition: err
+                    }), {
+                        status: 600,
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    })
+                },
+                runOnNode(err: Error): Response {
+                    return this.runOnBrowser(err)
+                }
+            })
         }
     } as const
 }
