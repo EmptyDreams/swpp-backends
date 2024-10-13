@@ -1,4 +1,5 @@
-import * as process from 'node:process'
+import * as http from 'node:http'
+import * as https from 'node:https'
 import nodePath from 'path'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
@@ -13,9 +14,7 @@ export interface NetworkFileHandler {
     /** 拉取文件时使用的 ua */
     userAgent: string
     /** HTTP 代理 */
-    httpProxy?: string
-    /** HTTPS 代理 */
-    httpsProxy?: string
+    proxy?: http.Agent
     /** 需要额外写入的 header（不包含 ua） */
     headers: { [name: string]: string }
 
@@ -40,11 +39,10 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
 
     private fetchingCount = 0
     private waitList = [] as {
-        request: RequestInfo | URL,
+        url: string | URL,
         resolve: (response: Response) => void,
         reject: (error: any) => void
     }[]
-    private isInit = false
 
     limit = 100
     timeout = 5000
@@ -56,57 +54,33 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     /** 重试次数计数 */
     private retryCount = 0
 
-    fetch(request: RequestInfo | URL): Promise<Response> {
-        if (!this.isInit) {
-            this.isInit = true
-            if ('httpProxy' in this && this.httpProxy) {
-                process.env.HTTP_PROXY = this.httpProxy as string
-            }
-            if ('httpsProxy' in this && this.httpsProxy) {
-                process.env.HTTPS_PROXY = this.httpsProxy as string
-            }
-        }
+    fetch(request: string | URL): Promise<Response> {
         return this.fetchHelper(request, 0)
     }
 
-    private fetchHelper(request: RequestInfo | URL, _count: number): Promise<Response> {
+    private fetchHelper(url: string | URL, _count: number): Promise<Response> {
         if (this.fetchingCount < this.limit) {
-            return this.createFetchTask(request, _count)
+            return this.createFetchTask(url, _count)
         } else {
             return new Promise((resolve, reject) => {
-                this.waitList.push({request, resolve, reject})
+                this.waitList.push({url, resolve, reject})
             })
         }
     }
 
-    private async createFetchTask(url: RequestInfo | URL, _count: number = 0): Promise<Response> {
+    private async createFetchTask(url: string | URL, _count: number = 0): Promise<Response> {
         ++this.fetchingCount
-        let clearId = undefined
         try {
-            const controller  = new AbortController()
-            // noinspection JSUnusedAssignment
-            clearId = setTimeout(() => {    // 设置超时任务，超过指定时间中断请求
+            const response = await this.request(url.toString(), () => {
                 if (this.retryCount > 10) { // 超时请求数量过多时自动降低并发量
                     this.retryCount = 5
                     this.limit = Math.round(this.limit * 2 / 3)
                     utils.printWarning('FETCHER', `超时请求数量过多，已将阈值自动降低为 ${this.limit}`)
                 }
-                controller.abort(new RuntimeException(exceptionNames.timeout, `链接[${url.toString()}]访问超时`))
-            }, this.timeout)
-            const response = await fetch(url, {
-                referrer: this.referer,
-                keepalive: true,
-                headers: {
-                    ...this.headers,
-                    'User-Agent': this.userAgent
-                },
-                signal: controller.signal
             })
-            clearTimeout(clearId)
             --this.fetchingCount
             return response
         } catch (e) {
-            clearTimeout(clearId)
             --this.fetchingCount
             // 出现异常时判断是否需要重试
             if (this.isRetry(url, _count, e)) {
@@ -119,7 +93,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
         } finally { // 请求结束后触发等待队列中的任务
             if (this.waitList.length !== 0 && this.fetchingCount < this.limit) {
                 const item = this.waitList.pop()!
-                this.createFetchTask(item.request)
+                this.createFetchTask(item.url)
                     .then(response => item.resolve(response))
                     .catch(err => item.reject(err))
             }
@@ -146,6 +120,56 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
 
     isRetry(_request: RequestInfo | URL, count: number, err: any): boolean {
         return count < this.retryLimit && err instanceof RuntimeException && err.code === exceptionNames.timeout
+    }
+
+    private request(url: string, onTimeout?: () => void): Promise<Response> {
+        return new Promise(async (resolve, reject) => {
+            let id: any = undefined
+            const isHttps = url.startsWith('https:')
+            const client = isHttps ? https : http
+            const req = client.get(url, {
+                headers: {
+                    ...this.headers,
+                    referer: this.referer,
+                    "user-agent": this.userAgent
+                },
+                // @ts-ignore
+                agent: this['proxy']
+            }, response => {
+                if ([301, 302, 307, 308].includes(response.statusCode ?? 0)) {
+                    const location = response.headers.location
+                    if (!location) {
+                        reject(new Error(`GET ${url} Error: 返回了 ${response.statusCode} 但没有包含 Location 字段`))
+                    } else {
+                        this.request(location, onTimeout)
+                            .then(response => resolve(response))
+                            .catch(err => reject(err))
+                    }
+                } else {
+                    const bufferArray: Buffer[] = []
+                    response.on('data', (chunk: Buffer) => {
+                        bufferArray.push(chunk)
+                    })
+                    response.on('end', () => {
+                        clearTimeout(id)
+                        const buffer = Buffer.concat(bufferArray)
+                        resolve(new Response(buffer, {
+                            status: response.statusCode,
+                            headers: response.headers as Record<string, string>
+                        }))
+                    })
+                    response.on('error', err => {
+                        reject(err)
+                    })
+                }
+            })
+            if (this.timeout > 0) {
+                id = setTimeout(() => {
+                    onTimeout?.()
+                    req.destroy(new RuntimeException(exceptionNames.timeout, `GET ${url} Timeout`))
+                }, this.timeout)
+            }
+        })
     }
 
 }
