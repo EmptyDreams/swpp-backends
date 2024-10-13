@@ -15,7 +15,7 @@ export interface NetworkFileHandler {
     userAgent: string
     /** HTTP 代理 */
     proxy?: http.Agent
-    /** 需要额外写入的 header（不包含 ua） */
+    /** 需要额外写入的 header（不包含 ua 和 referer） */
     headers: { [name: string]: string }
 
     /** 拉取文件 */
