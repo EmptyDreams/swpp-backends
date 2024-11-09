@@ -3,6 +3,11 @@ import * as https from 'node:https'
 import nodePath from 'path'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
+/**
+ * 网络文件拉取工具
+ *
+ * 其中任何方法不得抛出异常
+ */
 export interface NetworkFileHandler {
 
     /** 最大并发量 */
@@ -165,6 +170,9 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
     }
 
     private request(url: string, onTimeout?: () => void): Promise<Response> {
+        if (!/^(https?):\/\/([^!@#$%^&*?.\s-]([^!@#$%^&*?.\s]{0,63}[^!@#$%^&*?.\s])?\.)+[a-z]{2,6}\/?/.test(url)) {
+            throw new RuntimeException(exceptionNames.invalidValue, '传入了一个非法的 URL', {url})
+        }
         return new Promise(async (resolve, reject) => {
             let id: any = undefined
             const isHttps = url.startsWith('https:')
