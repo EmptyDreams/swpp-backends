@@ -94,7 +94,7 @@ export class ResourcesScanner {
 /**
  * 遍历目录下的所有文件
  * @param dir
- * @param callback
+ * @param callback 接收一个参数表示文件路径（相对与项目根目录）
  */
 export async function traverseDirectory(dir: string, callback: (file: string) => Promise<any> | any): Promise<void> {
     const stats = await fs.lstat(dir)
