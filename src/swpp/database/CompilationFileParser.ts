@@ -21,7 +21,7 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
             const parser = this.read(extname)
             const content = await parser.readFromLocal(this.compilation, path)
             cb?.(content)
-            return await parser.extractUrls(this.compilation, content)
+            return await parser.extractUrls(this.compilation, content, nodePath.posix.dirname(path))
         } else {
             if (force && cb) {
                 const reader = this.compilation.compilationEnv.read('readLocalFile')
@@ -34,13 +34,14 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
 
     /** 解析网络文件 */
     async parserNetworkFile(response: Response, callback?: (content: crypto.BinaryLike) => Promise<any> | any): Promise<Set<string>> {
+        const url = response.url
         const fileHandler = this.compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
-        const contentType = fileHandler.getUrlContentType(response.url, response)
+        const contentType = fileHandler.getUrlContentType(url, response)
         if (this.hasKey(contentType)) {
             const parser = this.read(contentType)
             const content = await parser.readFromNetwork(this.compilation, response)
             if (callback) await callback(content)
-            return await parser.extractUrls(this.compilation, content)
+            return await parser.extractUrls(this.compilation, content, url)
         } else {
             if (callback) {
                 const buffer = await response.arrayBuffer()
@@ -83,7 +84,7 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
                 stack: err.stack,
                 addition: err
             }), {
-                status: 600,
+                status: 599,
                 headers: {
                     'Content-Type': 'application/json'
                 }
@@ -91,11 +92,16 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
         return { file: url, mark, urls }
     }
 
-    /** 解析指定类型的文件内容 */
-    async parserContent(type: string, content: string): Promise<Set<string>> {
+    /**
+     * 解析指定类型的文件内容
+     * @param type 文件类型
+     * @param content 文件内容
+     * @param path 文件路径
+     */
+    async parserContent(type: string, content: string, path: string | URL): Promise<Set<string>> {
         if (!this.hasKey(type)) return new Set<string>()
         const parser = this.read(type)
-        return await parser.extractUrls(this.compilation, content)
+        return await parser.extractUrls(this.compilation, content, path)
     }
 
 }
@@ -111,7 +117,7 @@ function buildCommon($this: any) {
                 readFromNetwork(_: CompilationData, response: Response): Promise<string> {
                     return response.text()
                 },
-                async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
+                async extractUrls(compilation: CompilationData, content: string, filePath: string | URL): Promise<Set<string>> {
                     const baseUrl = compilation.compilationEnv.read("DOMAIN_HOST")
                     const html = HTMLParser.parse(content, {
                         blockTextElements: {
@@ -131,7 +137,7 @@ function buildCommon($this: any) {
                                         result.add(src)
                                     }
                                 } else {
-                                    const son = await registry.parserContent('js', item.rawText)
+                                    const son = await registry.parserContent('js', item.rawText, filePath)
                                     son.forEach(it => result.add(it))
                                 }
                                 break
@@ -140,7 +146,7 @@ function buildCommon($this: any) {
                                 if (item.attributes.rel !== 'preconnect') {
                                     const href = item.attributes.href
                                     if (!href) {
-                                        const son = await registry.parserContent('css', item.rawText)
+                                        const son = await registry.parserContent('css', item.rawText, filePath)
                                         son.forEach(it => result.add(it))
                                     } else if (!utils.isSameHost(href, baseUrl)) {
                                         result.add(href)
@@ -163,7 +169,7 @@ function buildCommon($this: any) {
                                 break
                             }
                             case 'style': {
-                                const son = await registry.parserContent('css', item.rawText)
+                                const son = await registry.parserContent('css', item.rawText, filePath)
                                 son.forEach(it => result.add(it))
                                 break
                             }
@@ -189,7 +195,11 @@ function buildCommon($this: any) {
                 readFromNetwork(_: CompilationData, response: Response): Promise<string> {
                     return response.text()
                 },
-                async extractUrls(compilation: CompilationData, content: string): Promise<Set<string>> {
+                async extractUrls(compilation: CompilationData, content: string, filePath: string | URL): Promise<Set<string>> {
+                    const publicPath = compilation.compilationEnv.read('PUBLIC_PATH')
+                    if (filePath.toString().startsWith(publicPath)) {
+                        filePath = filePath.toString().substring(publicPath.length)
+                    }
                     const baseUrl = compilation.compilationEnv.read('DOMAIN_HOST')
                     const urls = new Set<string>()
                     /** 从指定位置开始查询注释 */
@@ -230,10 +240,16 @@ function buildCommon($this: any) {
                             if (right === -1) i = Number.MAX_VALUE
                             else i = right + 2
                         }
+                        // 通过正则表达式匹配 url(xxx) / @import 'xxx' 格式的内容
                         sub.match(/(url\(.*?\))|(@import\s+['"].*?['"])|((https?:)?\/\/[^\s/$.?#].\S*)/g)
+                            // 将字符串两侧的内容删除，留下 URL 部分
                             ?.map(it => it.replace(/(^url\(\s*(['"]?))|((['"]?\s*)\)$)|(^@import\s+['"])|(['"]$)/g, ''))
+                            // 如果是一个相对路径，则将其拼接到当前文件的后面
+                            ?.map(it => /^https?:\/\//.test(it) ? it : utils.splicingUrl(filePath, it))
+                            // 过滤掉当前网站的文件
                             ?.filter(it => !utils.isSameHost(it, baseUrl))
-                            ?.forEach(it => urls.add(it))
+                            // 将内容添加到结果集
+                            ?.forEach(it => urls.add(it.toString()))
                     }
                     return urls
                 }
@@ -267,8 +283,9 @@ export interface FileParser<T extends crypto.BinaryLike> {
      * 从文件内容中提取 URL
      * @param compilation 编译期依赖
      * @param content 文件内容
+     * @param fileUrl 文件的 URL
      */
-    extractUrls(compilation: CompilationData, content: T): Promise<Set<string>>
+    extractUrls(compilation: CompilationData, content: T, fileUrl: string | URL): Promise<Set<string>>
 
     /**
      * 计算一个链接对应的资源的标识符及其内部资源

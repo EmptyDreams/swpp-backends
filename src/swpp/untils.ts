@@ -19,7 +19,7 @@ export const utils = {
     /**
      * 拼接链接
      */
-    splicingUrl(base: URL, ...values: string[]): URL {
+    splicingUrl(base: string | URL, ...values: string[]): URL {
         return new URL(values.join('/').replaceAll(/(\/+)|\\/g, '/'), base)
     },
 
@@ -120,12 +120,12 @@ export const utils = {
     },
 
     /** 判断指定链接的 host 是否为指定的 host */
-    isSameHost(path: string, baseUrl: URL): boolean {
+    isSameHost(path: string | URL, baseUrl: URL): boolean {
         try {
             const url = new URL(path, baseUrl)
             return baseUrl.hostname === url.hostname && url.pathname.startsWith(baseUrl.pathname)
         } catch (e) {
-            throw new RuntimeException(exceptionNames.error, `传入的 path[${path}] 不合法`, { cause: e })
+            throw new RuntimeException(exceptionNames.error, `传入的 path[${path.toString()}] 不合法`, { cause: e })
         }
     },
 

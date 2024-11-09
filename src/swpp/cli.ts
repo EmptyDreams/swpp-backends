@@ -45,7 +45,12 @@ export async function initCommand() {
 
 /** 检查并初始化 CLI 配置 */
 async function checkAndInitConfig(cliConfig: SwppCliConfig) {
-    if (!cliConfig.webRoot || !fs.existsSync(cliConfig.webRoot) || !(await fs.promises.stat(cliConfig.webRoot)).isDirectory()) {
+    if (
+        !cliConfig.webRoot ||
+        !fs.existsSync(cliConfig.webRoot) ||
+        !(await fs.promises.stat(cliConfig.webRoot)).isDirectory() ||
+        !/([/\\])$/.test(cliConfig.webRoot)
+    ) {
         throw new RuntimeException(exceptionNames.error, 'CLI 配置文件中缺少 webRoot 配置项或传入了一个非文件夹路径', { webRoot: cliConfig.webRoot })
     }
     if (cliConfig.domJsPath && (!cliConfig.domJsPath.startsWith('/') || !cliConfig.domJsPath.endsWith('.js'))) {
@@ -81,6 +86,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         await loader.load(path)
     }
     const {runtime, compilation} = loader.generate()
+    compilation.compilationEnv.update('PUBLIC_PATH', cliConfig.webRoot)
     // 计算文件目录
     const jsonInfo = compilation.compilationEnv.read('SWPP_JSON_FILE')
     const fileContent: Record<string, () => string> = {}
@@ -92,7 +98,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
     if (cliConfig.serviceWorker) {
         fileContent[
             nodePath.join(cliConfig.webRoot, compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
-            ] = () => new SwCompiler().buildSwCode(runtime)
+        ] = () => new SwCompiler().buildSwCode(runtime)
     }
     if (cliConfig.gen_dom) {
         fileContent[nodePath.join(cliConfig.webRoot, cliConfig.domJsPath ?? '/sw-dom.js')] = () => runtime.domConfig.buildJsSource()

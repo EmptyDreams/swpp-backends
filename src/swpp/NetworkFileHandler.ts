@@ -93,7 +93,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                 stack: err.stack,
                 addition: err
             }), {
-                status: 600,
+                status: 599,
                 headers: {
                     'Content-Type': 'application/json'
                 }

@@ -1,4 +1,4 @@
-import {defineLazyInitConfig} from '../config/ConfigCluster'
+import fs from 'fs'
 import {UpdateJson} from '../JsonBuilder'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {FileUpdateTracker} from '../ResourcesScanner'
@@ -36,7 +36,7 @@ function buildCommon(_env: any) {
     const env = _env as CompilationEnv
     return {
         /**
-         * 网站根目录
+         * 网站的基准 URL
          */
         DOMAIN_HOST: buildEnv({
             default: new URL("https://www.example.com"),
@@ -49,6 +49,18 @@ function buildCommon(_env: any) {
                 }
                 if (value.protocol !== 'https:' && value.host !== '127.0.0.1' && value.host !== 'localhost') return {
                     value, message: '传入的 URL 必须使用 https 协议'
+                }
+                return false
+            }
+        }),
+        /**
+         * 网站文件在本机的目录，必须以 `/` 或 `\` 结尾
+         */
+        PUBLIC_PATH: buildEnv({
+            default: '',
+            checker(value: string): false | RuntimeEnvErrorTemplate<any> {
+                if (!value || !/[/\\]$/.test(value) || !fs.existsSync(value)) return {
+                    value, message: 'PUBLIC_PATH 必须是一个合法且存在的文件夹路径'
                 }
                 return false
             }

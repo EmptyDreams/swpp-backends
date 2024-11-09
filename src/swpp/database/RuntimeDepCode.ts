@@ -150,7 +150,7 @@ function buildCommon() {
         isFetchSuccessful: {
             default: (response: Response) => [200, 301, 302, 307, 308].includes(response.status)
         },
-        /** 将 error 转换为一个 600 Response */
+        /** 将 error 转换为一个 599 Response */
         transferError2Response: {
             default: (err: Error) => new Response(JSON.stringify({
                 type: err.name,
@@ -158,7 +158,7 @@ function buildCommon() {
                 stack: err.stack,
                 addition: err
             }), {
-                status: 600,
+                status: 599,
                 headers: {
                     'Content-Type': 'application/json'
                 }
