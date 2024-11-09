@@ -132,7 +132,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                 return this.fetchHelper(url, _count + 1)
             }
             // 如果不需要重试直接向上级抛出异常
-            return new Response(null, { status: 600 })
+            throw e
         } finally { // 请求结束后触发等待队列中的任务
             if (this.waitList.length !== 0 && this.fetchingCount < this.limit) {
                 const item = this.waitList.pop()!
