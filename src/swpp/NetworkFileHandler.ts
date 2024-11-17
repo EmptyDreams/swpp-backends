@@ -208,11 +208,9 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                             headers: response.headers as Record<string, string>
                         }))
                     })
-                    response.on('error', err => {
-                        reject(err)
-                    })
                 }
             })
+            req.on('error', err => reject(err))
             if (this.timeout > 0) {
                 id = setTimeout(() => {
                     onTimeout?.()
