@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import {initCommand} from './swpp/cli'
 import {utils} from './swpp/untils'
 
