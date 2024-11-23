@@ -54,6 +54,15 @@ export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNo
 
 function buildCommon() {
     return {
+        /** 检查请求是否成功 */
+        isFetchSuccessful: {
+            default: buildFunction({
+                runOnBrowser: (response: Response) => [200, 301, 302, 307, 308].includes(response.status),
+                runOnNode(response: Response): boolean {
+                    return this.runOnBrowser(response)
+                }
+            })
+        },
         /** 缓存规则 */
         matchCacheRule: {
             default: buildFunction({

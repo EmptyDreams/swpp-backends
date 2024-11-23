@@ -146,10 +146,6 @@ function buildCommon() {
                 }
             }) as FunctionInBrowser<any, any>
         },
-        /** 检查请求是否成功 */
-        isFetchSuccessful: {
-            default: (response: Response) => [200, 301, 302, 307, 308].includes(response.status)
-        },
         /** 将 error 转换为一个 599 Response */
         transferError2Response: {
             default: (err: Error) => new Response(JSON.stringify({

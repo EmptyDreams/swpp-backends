@@ -3,7 +3,7 @@ import {UpdateJson} from '../JsonBuilder'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {FileUpdateTracker} from '../ResourcesScanner'
 import {CompilationData} from '../SwCompiler'
-import {utils} from '../untils'
+import {exceptionNames, RuntimeException, utils} from '../untils'
 import {buildEnv, KeyValueDatabase, readThisValue, RuntimeEnvErrorTemplate} from './KeyValueDatabase'
 
 export type COMMON_TYPE_COMP_ENV = ReturnType<typeof buildCommon>
@@ -14,8 +14,7 @@ export type COMMON_TYPE_COMP_ENV = ReturnType<typeof buildCommon>
 export class CompilationEnv extends KeyValueDatabase<any, COMMON_TYPE_COMP_ENV> {
 
     constructor() {
-        super('CompilationEnv')
-        this.lazyInit(buildCommon(this))
+        super('CompilationEnv', buildCommon())
     }
 
 }
@@ -32,8 +31,7 @@ export enum AllowNotFoundEnum {
 
 }
 
-function buildCommon(_env: any) {
-    const env = _env as CompilationEnv
+function buildCommon() {
     return {
         /**
          * 网站的基准 URL
@@ -105,17 +103,36 @@ function buildCommon(_env: any) {
                 swppPath: 'swpp',
                 trackerPath: 'tracker.json',
                 versionPath: 'update.json',
-                async fetchVersionFile(): Promise<UpdateJson> {
+                async fetchVersionFile(compilation: CompilationData): Promise<UpdateJson> {
+                    const env = compilation.compilationEnv
                     const baseUrl = env.read('DOMAIN_HOST')
                     const fetcher = env.read('NETWORK_FILE_FETCHER')
                     const isNotFound = env.read('isNotFound')
+                    const isFetchSuccessful = compilation.crossDep.read('isFetchSuccessful').runOnNode
                     try {
                         const swppPath = readThisValue(this, 'swppPath')
                         const versionPath = readThisValue(this, 'versionPath')
                         const response = await fetcher.fetch(utils.splicingUrl(baseUrl, swppPath, versionPath))
                         if (!isNotFound.response(response)) {
-                            const json = await response.json()
-                            return json as UpdateJson
+                            if (isFetchSuccessful(response)) {
+                                const json = await response.json().catch(err => {
+                                    throw new RuntimeException(
+                                        exceptionNames.invalidValue,
+                                        'ResourcesScanner 解序列化失败，传入的字符串是非法的 json。' +
+                                        '请检查您的网站在返回 403、404、429 等错误时是否是使用 HTTP 状态码。' +
+                                        '如果您的网站不实用 HTTP 状态码表示相应错误，请参考 https://swpp.kmar.top/config/cross_dep#isfetchsuccessful 做出相应修改',
+                                        err
+                                    )
+                                })
+                                return json as UpdateJson
+                            }
+                            // noinspection ExceptionCaughtLocallyJS
+                            throw new RuntimeException(exceptionNames.error, '拉取版本信息文件时出现错误', {
+                                status: response.status,
+                                statusText: response.statusText,
+                                headers: Object.fromEntries(response.headers.entries()),
+                                body: await response.text().catch(() => null)
+                            })
                         }
                     } catch (e) {
                         if (!isNotFound.error(e)) throw e

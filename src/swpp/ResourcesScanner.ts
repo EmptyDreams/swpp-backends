@@ -235,7 +235,18 @@ export class FileUpdateTracker {
     /** 解序列化数据 */
     static unJson(compilation: CompilationData, jsonStr: string): FileUpdateTracker {
         const tracker = new FileUpdateTracker(compilation)
-        const json = JSON.parse(jsonStr)
+        let json: any
+        try {
+            json = JSON.parse(jsonStr)
+        } catch (err) {
+            throw new RuntimeException(
+                exceptionNames.invalidValue,
+                'ResourcesScanner 解序列化失败，传入的字符串是非法的 json。' +
+                '请检查您的网站在返回 403、404、429 等错误时是否是使用 HTTP 状态码。' +
+                '如果您的网站不实用 HTTP 状态码表示相应错误，请参考 https://swpp.kmar.top/config/cross_dep#isfetchsuccessful 做出相应修改',
+                err
+            )
+        }
         switch (json.version) {
             case 4:
                 for (let key in json.tracker) {
@@ -262,6 +273,7 @@ export class FileUpdateTracker {
         const fetcher = compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
         const isNotFound = compilation.compilationEnv.read('isNotFound')
         const notFoundLevel = compilation.compilationEnv.read('ALLOW_NOT_FOUND')
+        const isFetchSuccessful = compilation.crossDep.read('isFetchSuccessful').runOnNode
         let error: RuntimeException
         const result = await (async () => {
             try {
@@ -276,7 +288,7 @@ export class FileUpdateTracker {
                     )
                     return new FileUpdateTracker(compilation)
                 }
-                if (![200, 301, 302, 307, 308].includes(response.status)) {
+                if (!isFetchSuccessful(response)) {
                     // noinspection ExceptionCaughtLocallyJS
                     throw response
                 }
