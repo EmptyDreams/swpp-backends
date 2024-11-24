@@ -196,11 +196,12 @@ function buildCommon($this: any) {
                     return response.text()
                 },
                 async extractUrls(compilation: CompilationData, content: string, filePath: string | URL): Promise<Set<string>> {
+                    const baseUrl = compilation.compilationEnv.read('DOMAIN_HOST')
                     const publicPath = compilation.compilationEnv.read('PUBLIC_PATH')
                     if (filePath.toString().startsWith(publicPath)) {
                         filePath = filePath.toString().substring(publicPath.length)
+                        filePath = utils.splicingUrl(baseUrl, filePath)
                     }
-                    const baseUrl = compilation.compilationEnv.read('DOMAIN_HOST')
                     const urls = new Set<string>()
                     /** 从指定位置开始查询注释 */
                     const findComment = (tag: string, start: number) => {
