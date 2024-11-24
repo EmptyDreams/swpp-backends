@@ -289,11 +289,11 @@ export class FileUpdateTracker {
                     return new FileUpdateTracker(compilation)
                 }
                 if (!isFetchSuccessful(response)) {
-                    // noinspection ExceptionCaughtLocallyJS
-                    throw response
+                    error = new RuntimeException(exceptionNames.networkError, `拉取 ${url} 时出现网络错误`, { response })
+                } else {
+                    const text = await response.text()
+                    return FileUpdateTracker.unJson(compilation, text)
                 }
-                const text = await response.text()
-                return FileUpdateTracker.unJson(compilation, text)
             } catch (e) {
                 if (notFoundLevel == AllowNotFoundEnum.ALLOW_ALL && isNotFound.error(e)) {
                     utils.printWarning(
@@ -301,8 +301,9 @@ export class FileUpdateTracker {
                     )
                     return new FileUpdateTracker(compilation)
                 }
-                throw new RuntimeException(exceptionNames.error, `拉取或解析历史 Tracker 时出现错误`, e)
+                error = new RuntimeException(exceptionNames.error, `拉取或解析历史 Tracker 时出现错误`, e)
             }
+            return
         })()
         if (result) return result
         throw error!

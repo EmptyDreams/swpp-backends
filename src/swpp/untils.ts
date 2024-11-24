@@ -229,6 +229,8 @@ export const exceptionNames = {
     fileDuplicate: 'file_duplicate',
     /** 超时 */
     timeout: 'timeout',
+    /** 网络错误 */
+    networkError: 'network_error',
     /** 未知分类错误 */
     error: 'error'
 } as const
