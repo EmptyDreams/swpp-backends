@@ -301,7 +301,7 @@ export class FileUpdateTracker {
                     )
                     return new FileUpdateTracker(compilation)
                 }
-                throw new RuntimeException(exceptionNames.error, `拉取或解析历史 Tracker 时出现错误`, { cause: e })
+                throw new RuntimeException(exceptionNames.error, `拉取或解析历史 Tracker 时出现错误`, e)
             }
         })()
         if (result) return result

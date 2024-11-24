@@ -125,7 +125,7 @@ export const utils = {
             const url = new URL(path, baseUrl)
             return baseUrl.hostname === url.hostname && url.pathname.startsWith(baseUrl.pathname)
         } catch (e) {
-            throw new RuntimeException(exceptionNames.error, `传入的 path[${path.toString()}] 不合法`, { cause: e })
+            throw new RuntimeException(exceptionNames.error, `传入的 path[${path.toString()}] 不合法`, e)
         }
     },
 
