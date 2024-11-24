@@ -10,28 +10,19 @@ export class BasicActions {
 
     /**
      * 构建一个基础的 swpp 行为封装器
-     * @param context 运行环境，dev 表示开发环境，prod 表示生产环境
-     * @param publicPath 网站根目录
-     * @param isBuildServiceWorker 是否构建 sw.js
-     * @param domJsPath dom js 的生成路径，留空表示不生成
-     * @param diffJsonPath diff json 的生成路径，留空表示不生成
      */
     static async build(
-        context: 'dev' | 'prod',
-        publicPath: string,
-        isBuildServiceWorker: boolean = true,
-        domJsPath?: string,
-        diffJsonPath?: string
+        optional: BasicActionOptions
     ): Promise<BasicActions> {
         const actions = new BasicActions(
-            context,
-            isBuildServiceWorker,
-            domJsPath,
-            diffJsonPath
+            optional.context,
+            optional.isServiceWorker,
+            optional.domJsPath,
+            optional.diffJsonPath
         )
         await actions.configLoader!.loadFromCode({
             compilationEnv: {
-                PUBLIC_PATH: publicPath
+                PUBLIC_PATH: optional.publicPath
             }
         })
         return actions
@@ -186,3 +177,18 @@ export class BasicActions {
 }
 
 export type BasicActionKey = 'tracker' | 'version' | 'serviceWorker' | 'domJs' | 'diffJson'
+
+export interface BasicActionOptions {
+
+    /** 上下文环境 */
+    context: 'dev' | 'prod'
+    /** 网站根目录（相对于项目根目录） */
+    publicPath: string
+    /** 是否生成 sw.js 文件 */
+    isServiceWorker: boolean
+    /** dom.js 文件路径（相对于网站根目录，留空表示不生成） */
+    domJsPath?: string
+    /** diff.json 文件路径（相对于网站根目录，留空表示不生成） */
+    diffJsonPath?: string
+
+}

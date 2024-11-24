@@ -78,13 +78,13 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
     }
     const cliConfig = JSON.parse(await utils.readFileUtf8(cliJsonPath)) as SwppCliConfig
     await checkAndInitConfig(cliConfig)
-    const actions = await BasicActions.build(
+    const actions = await BasicActions.build({
         context,
-        cliConfig.webRoot,
-        cliConfig.serviceWorker,
-        cliConfig.domJsPath,
-        cliConfig.diffJsonPath
-    )
+        publicPath: cliConfig.webRoot,
+        isServiceWorker: cliConfig.serviceWorker ?? true,
+        domJsPath: cliConfig.gen_dom ? undefined : cliConfig.domJsPath,
+        diffJsonPath: cliConfig.diffJsonPath
+    })
     await actions.loadConfigs(cliConfig.configFiles)
     actions.buildConfig()
     await actions.saveFiles()
