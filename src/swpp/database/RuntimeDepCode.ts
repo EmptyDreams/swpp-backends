@@ -7,21 +7,21 @@ import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 /** 仅在浏览器端执行的函数 */
 export type FunctionInBrowser<Args extends any[], R> = (...args: Args) => R
 
-let CACHE_NAME: string
-let VERSION_PATH: string
-let INVALID_KEY: string
-let STORAGE_TIMESTAMP: string
+declare const CACHE_NAME: string
+declare const VERSION_PATH: string
+declare const INVALID_KEY: string
+declare const STORAGE_TIMESTAMP: string
 
-let matchFromCaches: (request: RequestInfo | URL) => Promise<Response | undefined>
-let writeResponseToCache: (request: RequestInfo | URL, response: Response, date?: boolean) => Promise<void>
-let fetchWrapper: (request: RequestInfo | URL, banCache: boolean, cors: boolean, optional?: RequestInit) => Promise<Response>
-let isCors: (request: Request) => boolean
-let getFastestRequests: (request: Request) => Request[] | undefined
-let getStandbyRequests: (request: Request) => {t: number, l: (() => Request[])} | undefined
-let isFetchSuccessful: (response: Response) => boolean
-let fetchStandby: (request: Request, standbyRequests: {t: number, l: (() => Request[])}, optional?: RequestInit) => Promise<Response>
-let fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
-let transferError2Response: (err: Error) => Response
+declare const matchFromCaches: (request: RequestInfo | URL) => Promise<Response | undefined>
+declare const writeResponseToCache: (request: RequestInfo | URL, response: Response, date?: boolean) => Promise<void>
+declare const fetchWrapper: (request: RequestInfo | URL, banCache: boolean, cors: boolean, optional?: RequestInit) => Promise<Response>
+declare const isCors: (request: Request) => boolean
+declare const getFastestRequests: (request: Request) => Request[] | undefined
+declare const getStandbyRequests: (request: Request) => {t: number, l: (() => Request[])} | undefined
+declare const isFetchSuccessful: (response: Response) => boolean
+declare const fetchStandby: (request: Request, standbyRequests: {t: number, l: (() => Request[])}, optional?: RequestInit) => Promise<Response>
+declare const fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
+declare const transferError2Response: (err: Error) => Response
 
 export type COMMON_KEY_RUNTIME_DEP = ReturnType<typeof buildCommon>
 

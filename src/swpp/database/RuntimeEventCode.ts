@@ -2,13 +2,13 @@ import {BrowserVersion} from '../SwCompiler'
 import {FunctionInBrowser} from './RuntimeDepCode'
 import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 
-let ESCAPE: number
+declare const ESCAPE: number
 
-let handleFetchEvent: (event: Event) => void
-let handleUpdate: (oldVersion: BrowserVersion | undefined, force?: boolean) => Promise<1 | -1 | 2 | undefined | null | void | string[]>
-let postMessage: (type: string, data: any, ...goals: any) => Promise<void>
-let readVersion: () => Promise<BrowserVersion | undefined>
-let handleEscape: () => Promise<void>
+declare const handleFetchEvent: (event: Event) => void
+declare const handleUpdate: (oldVersion: BrowserVersion | undefined, force?: boolean) => Promise<1 | -1 | 2 | undefined | null | void | string[]>
+declare const postMessage: (type: string, data: any, ...goals: any) => Promise<void>
+declare const readVersion: () => Promise<BrowserVersion | undefined>
+declare const handleEscape: () => Promise<void>
 
 export type COMMON_TYPE_RUNTIME_EVENT = ReturnType<typeof buildCommon>
 

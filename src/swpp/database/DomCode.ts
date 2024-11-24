@@ -37,10 +37,10 @@ export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> 
 
 }
 
-let SESSION_KEY: string
-let onSuccess: () => void
-let pjaxUpdate: (url: string) => void
-let postMessage2Sw: (type: string) => void
+declare const SESSION_KEY: string
+declare const onSuccess: () => void
+declare const pjaxUpdate: (url: string) => void
+declare const postMessage2Sw: (type: string) => void
 
 function buildCommon() {
     return {
