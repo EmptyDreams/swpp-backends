@@ -50,25 +50,37 @@ export class CrossDepCode extends RuntimeKeyValueDatabase<FunctionInBrowserAndNo
         return utils.anyToSource(map, false, 'const')
     }
 
+    /**
+     * 构建一个在浏览器和 Node 中都执行的函数
+     */
+    static buildBothFunction<Args extends any[], R>(
+        action: (...args: Args) => R
+    ): FunctionInBrowserAndNode<Args, R> {
+        return {
+            runOnBrowser: action,
+            runOnNode: action
+        }
+    }
+
 }
 
 function buildCommon() {
     return {
         /** 检查请求是否成功 */
         isFetchSuccessful: {
-            default: buildBothFunction(
+            default: CrossDepCode.buildBothFunction(
                 (response: Response) => [200, 301, 302, 307, 308].includes(response.status)
             )
         },
         /** 缓存规则 */
         matchCacheRule: {
-            default: buildBothFunction(
+            default: CrossDepCode.buildBothFunction(
                 (_url: URL): undefined | null | false | number => false
             )
         },
         /** 归一化 URL */
         normalizeUrl: {
-            default: buildBothFunction((url: string): string => {
+            default: CrossDepCode.buildBothFunction((url: string): string => {
                 if (url.endsWith('/index.html'))
                     return url.substring(0, url.length - 10)
                 if (url.endsWith('.html'))
@@ -79,7 +91,7 @@ function buildCommon() {
         },
         /** 匹配缓存更新规则 */
         matchUpdateRule: {
-            default: buildBothFunction((exp: UpdateChangeExp): (url: string) => boolean|undefined|null => {
+            default: CrossDepCode.buildBothFunction((exp: UpdateChangeExp): (url: string) => boolean|undefined|null => {
                 /**
                  * 遍历所有value
                  * @param action 接受value并返回bool的函数
@@ -111,13 +123,4 @@ function buildCommon() {
             })
         }
     } as const
-}
-
-function buildBothFunction<Args extends any[], R>(
-    action: (...args: Args) => R
-): FunctionInBrowserAndNode<Args, R> {
-    return {
-        runOnBrowser: action,
-        runOnNode: action
-    }
 }
