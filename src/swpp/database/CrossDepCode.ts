@@ -56,81 +56,68 @@ function buildCommon() {
     return {
         /** 检查请求是否成功 */
         isFetchSuccessful: {
-            default: buildFunction({
-                runOnBrowser: (response: Response) => [200, 301, 302, 307, 308].includes(response.status),
-                runOnNode(response: Response): boolean {
-                    return this.runOnBrowser(response)
-                }
-            })
+            default: buildBothFunction(
+                (response: Response) => [200, 301, 302, 307, 308].includes(response.status)
+            )
         },
         /** 缓存规则 */
         matchCacheRule: {
-            default: buildFunction({
-                runOnBrowser: (_url: URL): undefined | null | false | number => false,
-                runOnNode(_url: URL): undefined | null | false | number {
-                    return this.runOnBrowser(_url)
-                }
-            })
+            default: buildBothFunction(
+                (_url: URL): undefined | null | false | number => false
+            )
         },
         /** 归一化 URL */
         normalizeUrl: {
-            default: buildFunction({
-                runOnBrowser: (url: string): string => {
-                    if (url.endsWith('/index.html'))
-                        return url.substring(0, url.length - 10)
-                    if (url.endsWith('.html'))
-                        return url.substring(0, url.length - 5)
-                    else
-                        return url
-                },
-                runOnNode(url: string): string {
-                    return this.runOnBrowser(url)
-                }
+            default: buildBothFunction((url: string): string => {
+                if (url.endsWith('/index.html'))
+                    return url.substring(0, url.length - 10)
+                if (url.endsWith('.html'))
+                    return url.substring(0, url.length - 5)
+                else
+                    return url
             })
         },
         /** 匹配缓存更新规则 */
         matchUpdateRule: {
-            default: buildFunction({
-                runOnBrowser: (exp: UpdateChangeExp): (url: string) => boolean|undefined|null => {
-                    /**
-                     * 遍历所有value
-                     * @param action 接受value并返回bool的函数
-                     * @return 如果 value 只有一个则返回 `action(value)`，否则返回所有运算的或运算（带短路）
-                     */
-                    const forEachValues = (action: (value: string) => boolean): boolean => {
-                        const value = exp.value!
-                        if (Array.isArray(value)) {
-                            for (let it of value) {
-                                if (action(it)) return true
-                            }
-                            return false
-                        } else return action(value)
-                    }
-                    switch (exp.flag) {
-                        case 'html':
-                            return url => /\/$|\.html$/.test(url)
-                        case 'suf':
-                            return url => forEachValues(value => url.endsWith(value))
-                        case 'pre':
-                            return url => forEachValues(value => url.startsWith(value))
-                        case 'str':
-                            return url => forEachValues(value => url.includes(value))
-                        case 'reg':
-                            return url => forEachValues(value => new RegExp(value, 'i').test(url))
-                        default:
-                            throw exp
-                    }
-                },
-                runOnNode(exp): (url: string) => boolean|undefined|null {
-                    return this.runOnBrowser(exp)
+            default: buildBothFunction((exp: UpdateChangeExp): (url: string) => boolean|undefined|null => {
+                /**
+                 * 遍历所有value
+                 * @param action 接受value并返回bool的函数
+                 * @return 如果 value 只有一个则返回 `action(value)`，否则返回所有运算的或运算（带短路）
+                 */
+                const forEachValues = (action: (value: string) => boolean): boolean => {
+                    const value = exp.value!
+                    if (Array.isArray(value)) {
+                        for (let it of value) {
+                            if (action(it)) return true
+                        }
+                        return false
+                    } else return action(value)
+                }
+                switch (exp.flag) {
+                    case 'html':
+                        return url => /\/$|\.html$/.test(url)
+                    case 'suf':
+                        return url => forEachValues(value => url.endsWith(value))
+                    case 'pre':
+                        return url => forEachValues(value => url.startsWith(value))
+                    case 'str':
+                        return url => forEachValues(value => url.includes(value))
+                    case 'reg':
+                        return url => forEachValues(value => new RegExp(value, 'i').test(url))
+                    default:
+                        throw exp
                 }
             })
         }
     } as const
 }
 
-function buildFunction<Args extends any[], R>(
-    fun: FunctionInBrowserAndNode<Args, R>
+function buildBothFunction<Args extends any[], R>(
+    action: (...args: Args) => R
 ): FunctionInBrowserAndNode<Args, R> {
-    return fun
+    return {
+        runOnBrowser: action,
+        runOnNode: action
+    }
 }
