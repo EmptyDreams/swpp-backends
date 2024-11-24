@@ -3,6 +3,8 @@
 /** 版本号 */
 export const swppVersion = require('../package.json').version as string
 
+export {BasicActions} from './swpp/BasicActions'
+
 export {utils, RuntimeException} from './swpp/untils'
 export {ResourcesScanner, FileUpdateTracker,} from './swpp/ResourcesScanner'
 export {JsonBuilder, UpdateJson, UpdateChangeExp, TrackerHeaderDiff} from './swpp/JsonBuilder'

@@ -1,10 +1,9 @@
 import {program} from 'commander'
 import fs from 'fs'
-import nodePath from 'path'
 import {swppVersion} from '../index'
-import {ConfigLoader} from './config/ConfigLoader'
-import {ResourcesScanner, traverseDirectory} from './ResourcesScanner'
-import {CompilationData, SwCompiler} from './SwCompiler'
+import {BasicActions} from './BasicActions'
+import {traverseDirectory} from './ResourcesScanner'
+import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
 import * as HTMLParser from 'node-html-parser'
 
@@ -79,47 +78,19 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
     }
     const cliConfig = JSON.parse(await utils.readFileUtf8(cliJsonPath)) as SwppCliConfig
     await checkAndInitConfig(cliConfig)
-    // 加载配置项
-    const loader = new ConfigLoader(context)
-    for (let item of cliConfig.configFiles) {
-        const path = nodePath.isAbsolute(item) ? item : nodePath.resolve(item)
-        await loader.load(path)
-    }
-    const {runtime, compilation} = loader.generate()
-    compilation.compilationEnv.update('PUBLIC_PATH', cliConfig.webRoot)
-    // 计算文件目录
-    const jsonInfo = compilation.compilationEnv.read('SWPP_JSON_FILE')
-    const fileContent: Record<string, () => string> = {}
-    fileContent[nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.trackerPath)] = () => newTracker.json()
-    fileContent[nodePath.join(cliConfig.webRoot, jsonInfo.swppPath, jsonInfo.versionPath)] = () => JSON.stringify(updateJson)
-    if (cliConfig.diffJsonPath) {
-        fileContent[cliConfig.diffJsonPath] = () => updateJsonBuilder.serialize()
-    }
-    if (cliConfig.serviceWorker) {
-        fileContent[
-            nodePath.join(cliConfig.webRoot, compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
-        ] = () => new SwCompiler().buildSwCode(runtime)
-    }
-    if (cliConfig.gen_dom) {
-        fileContent[nodePath.join(cliConfig.webRoot, cliConfig.domJsPath ?? '/sw-dom.js')] = () => runtime.domConfig.buildJsSource()
-    }
-    // 检查文件是否已经存在
-    for (let path in fileContent) {
-        if (fs.existsSync(path)) {
-            throw new RuntimeException(exceptionNames.fileDuplicate, `指定文件[${path}]已存在`)
-        }
-    }
-    // 扫描目录
-    const scanner = new ResourcesScanner(compilation)
-    const newTracker = await scanner.scanLocalFile(cliConfig.webRoot)
-    const updateJsonBuilder = await newTracker.diff()
-    const updateJson = await updateJsonBuilder.buildJson()
-    await fs.promises.mkdir(nodePath.join(cliConfig.webRoot, jsonInfo.swppPath), {recursive: true})
-    // 生成各项文件
-    await Promise.all(
-        Object.values(utils.objMap(fileContent, (value, key) => utils.writeFile(key, value())))
+    const actions = await BasicActions.build(
+        context,
+        cliConfig.webRoot,
+        cliConfig.serviceWorker,
+        cliConfig.domJsPath,
+        cliConfig.diffJsonPath
     )
+    await actions.loadConfigs(cliConfig.configFiles)
+    actions.buildConfig()
+    await actions.buildFiles()
     if (!cliConfig.auto_register && !cliConfig.gen_dom) return
+    const runtime = actions.runtimeData!
+    const compilation = actions.compilationData!
     const regexes = cliConfig.excludes?.map?.(it => new RegExp(it)) ?? []
     const swRegistry = cliConfig.auto_register ? `<script>(${runtime.domConfig.read('registry')})()</script>` : ''
     const domJsScript = cliConfig.gen_dom ? `<script defer src="${cliConfig.domJsPath ?? '/sw-dom.js'}"></script>` : ''
