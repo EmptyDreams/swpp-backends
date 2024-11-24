@@ -87,7 +87,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
     )
     await actions.loadConfigs(cliConfig.configFiles)
     actions.buildConfig()
-    await actions.buildFiles()
+    await actions.saveFiles()
     if (!cliConfig.auto_register && !cliConfig.gen_dom) return
     const runtime = actions.runtimeData!
     const compilation = actions.compilationData!

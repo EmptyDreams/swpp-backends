@@ -115,9 +115,14 @@ export class BasicActions {
     }
 
     /**
-     * 生成 swpp 的各项 json、js 文件
+     * 构建 swpp 的各项 json、js 文件
+     * @param excludeFilter 需排除的文件
      */
-    async buildFiles(): Promise<void> {
+    async buildFiles(excludeFilter: BasicActionKey[] = []): Promise<{
+        key: BasicActionKey,
+        path: string,
+        content: string
+    }[]> {
         if (!this.compilationData || !this.runtimeData) {
             throw new RuntimeException(exceptionNames.configBuilt, '配置文件加载阶段还未结束')
         }
@@ -141,28 +146,43 @@ export class BasicActions {
         const newTracker = await scanner.scanLocalFile(publicRoot)
         const updateJsonBuilder = await newTracker.diff()
         const updateJson = await updateJsonBuilder.buildJson()
-        const fileList = [
-            {
+        // @ts-ignore
+        return [
+            (!excludeFilter.includes('tracker') && {
+                key: 'tracker',
                 path: this.paths.trackerJson,
                 content: newTracker.json()
-            }, {
+            }), (!excludeFilter.includes('version') && {
+                key: 'version',
                 path: this.paths.versionJson,
                 content: JSON.stringify(updateJson)
-            }, (this.paths.serviceWorker && {
+            }), (this.paths.serviceWorker && !excludeFilter.includes('serviceWorker') && {
+                key: 'serviceWorker',
                 path: this.paths.serviceWorker,
                 content: new SwCompiler().buildSwCode(this.runtimeData!)
-            }), (this.paths.domJs && {
+            }), (this.paths.domJs && !excludeFilter.includes('domJs') && {
+                key: 'domJs',
                 path: this.paths.domJs,
                 content: this.runtimeData!.domConfig.buildJsSource()
-            }), (this.paths.diffJson && {
+            }), (this.paths.diffJson && !excludeFilter.includes('diffJson') && {
+                key: 'diffJson',
                 path: this.paths.diffJson,
                 content: updateJsonBuilder.serialize()
             })
-        ]
+        ].filter(it => it)
+    }
+
+    /**
+     * 生成 swpp 的各项 json、js 文件并写入到硬盘
+     * @param excludeFilter 需排除的文件
+     */
+    async saveFiles(excludeFilter: BasicActionKey[] = []): Promise<void> {
+        const fileList = await this.buildFiles(excludeFilter)
         await Promise.all(
-            fileList.filter(it => it)
-                .map((it: any) => utils.writeFile(it.path, it.content))
+            fileList.map((it: any) => utils.writeFile(it.path, it.content))
         )
     }
 
 }
+
+export type BasicActionKey = 'tracker' | 'version' | 'serviceWorker' | 'domJs' | 'diffJson'
