@@ -23,10 +23,9 @@ export class JsonBuilder {
 
     /** 将 Builder 序列化为 JSON */
     serialize(): string {
-        const array = new Array<string>(this.map.size)
-        let index = 0
-        this.map.forEach(value => array[index++] = value)
-        return JSON.stringify(array)
+        const diff: Record<string, string> = {}
+        this.map.forEach((value, key) => diff[key] = value)
+        return JSON.stringify(diff)
     }
 
     /**
