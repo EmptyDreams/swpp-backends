@@ -196,6 +196,12 @@ export class FileUpdateTracker {
         const oldTracker = this.oldTracker ??
             await this.compilation.compilationEnv.read('SWPP_JSON_FILE').fetchTrackerFile(this.compilation)
         oldTracker?.map?.forEach?.((value, key) => {
+            if (!key.startsWith('/') && utils.isSameHost(key, baseUrl)) {
+                key = key.substring(baseUrl.href.length - 1)
+                if (!key.startsWith('/')) {
+                    key = '/' + key
+                }
+            }
             const newValue = this.map.get(key)
             if (!newValue || newValue !== value) {
                 diff.update(utils.splicingUrl(baseUrl, key).href, newValue ?? '')
