@@ -173,7 +173,7 @@ export class FileUpdateTracker {
         const baseUrl = this.compilation.compilationEnv.read('DOMAIN_HOST')
         const url = new URL(uri, baseUrl)
         const normalizer = this.compilation.crossDep.read('normalizeUrl')
-        return new URL(normalizer.runOnNode(url.href))
+        return new URL(decodeURI(normalizer.runOnNode(url.href)))
     }
 
     /** 添加一个 URL */
@@ -248,7 +248,8 @@ export class FileUpdateTracker {
         switch (json.version) {
             case 4:
                 for (let key in json.tracker) {
-                    tracker.map.set(key, json.tracker[key])
+                    const uri = tracker.normalizeUri(key)
+                    tracker.map.set(uri.href, json.tracker[key])
                 }
                 break
             case 3:
