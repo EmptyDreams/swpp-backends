@@ -198,8 +198,8 @@ function buildCommon($this: any) {
                 async extractUrls(compilation: CompilationData, content: string, filePath: string | URL): Promise<Set<string>> {
                     const baseUrl = compilation.compilationEnv.read('DOMAIN_HOST')
                     const publicPath = compilation.compilationEnv.read('PUBLIC_PATH')
-                    if (filePath.toString().startsWith(publicPath)) {
-                        filePath = filePath.toString().substring(publicPath.length)
+                    if (typeof filePath == 'string' && filePath.startsWith(publicPath)) {
+                        filePath = filePath.substring(publicPath.length)
                         filePath = utils.splicingUrl(baseUrl, filePath)
                     }
                     const urls = new Set<string>()
