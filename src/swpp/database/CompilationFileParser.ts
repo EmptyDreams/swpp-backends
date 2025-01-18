@@ -1,6 +1,6 @@
 import * as HTMLParser from 'node-html-parser'
 import * as crypto from 'node:crypto'
-import nodePath from 'path'
+import {FilePath} from '../FilePath'
 import {CompilationData} from '../SwCompiler'
 import {exceptionNames, RuntimeException, utils} from '../untils'
 import {KeyValueDatabase} from './KeyValueDatabase'
@@ -15,13 +15,13 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
     }
 
     /** 解析本地文件 */
-    async parserLocalFile(path: string, cb?: (content: crypto.BinaryLike) => void, force?: boolean): Promise<Set<string>> {
-        const extname = nodePath.extname(path).substring(1)
+    async parserLocalFile(path: FilePath, cb?: (content: crypto.BinaryLike) => void, force?: boolean): Promise<Set<string>> {
+        const extname = path.extname().substring(1)
         if (this.hasKey(extname)) {
             const parser = this.read(extname)
             const content = await parser.readFromLocal(this.compilation, path)
             cb?.(content)
-            return await parser.extractUrls(this.compilation, content, nodePath.posix.dirname(path))
+            return await parser.extractUrls(this.compilation, content, path.parent())
         } else {
             if (force && cb) {
                 const reader = this.compilation.compilationEnv.read('readLocalFile')
@@ -41,7 +41,7 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
             const parser = this.read(contentType)
             const content = await parser.readFromNetwork(this.compilation, response)
             if (callback) await callback(content)
-            return await parser.extractUrls(this.compilation, content, url)
+            return await parser.extractUrls(this.compilation, content, new URL(url))
         } else {
             if (callback) {
                 const buffer = await response.arrayBuffer()
@@ -98,7 +98,7 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
      * @param content 文件内容
      * @param path 文件路径
      */
-    async parserContent(type: string, content: string, path: string | URL): Promise<Set<string>> {
+    async parserContent(type: string, content: string, path: FilePath | URL): Promise<Set<string>> {
         if (!this.hasKey(type)) return new Set<string>()
         const parser = this.read(type)
         return await parser.extractUrls(this.compilation, content, path)
@@ -111,13 +111,15 @@ function buildCommon($this: any) {
     return {
         html: {
             default: {
-                readFromLocal(compilation: CompilationData, path: string): Promise<string> {
+                readFromLocal(compilation: CompilationData, path: FilePath): Promise<string> {
                     return compilation.compilationEnv.read('readLocalFile')(path)
                 },
                 readFromNetwork(_: CompilationData, response: Response): Promise<string> {
                     return response.text()
                 },
-                async extractUrls(compilation: CompilationData, content: string, filePath: string | URL): Promise<Set<string>> {
+                async extractUrls(
+                    compilation: CompilationData, content: string, filePath: FilePath | URL
+                ): Promise<Set<string>> {
                     const baseUrl = compilation.compilationEnv.read("DOMAIN_HOST")
                     const html = HTMLParser.parse(content, {
                         blockTextElements: {
@@ -127,7 +129,9 @@ function buildCommon($this: any) {
                     const queue = [html]
                     const result = new Set<string>()
                     async function handleItem(item: HTMLParser.HTMLElement) {
-                        queue.push(...(item.childNodes ?? []).filter(it => it instanceof HTMLParser.HTMLElement))
+                        queue.push(
+                            ...((item.childNodes ?? []).filter(it => it instanceof HTMLParser.HTMLElement))
+                        )
                         if (!item.tagName) return
                         switch (item.tagName.toLowerCase()) {
                             case 'script': {
@@ -189,18 +193,23 @@ function buildCommon($this: any) {
         },
         css: {
             default: {
-                readFromLocal(compilation: CompilationData, path: string): Promise<string> {
+                readFromLocal(compilation: CompilationData, path: FilePath): Promise<string> {
                     return compilation.compilationEnv.read('readLocalFile')(path)
                 },
                 readFromNetwork(_: CompilationData, response: Response): Promise<string> {
                     return response.text()
                 },
-                async extractUrls(compilation: CompilationData, content: string, filePath: string | URL): Promise<Set<string>> {
+                async extractUrls(
+                    compilation: CompilationData, content: string, filePath: FilePath | URL
+                ): Promise<Set<string>> {
                     const baseUrl = compilation.compilationEnv.read('DOMAIN_HOST')
-                    const publicPath = compilation.compilationEnv.read('PUBLIC_PATH')
-                    if (typeof filePath == 'string' && filePath.startsWith(publicPath)) {
-                        filePath = filePath.substring(publicPath.length)
-                        filePath = utils.splicingUrl(baseUrl, filePath)
+                    let splitRoot: string
+                    if (filePath instanceof URL) {
+                        splitRoot = filePath.href
+                    } else if (filePath.basePublic != null) {
+                        splitRoot = filePath.basePublic
+                    } else {
+                        splitRoot = ''
                     }
                     const urls = new Set<string>()
                     /** 从指定位置开始查询注释 */
@@ -246,7 +255,7 @@ function buildCommon($this: any) {
                             // 将字符串两侧的内容删除，留下 URL 部分
                             ?.map(it => it.replace(/(^url\(\s*(['"]?))|((['"]?\s*)\)$)|(^@import\s+['"])|(['"]$)/g, ''))
                             // 如果是一个相对路径，则将其拼接到当前文件的后面
-                            ?.map(it => /^https?:\/\//.test(it) ? it : utils.splicingUrl(filePath, it))
+                            ?.map(it => /^https?:\/\//.test(it) ? it : utils.splicingUrl(splitRoot, it))
                             // 过滤掉当前网站的文件
                             ?.filter(it => !utils.isSameHost(it, baseUrl))
                             // 将内容添加到结果集
@@ -271,7 +280,7 @@ export interface FileParser<T extends crypto.BinaryLike> {
      * @param compilation 编译期依赖
      * @param path 文件路径
      */
-    readFromLocal(compilation: CompilationData, path: string): Promise<T>
+    readFromLocal(compilation: CompilationData, path: FilePath): Promise<T>
 
     /**
      * 从网络读取一个文件
@@ -286,7 +295,7 @@ export interface FileParser<T extends crypto.BinaryLike> {
      * @param content 文件内容
      * @param fileUrl 文件的 URL
      */
-    extractUrls(compilation: CompilationData, content: T, fileUrl: string | URL): Promise<Set<string>>
+    extractUrls(compilation: CompilationData, content: T, fileUrl: FilePath | URL): Promise<Set<string>>
 
     /**
      * 计算一个链接对应的资源的标识符及其内部资源

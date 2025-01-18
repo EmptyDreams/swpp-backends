@@ -52,16 +52,22 @@ function buildCommon() {
             }
         }),
         /**
-         * 网站文件在本机的目录，必须以 `/` 或 `\` 结尾
+         * 网站文件在本机的目录
          */
         PUBLIC_PATH: buildEnv<FilePath>({
             default: new FilePath('', '', ''),
             checker(value: FilePath): false | RuntimeEnvErrorTemplate<any> {
-                if (!value.exists()) return {
-                    value, message: 'PUBLIC_PATH 必须是一个合法且存在的文件夹路径'
+                if (!value.absPath || value.basePublic === null) return {
+                    value, message: 'PUBLIC_PATH 必须手动设置而非使用默认值'
                 }
                 return false
             }
+        }),
+        /**
+         * 项目根目录
+         */
+        PROJECT_PATH: buildEnv<FilePath>({
+            default: FilePath.relativeProject('')
         }),
         /**
          * SW 文件生成目录（'sw'），不需要包含 js 拓展名
@@ -148,7 +154,9 @@ function buildCommon() {
          * 读取一个本地文件
          */
         readLocalFile: buildEnv({
-            default: utils.readFileUtf8
+            default: (path: FilePath): Promise<string> => {
+                return utils.readFileUtf8(path.absPath)
+            }
         }),
         /**
          * 拉取网络文件

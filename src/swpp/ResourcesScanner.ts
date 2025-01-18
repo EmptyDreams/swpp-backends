@@ -1,7 +1,6 @@
-import fs from 'node:fs/promises'
 import * as crypto from 'node:crypto'
-import nodePath from 'path'
 import {AllowNotFoundEnum} from './database/CompilationEnv'
+import {FilePath} from './FilePath'
 import {JsonBuilder} from './JsonBuilder'
 import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
@@ -18,23 +17,23 @@ export class ResourcesScanner {
 
     // noinspection JSUnusedGlobalSymbols
     /** 扫描指定目录下的所有文件 */
-    async scanLocalFile(path: string): Promise<FileUpdateTracker> {
+    async scanLocalFile(path: FilePath): Promise<FileUpdateTracker> {
         const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
         const register = this.compilation.fileParser
         const jsonInfo = this.compilation.compilationEnv.read('SWPP_JSON_FILE')
         const excludes = [
-            nodePath.posix.join(path, jsonInfo.swppPath, jsonInfo.versionPath),
-            nodePath.posix.join(path, jsonInfo.swppPath, jsonInfo.trackerPath),
-            nodePath.posix.join(path, this.compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
+            path.join(jsonInfo.swppPath, jsonInfo.versionPath),
+            path.join(jsonInfo.swppPath, jsonInfo.trackerPath),
+            path.join(this.compilation.compilationEnv.read('SERVICE_WORKER') + '.js')
         ]
         if (!this.oldTracker) {
             this.oldTracker = await jsonInfo.fetchTrackerFile(this.compilation)
         }
         const urls = new Set<string>()
         const tracker = new FileUpdateTracker(this.compilation, this.oldTracker)
-        await traverseDirectory(path, async file => {
+        await path.walkAllFile(async file => {
             if (excludes.includes(file)) return
-            const localUrl = tracker.normalizeUri(file.substring(path.length))
+            const localUrl = tracker.normalizeUri(file.fileName())
             const isCached = !!matchCacheRule.runOnNode(localUrl)
             if (isCached) {
                 tracker.addUrl(localUrl.href)
@@ -89,23 +88,6 @@ export class ResourcesScanner {
             await this.scanNetworkFile(tracker, appendedUrls, record)
     }
 
-}
-
-/**
- * 遍历目录下的所有文件
- * @param dir
- * @param callback 接收一个参数表示文件路径（相对与项目根目录）
- */
-export async function traverseDirectory(dir: string, callback: (file: string) => Promise<any> | any): Promise<void> {
-    const stats = await fs.lstat(dir)
-    if (stats.isDirectory()) {
-        const files = await fs.readdir(dir)
-        await Promise.all(
-            files.map(it => traverseDirectory(nodePath.posix.join(dir, it), callback))
-        )
-    } else {
-        await callback(dir)
-    }
 }
 
 /**

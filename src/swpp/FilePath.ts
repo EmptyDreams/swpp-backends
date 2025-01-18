@@ -49,21 +49,27 @@ export class FilePath {
 
     /**
      * 将指定目录拼接到当前路径之后
-     * @param subPath 子目录（无论是否以 `/` 开头都会被当做相对路径）
      */
-    append(subPath: string): FilePath {
-        const newAbsPath = nodePath.posix.join(this.absPath, subPath)
-        const newBaseProject = this.baseProject ? nodePath.posix.join(this.baseProject, subPath) : null
-        const newBasePublic = this.basePublic ? nodePath.posix.join(this.basePublic, subPath) : null
+    append(subPath: string, ...subPaths: string[]): FilePath {
+        const newAbsPath = nodePath.posix.join(this.absPath, subPath, ...subPaths)
+        let newBaseProject: string | null = null
+        let newBasePublic: string | null = null
+        if (this.baseProject) {
+            newBaseProject = nodePath.posix.join(this.baseProject, subPath, ...subPaths)
+            newBaseProject = nodePath.posix.normalize(newBaseProject)
+        }
+        if (this.basePublic) {
+            newBasePublic = nodePath.posix.join(this.basePublic, subPath, ...subPaths)
+            newBasePublic = nodePath.posix.normalize(newBasePublic)
+        }
         return new FilePath(newAbsPath, newBaseProject, newBasePublic)
     }
 
     /**
      * 将指定目录拼接到当前路径之后
-     * @param subPath 子目录（无论是否以 `/` 开头都会被当做相对路径）
      */
-    join(subPath: string): FilePath {
-        return this.append(subPath)
+    join(subPath: string, ...subPaths: string[]): FilePath {
+        return this.append(subPath, ...subPath)
     }
 
     /**
@@ -72,6 +78,45 @@ export class FilePath {
      */
     relative(that: string | FilePath): string {
         return nodePath.posix.relative(this.absPath, typeof that === 'string' ? that : that.absPath)
+    }
+
+    /**
+     * 遍历当前路径下的所有文件（不含文件夹）
+     * @param consumer
+     */
+    async walkAllFile(consumer: (filePath: FilePath) => Promise<void> | void) {
+        const queue: FilePath[] = [this]
+        do {
+            const item = queue.pop()!
+            const dirs = await fs.promises.readdir(item.absPath)
+            for (let subPath of dirs) {
+                const path = item.join(subPath)
+                if (await path.isDirectory()) {
+                    queue.push(path)
+                } else {
+                    await consumer(path)
+                }
+            }
+        } while (queue.length)
+    }
+
+    /**
+     * 获取文件名
+     */
+    fileName(): string {
+        return nodePath.posix.basename(this.absPath)
+    }
+
+    /**
+     * 获取上一级目录
+     */
+    parent(): FilePath {
+        return FilePath.fromAbsPath(nodePath.posix.dirname(this.absPath))
+    }
+
+    /** 获取拓展名，包含 `.` */
+    extname(): string {
+        return nodePath.posix.extname(this.absPath)
     }
 
     /** 项目根目录 */
@@ -91,6 +136,15 @@ export class FilePath {
         } else {
             return new FilePath(absPath, null, null)
         }
+    }
+
+    /**
+     * 从相对路径获取 FilePath，相对于项目根目录
+     * @param that
+     */
+    static relativeProject(that: string): FilePath {
+        const absPath = nodePath.posix.resolve(that)
+        return new FilePath(absPath, '', null)
     }
 
 }

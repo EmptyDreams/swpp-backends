@@ -2,6 +2,7 @@ import fs from 'fs'
 import nodePath from 'path'
 import {SwppConfigTemplate} from './config/ConfigCluster'
 import {ConfigLoader} from './config/ConfigLoader'
+import {FilePath} from './FilePath'
 import {ResourcesScanner} from './ResourcesScanner'
 import {CompilationData, RuntimeData, SwCompiler} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
@@ -22,7 +23,7 @@ export class BasicActions {
         )
         await actions.configLoader!.loadFromCode({
             compilationEnv: {
-                PUBLIC_PATH: optional.publicPath
+                PUBLIC_PATH: FilePath.relativeProject(optional.publicPath)
             }
         })
         return actions
@@ -37,11 +38,11 @@ export class BasicActions {
      * 各个文件的生成路径，为空则表示不生成（或配置未初始化）
      */
     paths = {
-        trackerJson: null as string|null,
-        versionJson: null as string|null,
-        serviceWorker: null as string|null,
-        domJs: null as string|null,
-        diffJson: null as string|null
+        trackerJson: null as FilePath|null,
+        versionJson: null as FilePath|null,
+        serviceWorker: null as FilePath|null,
+        domJs: null as FilePath|null,
+        diffJson: null as FilePath|null
     }
 
     private constructor(
@@ -91,17 +92,17 @@ export class BasicActions {
         const compilationEnv = compilation.compilationEnv
         const publicRoot = compilationEnv.read('PUBLIC_PATH')
         const jsonInfo = compilationEnv.read('SWPP_JSON_FILE')
-        this.paths.trackerJson = nodePath.join(publicRoot, jsonInfo.swppPath, jsonInfo.trackerPath)
-        this.paths.versionJson = nodePath.join(publicRoot, jsonInfo.swppPath, jsonInfo.versionPath)
+        this.paths.trackerJson = publicRoot.join(jsonInfo.swppPath, jsonInfo.trackerPath)
+        this.paths.versionJson = publicRoot.join(jsonInfo.swppPath, jsonInfo.versionPath)
         if (this.isBuildServiceWorker) {
             const swPath = compilationEnv.read('SERVICE_WORKER')
-            this.paths.serviceWorker = nodePath.join(publicRoot, swPath + '.js')
+            this.paths.serviceWorker = publicRoot.join(swPath + '.js')
         }
         if (this.domJsPath) {
-            this.paths.domJs = nodePath.join(publicRoot, this.domJsPath)
+            this.paths.domJs = publicRoot.join(this.domJsPath)
         }
         if (this.diffJsonPath) {
-            this.paths.diffJson = this.diffJsonPath
+            this.paths.diffJson = publicRoot.join(this.diffJsonPath)
         }
     }
 
