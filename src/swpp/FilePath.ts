@@ -10,7 +10,7 @@ export class FilePath {
      * @param basePublic 相对于网站根目录的路径，如果路径不在网站范围内，则为 null
      * @private
      */
-    constructor(
+    private constructor(
         public readonly absPath: string,
         public readonly baseProject: string|null,
         public readonly basePublic: string|null
@@ -123,6 +123,8 @@ export class FilePath {
     static PROJECT_ROOT: FilePath
     /** 网站根目录 */
     static PUBLIC_ROOT: FilePath
+    /** 空目录 */
+    static EMPTY = new FilePath('', null, null)
 
     /**
      * 从绝对路径获取 FilePath

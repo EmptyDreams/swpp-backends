@@ -110,11 +110,7 @@ export class BasicActions {
      * 构建 swpp 的各项 json、js 文件
      * @param excludeFilter 需排除的文件
      */
-    async buildFiles(excludeFilter: BasicActionKey[] = []): Promise<{
-        key: BasicActionKey,
-        path: string,
-        content: string
-    }[]> {
+    async buildFiles(excludeFilter: BasicActionKey[] = []): Promise<BuildFileInfo[]> {
         if (!this.compilationData || !this.runtimeData) {
             throw new RuntimeException(exceptionNames.configBuilt, '配置文件加载阶段还未结束')
         }
@@ -171,7 +167,7 @@ export class BasicActions {
     async saveFiles(excludeFilter: BasicActionKey[] = []): Promise<void> {
         const fileList = await this.buildFiles(excludeFilter)
         await Promise.all(
-            fileList.map((it: any) => utils.writeFile(it.path, it.content))
+            fileList.map(it => utils.writeFile(it.path.absPath, it.content))
         )
     }
 
@@ -192,4 +188,10 @@ export interface BasicActionOptions {
     /** diff.json 文件路径（相对于网站根目录，留空表示不生成） */
     diffJsonPath?: string
 
+}
+
+interface BuildFileInfo {
+    key: BasicActionKey,
+    path: FilePath,
+    content: string
 }

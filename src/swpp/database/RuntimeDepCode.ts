@@ -39,7 +39,9 @@ export class RuntimeDepCode extends RuntimeKeyValueDatabase<FunctionInBrowser<an
 
 }
 
-const fetchFastestAndStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
+const fetchFastestAndStandbyRequests = (
+    requestOrUrl: RequestInfo | URL, optional?: RequestInit
+) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const standbyList = getStandbyRequests(request)
@@ -49,7 +51,9 @@ const fetchFastestAndStandbyRequests = (requestOrUrl: RequestInfo | URL, optiona
     return fetchWrapper(request, true, isCors(request), optional).catch(transferError2Response)
 }
 
-const fetchFastestRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
+const fetchFastestRequests = (
+    requestOrUrl: RequestInfo | URL, optional?: RequestInit
+) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const fastestList = getFastestRequests(request)
@@ -57,7 +61,9 @@ const fetchFastestRequests = (requestOrUrl: RequestInfo | URL, optional?: Reques
     return fetchWrapper(request, true, isCors(request), optional).catch(transferError2Response)
 }
 
-const fetchStandbyRequests = (requestOrUrl: RequestInfo | URL, optional?: RequestInit) => {
+const fetchStandbyRequests = (
+    requestOrUrl: RequestInfo | URL, optional?: RequestInit
+) => {
     // @ts-ignore
     const request = requestOrUrl.url ? requestOrUrl as Request : new Request(requestOrUrl)
     const standbyList = getStandbyRequests(request)

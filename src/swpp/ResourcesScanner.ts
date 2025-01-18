@@ -33,7 +33,7 @@ export class ResourcesScanner {
         const tracker = new FileUpdateTracker(this.compilation, this.oldTracker)
         await path.walkAllFile(async file => {
             if (excludes.includes(file)) return
-            const localUrl = tracker.normalizeUri(file.fileName())
+            const localUrl = tracker.normalizeUri(file.basePublic!)
             const isCached = !!matchCacheRule.runOnNode(localUrl)
             if (isCached) {
                 tracker.addUrl(localUrl.href)

@@ -15,7 +15,11 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
     }
 
     /** 解析本地文件 */
-    async parserLocalFile(path: FilePath, cb?: (content: crypto.BinaryLike) => void, force?: boolean): Promise<Set<string>> {
+    async parserLocalFile(
+        path: FilePath,
+        cb?: (content: crypto.BinaryLike) => void,
+        force?: boolean
+    ): Promise<Set<string>> {
         const extname = path.extname().substring(1)
         if (this.hasKey(extname)) {
             const parser = this.read(extname)
@@ -33,7 +37,10 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
     }
 
     /** 解析网络文件 */
-    async parserNetworkFile(response: Response, callback?: (content: crypto.BinaryLike) => Promise<any> | any): Promise<Set<string>> {
+    async parserNetworkFile(
+        response: Response,
+        callback?: (content: crypto.BinaryLike) => Promise<void> | void
+    ): Promise<Set<string>> {
         const url = response.url
         const fileHandler = this.compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
         const contentType = fileHandler.getUrlContentType(url, response)

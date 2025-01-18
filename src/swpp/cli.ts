@@ -2,7 +2,7 @@ import {program} from 'commander'
 import fs from 'fs'
 import {swppVersion} from '../index'
 import {BasicActions} from './BasicActions'
-import {traverseDirectory} from './ResourcesScanner'
+import {FilePath} from './FilePath'
 import {CompilationData} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
 import * as HTMLParser from 'node-html-parser'
@@ -15,7 +15,11 @@ export interface SwppCliConfig {
     configFiles: string[]
     /** dom js 的相对路径（相对于网站根目录，以 `/` 开头 `.js` 结尾） */
     domJsPath?: string
-    /** 需要被排除的 html 文件名，正则表达式，区分大小写 */
+    /**
+     * 需要被排除的 html 文件名，正则表达式，区分大小写
+     *
+     * 该正则表达式将会与文件路径（相对于网站根目录）进行匹配
+     */
     excludes?: string[]
     /** 是否生成 sw 文件 */
     serviceWorker?: boolean
@@ -95,19 +99,19 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
     const swRegistry = cliConfig.auto_register ? `<script>(${runtime.domConfig.read('registry')})()</script>` : ''
     const domJsScript = cliConfig.gen_dom ? `<script defer src="${cliConfig.domJsPath ?? '/sw-dom.js'}"></script>` : ''
     // 修改 html
-    await traverseDirectory(cliConfig.webRoot, async file => {
-        if (!file.endsWith('.html') || regexes.some(regex => regex.test(file))) return
+    await compilation.compilationEnv.read('PUBLIC_PATH').walkAllFile(async file => {
+        if (!file.absPath.endsWith('.html') || regexes.some(regex => regex.test(file.basePublic!))) return
         const html = await readHtml(compilation, file)
         const head = html.querySelector('head')!
         if (cliConfig.auto_register)
             head.insertAdjacentHTML('afterbegin', swRegistry)
         if (cliConfig.gen_dom)
             head.insertAdjacentHTML('beforeend', domJsScript)
-        await utils.writeFile(file, html.outerHTML)
+        await utils.writeFile(file.absPath, html.outerHTML)
     })
 }
 
-async function readHtml(compilation: CompilationData, path: string): Promise<HTMLParser.HTMLElement> {
+async function readHtml(compilation: CompilationData, path: FilePath): Promise<HTMLParser.HTMLElement> {
     const content = await compilation.compilationEnv.read('readLocalFile')(path)
     return HTMLParser.parse(content)
 }

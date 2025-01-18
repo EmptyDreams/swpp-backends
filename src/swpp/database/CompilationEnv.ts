@@ -55,7 +55,7 @@ function buildCommon() {
          * 网站文件在本机的目录
          */
         PUBLIC_PATH: buildEnv<FilePath>({
-            default: new FilePath('', '', ''),
+            default: FilePath.EMPTY,
             checker(value: FilePath): false | RuntimeEnvErrorTemplate<any> {
                 if (!value.absPath || value.basePublic === null) return {
                     value, message: 'PUBLIC_PATH 必须手动设置而非使用默认值'
