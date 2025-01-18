@@ -1,4 +1,4 @@
-import fs from 'fs'
+import {FilePath} from '../FilePath'
 import {UpdateJson} from '../JsonBuilder'
 import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {FileUpdateTracker} from '../ResourcesScanner'
@@ -54,10 +54,10 @@ function buildCommon() {
         /**
          * 网站文件在本机的目录，必须以 `/` 或 `\` 结尾
          */
-        PUBLIC_PATH: buildEnv({
-            default: '',
-            checker(value: string): false | RuntimeEnvErrorTemplate<any> {
-                if (!value || !/[/\\]$/.test(value) || !fs.existsSync(value)) return {
+        PUBLIC_PATH: buildEnv<FilePath>({
+            default: new FilePath('', '', ''),
+            checker(value: FilePath): false | RuntimeEnvErrorTemplate<any> {
+                if (!value.exists()) return {
                     value, message: 'PUBLIC_PATH 必须是一个合法且存在的文件夹路径'
                 }
                 return false
