@@ -130,6 +130,16 @@ export class FilePath {
         return nodePath.posix.extname(this.absPath)
     }
 
+    /**
+     * 创建目录（不包含当前目录，只创建父级目录）
+     */
+    async mkdirs() {
+        const parent = this.parent()
+        if (!await parent.exists()) {
+            await fs.promises.mkdir(parent.absPath, { recursive: true})
+        }
+    }
+
     /** 空目录 */
     static EMPTY = new FilePath('', null, null)
 

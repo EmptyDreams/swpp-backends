@@ -1,4 +1,3 @@
-import fs from 'fs'
 import {defineLazyInitConfig, SwppConfigTemplate} from './config/ConfigCluster'
 import {ConfigLoader} from './config/ConfigLoader'
 import {FilePath} from './FilePath'
@@ -167,8 +166,17 @@ export class BasicActions {
             }
         }
         const fileList = await this.buildFiles(excludeFilter)
+        for (let item of fileList) {
+            if (await item.path.exists()) {
+                throw new RuntimeException(exceptionNames.fileDuplicate, `指定文件[${item.path.absPath}]已存在`)
+            }
+        }
         await Promise.all(
-            fileList.map(it => utils.writeFile(it.path.absPath, it.content))
+            fileList.map(it => {
+                it.path.mkdirs().then(
+                    () => utils.writeFile(it.path.absPath, it.content)
+                )
+            })
         )
     }
 
