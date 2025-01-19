@@ -9,11 +9,11 @@ import * as HTMLParser from 'node-html-parser'
 
 export interface SwppCliConfig {
 
-    /** 网站根目录 */
+    /** 网站根目录，可以是绝对路径也可以是相对路径，swpp 根据系统规则进行判断 */
     webRoot: string
     /** 配置文件所在的相对路径（越靠前优先级越高） */
     configFiles: string[]
-    /** dom js 的相对路径（相对于网站根目录，以 `/` 开头 `.js` 结尾） */
+    /** dom js 的相对路径（相对于网站根目录，`.js` 结尾） */
     domJsPath?: string
     /**
      * 需要被排除的 html 文件名，正则表达式，区分大小写
@@ -56,7 +56,7 @@ async function checkAndInitConfig(cliConfig: SwppCliConfig) {
     ) {
         throw new RuntimeException(exceptionNames.error, 'CLI 配置文件中缺少 webRoot 配置项或传入了一个非文件夹路径', { webRoot: cliConfig.webRoot })
     }
-    if (cliConfig.domJsPath && (!cliConfig.domJsPath.startsWith('/') || !cliConfig.domJsPath.endsWith('.js'))) {
+    if (cliConfig.domJsPath && !cliConfig.domJsPath.endsWith('.js')) {
         throw new RuntimeException(exceptionNames.invalidValue, 'CLI 配置文件中的 domJsPath 应当传入一个 `/` 开头 `.js` 结尾的字符串')
     }
     if (!cliConfig.configFiles || cliConfig.configFiles.length === 0) {

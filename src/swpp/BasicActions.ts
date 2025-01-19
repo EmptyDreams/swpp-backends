@@ -23,7 +23,9 @@ export class BasicActions {
         )
         await actions.configLoader!.loadFromCode({
             compilationEnv: {
-                PUBLIC_PATH: FilePath.relativeProject(optional.publicPath)
+                PUBLIC_PATH: nodePath.isAbsolute(optional.publicPath)
+                    ? FilePath.fromAbsPath(optional.publicPath)
+                    : FilePath.relativeProject(optional.publicPath)
             }
         })
         return actions
