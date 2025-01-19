@@ -1,6 +1,7 @@
 import fs from 'fs'
 import {Stats} from 'node:fs'
 import nodePath from 'path'
+import {CompilationData} from './SwCompiler'
 
 export class FilePath {
 
@@ -73,14 +74,6 @@ export class FilePath {
     }
 
     /**
-     * 获取指定路径相对于当前路径的相对路径
-     * @param that
-     */
-    relative(that: string | FilePath): string {
-        return nodePath.posix.relative(this.absPath, typeof that === 'string' ? that : that.absPath)
-    }
-
-    /**
      * 遍历当前路径下的所有文件（不含文件夹）
      * @param consumer
      */
@@ -111,7 +104,11 @@ export class FilePath {
      * 获取上一级目录
      */
     parent(): FilePath {
-        return FilePath.fromAbsPath(nodePath.posix.dirname(this.absPath))
+        let newBaseProject = this.baseProject ? nodePath.posix.dirname(this.baseProject) : null
+        let newBasePublic = this.basePublic ? nodePath.posix.dirname(this.basePublic) : null
+        if (newBaseProject === '.') newBaseProject = null
+        if (newBasePublic === '.') newBasePublic = null
+        return new FilePath(nodePath.posix.dirname(this.absPath), newBaseProject, newBasePublic)
     }
 
     /** 获取拓展名，包含 `.` */
@@ -119,34 +116,58 @@ export class FilePath {
         return nodePath.posix.extname(this.absPath)
     }
 
-    /** 项目根目录 */
-    static PROJECT_ROOT: FilePath
-    /** 网站根目录 */
-    static PUBLIC_ROOT: FilePath
     /** 空目录 */
     static EMPTY = new FilePath('', null, null)
 
     /**
      * 从绝对路径获取 FilePath
-     * @param absPath
+     * @param absPath 绝对路径
+     * @param compilation 编译期数据
      */
-    static fromAbsPath(absPath: string): FilePath {
-        if (this.PROJECT_ROOT.absPath.startsWith(absPath)) {
-            return this.PROJECT_ROOT.join(absPath.substring(this.PROJECT_ROOT.absPath.length))
-        } else if (this.PUBLIC_ROOT.absPath.startsWith(absPath)) {
-            return this.PUBLIC_ROOT.join(absPath.substring(this.PUBLIC_ROOT.absPath.length))
+    static fromAbsPath(absPath: string, compilation: CompilationData): FilePath {
+        absPath = nodePath.posix.normalize(absPath)
+        const projectRoot = compilation.compilationEnv.read('PROJECT_PATH')
+        const publicRoot = compilation.compilationEnv.read('PUBLIC_PATH')
+        if (projectRoot.absPath.startsWith(absPath)) {
+            return projectRoot.join(absPath.substring(projectRoot.absPath.length))
+        } else if (publicRoot.absPath.startsWith(absPath)) {
+            return publicRoot.join(absPath.substring(publicRoot.absPath.length))
         } else {
             return new FilePath(absPath, null, null)
         }
     }
 
     /**
-     * 从相对路径获取 FilePath，相对于项目根目录
-     * @param that
+     * 构建网站根目录的 FilePath
+     * @param path 绝对路径或相对路径（相对于项目根目录），以 `/` 开头或 `x:/` 开头判定为绝对路径
+     * @param projectRoot 项目根目录（绝对路径或相对路径（相对于工作目录））
      */
-    static relativeProject(that: string): FilePath {
-        const absPath = nodePath.posix.resolve(that)
-        return new FilePath(absPath, '', null)
+    static buildPublicRoot(path: string, projectRoot: FilePath): FilePath {
+        if (!(path.startsWith('/') || nodePath.isAbsolute(path))) {
+            path = nodePath.resolve(path)
+        }
+        const absPath = nodePath.posix.normalize(path)
+        let baseProject = absPath.startsWith(projectRoot.absPath)
+            ? absPath.substring(projectRoot.absPath.length) : null
+        if (baseProject && (baseProject.startsWith('/') || baseProject.startsWith('\\'))) {
+            baseProject = baseProject.substring(1)
+        }
+        if (baseProject) {
+            baseProject = nodePath.posix.normalize(baseProject)
+        }
+        return new FilePath(absPath, baseProject, '')
+    }
+
+    /**
+     * 构建项目根目录的 FilePath
+     * @param path 绝对路径或相对路径（相对于工作目录）
+     */
+    static buildProjectRoot(path: string): FilePath {
+        if (!(path.startsWith('/') || nodePath.isAbsolute(path))) {
+            path = nodePath.resolve(path)
+        }
+        path = nodePath.posix.normalize(path)
+        return new FilePath(path, '', null)
     }
 
 }

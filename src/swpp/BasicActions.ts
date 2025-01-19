@@ -1,6 +1,6 @@
 import fs from 'fs'
 import nodePath from 'path'
-import {SwppConfigTemplate} from './config/ConfigCluster'
+import {defineLazyInitConfig, SwppConfigTemplate} from './config/ConfigCluster'
 import {ConfigLoader} from './config/ConfigLoader'
 import {FilePath} from './FilePath'
 import {ResourcesScanner} from './ResourcesScanner'
@@ -23,9 +23,9 @@ export class BasicActions {
         )
         await actions.configLoader!.loadFromCode({
             compilationEnv: {
-                PUBLIC_PATH: nodePath.isAbsolute(optional.publicPath)
-                    ? FilePath.fromAbsPath(optional.publicPath)
-                    : FilePath.relativeProject(optional.publicPath)
+                PUBLIC_PATH: defineLazyInitConfig((_, compilation) => {
+                    return FilePath.buildPublicRoot(optional.publicPath, compilation.compilationEnv.read('PROJECT_PATH'))
+                })
             }
         })
         return actions

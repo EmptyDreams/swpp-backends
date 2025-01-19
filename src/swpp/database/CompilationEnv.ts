@@ -67,7 +67,7 @@ function buildCommon() {
          * 项目根目录
          */
         PROJECT_PATH: buildEnv<FilePath>({
-            default: FilePath.relativeProject('')
+            default: FilePath.buildProjectRoot('')
         }),
         /**
          * SW 文件生成目录（'sw'），不需要包含 js 拓展名

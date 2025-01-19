@@ -12,7 +12,7 @@ export interface SwppCliConfig {
     /** 网站根目录，可以是绝对路径也可以是相对路径，swpp 根据系统规则进行判断 */
     webRoot: string
     /** 配置文件所在的相对路径（越靠前优先级越高） */
-    configFiles: string[]
+    configFiles: string[] | string
     /** dom js 的相对路径（相对于网站根目录，`.js` 结尾） */
     domJsPath?: string
     /**
@@ -50,9 +50,7 @@ export async function initCommand() {
 async function checkAndInitConfig(cliConfig: SwppCliConfig) {
     if (
         !cliConfig.webRoot ||
-        !fs.existsSync(cliConfig.webRoot) ||
-        !(await fs.promises.stat(cliConfig.webRoot)).isDirectory() ||
-        !/([/\\])$/.test(cliConfig.webRoot)
+        !(await fs.promises.stat(cliConfig.webRoot)).isDirectory()
     ) {
         throw new RuntimeException(
             exceptionNames.error,
@@ -79,7 +77,9 @@ async function checkAndInitConfig(cliConfig: SwppCliConfig) {
             'CLI 配置文件中的 diffJsonPath 应当传入一个以 `.json` 结尾的字符串'
         )
     }
-    cliConfig.configFiles.forEach(path => {
+    const configFiles = typeof cliConfig.configFiles === 'string' ?
+        [cliConfig.configFiles] : cliConfig.configFiles
+    configFiles.forEach(path => {
         if (!fs.existsSync(path)) {
             throw new RuntimeException(
                 exceptionNames.notFound,
@@ -111,7 +111,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         domJsPath: cliConfig.gen_dom ? undefined : cliConfig.domJsPath,
         diffJsonPath: cliConfig.diffJsonPath
     })
-    await actions.loadConfigs(cliConfig.configFiles)
+    await actions.loadConfigs(Array.isArray(cliConfig.configFiles) ? cliConfig.configFiles : [cliConfig.configFiles])
     actions.buildConfig()
     await actions.saveFiles()
     if (!cliConfig.auto_register && !cliConfig.gen_dom) return
