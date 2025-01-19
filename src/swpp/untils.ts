@@ -3,7 +3,6 @@ import * as crypto from 'node:crypto'
 
 export type ValuesOf<T> = T[keyof T]
 
-// @ts-ignore
 export const utils = {
 
     /** 检查指定 URL 是否是合法的 URL */
@@ -145,11 +144,15 @@ export const utils = {
     },
 
     printError(title: string, err: any) {
-        console.error(`[${this.time()}] [ERR] [SWPP] [${title}]: `, err)
+        console.error(`[${this.time()}] [SWPP] [${title}]: `, err)
     },
 
     printWarning(title: string, warning: any) {
-        console.warn(`[${this.time()}] [WARN] [SWPP] [${title}]: ${JSON.stringify(warning, null, 2)}`)
+        console.warn(`[${this.time()}] [SWPP] [${title}]: ${JSON.stringify(warning, null, 2)}`)
+    },
+
+    printInfo(title: string, info: any) {
+        console.info(`[${this.time()}] [SWPP] [${title}]: `, info)
     },
 
     /**

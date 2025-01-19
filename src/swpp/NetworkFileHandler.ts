@@ -173,7 +173,8 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
         if (!/^(https?):\/\/([^!@#$%^&*?.\s-]([^!@#$%^&*?.\s]{0,63}[^!@#$%^&*?.\s])?\.)+[a-z]{2,6}\/?/.test(url)) {
             throw new RuntimeException(exceptionNames.invalidValue, '传入了一个非法的 URL', {url})
         }
-        return new Promise(async (resolve, reject) => {
+        const startTime = Date.now()
+        const responsePromise = new Promise<Response>(async (resolve, reject) => {
             let id: any = undefined
             const isHttps = url.startsWith('https:')
             const client = isHttps ? https : http
@@ -218,6 +219,10 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                 }, this.timeout)
             }
         })
+        responsePromise.finally(() => {
+            utils.printInfo('FETCHER', `GET ${url}: ${(Date.now() - startTime) / 1000}s`)
+        })
+        return responsePromise
     }
 
 }
