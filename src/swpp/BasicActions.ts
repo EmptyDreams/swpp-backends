@@ -109,6 +109,8 @@ export class BasicActions {
         }
     }
 
+    private buildCache: BuildFileInfo[] | null = null
+
     /**
      * 构建 swpp 的各项 json、js 文件
      * @param excludeFilter 需排除的文件
@@ -117,28 +119,13 @@ export class BasicActions {
         if (!this.compilationData || !this.runtimeData) {
             throw new RuntimeException(exceptionNames.configBuilt, '配置文件加载阶段还未结束')
         }
-        for (let key in this.paths) {
-            // @ts-ignore
-            const path = this.paths[key] as FilePath | null
-            if (path && await path.exists()) {
-                throw new RuntimeException(exceptionNames.fileDuplicate, `指定文件[${path.absPath}]已存在`)
-            }
-        }
-        for (let key in this.paths) {
-            // @ts-ignore
-            const path = this.paths[key] as FilePath | null
-            if (!path) continue
-            const dirname = path.parent()
-            if (!(await dirname.exists())) {
-                await fs.promises.mkdir(dirname.absPath, {recursive: true})
-            }
-        }
+        if (this.buildCache !== null) return this.buildCache
         const publicRoot = this.compilationData.compilationEnv.read('PUBLIC_PATH')
         const scanner = new ResourcesScanner(this.compilationData)
         let newTracker: FileUpdateTracker | null = null
         let updateJsonBuilder: any = null
         // @ts-ignore
-        return [
+        return this.buildCache = [
             (!excludeFilter.includes('tracker') && {
                 key: 'tracker',
                 path: this.paths.trackerJson,
