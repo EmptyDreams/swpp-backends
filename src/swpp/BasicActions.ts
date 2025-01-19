@@ -18,7 +18,8 @@ export class BasicActions {
             optional.context,
             optional.isServiceWorker,
             optional.domJsPath,
-            optional.diffJsonPath
+            optional.diffJsonPath,
+            optional.trackLink !== true
         )
         await actions.configLoader!.loadFromCode({
             compilationEnv: {
@@ -50,7 +51,8 @@ export class BasicActions {
         public readonly context: 'dev' | 'prod',
         private readonly isBuildServiceWorker: boolean,
         private readonly domJsPath: string | undefined,
-        private readonly diffJsonPath: string | undefined
+        private readonly diffJsonPath: string | undefined,
+        private readonly disableTrack: boolean
     ) {}
 
     /**
@@ -166,6 +168,17 @@ export class BasicActions {
      * @param excludeFilter 需排除的文件
      */
     async saveFiles(excludeFilter: BasicActionKey[] = []): Promise<void> {
+        if (this.disableTrack) {
+            if (!excludeFilter.includes('tracker')) {
+                excludeFilter.push('tracker')
+            }
+            if (!excludeFilter.includes('version')) {
+                excludeFilter.push('version')
+            }
+            if (!excludeFilter.includes('diffJson')) {
+                excludeFilter.push('diffJson')
+            }
+        }
         const fileList = await this.buildFiles(excludeFilter)
         await Promise.all(
             fileList.map(it => utils.writeFile(it.path.absPath, it.content))
@@ -188,6 +201,8 @@ export interface BasicActionOptions {
     domJsPath?: string
     /** diff.json 文件路径（相对于网站根目录，留空表示不生成） */
     diffJsonPath?: string
+    /** 是否进行引用的静态分析，留空表示不进行（禁用静态分析后不能使用无限期缓存） */
+    trackLink?: boolean
 
 }
 

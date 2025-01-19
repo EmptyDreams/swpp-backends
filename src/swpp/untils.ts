@@ -144,7 +144,7 @@ export const utils = {
     },
 
     printError(title: string, err: any) {
-        console.error(`[${this.time()}] [SWPP] [${title}]: `, err)
+        console.error(`[${this.time()}] [SWPP] [${title}]:`, err)
     },
 
     printWarning(title: string, warning: any) {
@@ -152,7 +152,7 @@ export const utils = {
     },
 
     printInfo(title: string, info: any) {
-        console.info(`[${this.time()}] [SWPP] [${title}]: `, info)
+        console.info(`[${this.time()}] [SWPP] [${title}]:`, info)
     },
 
     /**
