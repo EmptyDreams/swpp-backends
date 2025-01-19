@@ -108,45 +108,62 @@ export class BasicActions {
         }
     }
 
-    private buildCache: BuildFileInfo[] | null = null
+    private buildCache: Promise<BuildFileInfo[]> | null = null
 
     /**
      * 构建 swpp 的各项 json、js 文件
+     *
+     * 该函数的结果内部会进行缓存，多次调用没有性能损耗
+     *
      * @param excludeFilter 需排除的文件
      */
     async buildFiles(excludeFilter: BasicActionKey[] = []): Promise<BuildFileInfo[]> {
         if (!this.compilationData || !this.runtimeData) {
             throw new RuntimeException(exceptionNames.configBuilt, '配置文件加载阶段还未结束')
         }
-        if (this.buildCache !== null) return this.buildCache
-        const publicRoot = this.compilationData.compilationEnv.read('PUBLIC_PATH')
-        const scanner = new ResourcesScanner(this.compilationData)
-        let newTracker: FileUpdateTracker | null = null
-        let updateJsonBuilder: any = null
-        // @ts-ignore
-        return this.buildCache = [
-            (!excludeFilter.includes('tracker') && {
-                key: 'tracker',
-                path: this.paths.trackerJson,
-                content: (newTracker = await scanner.scanLocalFile(publicRoot)).json()
-            }), (newTracker && !excludeFilter.includes('version') && {
-                key: 'version',
-                path: this.paths.versionJson,
-                content: JSON.stringify(await (updateJsonBuilder = await newTracker.diff()).buildJson())
-            }), (this.paths.serviceWorker && !excludeFilter.includes('serviceWorker') && {
-                key: 'serviceWorker',
-                path: this.paths.serviceWorker,
-                content: new SwCompiler().buildSwCode(this.runtimeData!)
-            }), (this.paths.domJs && !excludeFilter.includes('domJs') && {
-                key: 'domJs',
-                path: this.paths.domJs,
-                content: this.runtimeData!.domConfig.buildJsSource()
-            }), (updateJsonBuilder && this.paths.diffJson && !excludeFilter.includes('diffJson') && {
-                key: 'diffJson',
-                path: this.paths.diffJson,
-                content: updateJsonBuilder.serialize()
-            })
-        ].filter(it => it)
+        if (this.buildCache !== null) return await this.buildCache
+        const cachePromise = {
+            resolve: null as ((value: BuildFileInfo[]) => void) | null,
+            reject: null as ((reason?: any) => void) | null
+        }
+        this.buildCache = new Promise((resolve, reject) => {
+            cachePromise.resolve = resolve
+            cachePromise.reject = reject
+        })
+        try {
+            const publicRoot = this.compilationData.compilationEnv.read('PUBLIC_PATH')
+            const scanner = new ResourcesScanner(this.compilationData)
+            let newTracker: FileUpdateTracker | null = null
+            let updateJsonBuilder: any = null
+            const result = [
+                (!excludeFilter.includes('tracker') && {
+                    key: 'tracker',
+                    path: this.paths.trackerJson,
+                    content: (newTracker = await scanner.scanLocalFile(publicRoot)).json()
+                }), (newTracker && !excludeFilter.includes('version') && {
+                    key: 'version',
+                    path: this.paths.versionJson,
+                    content: JSON.stringify(await (updateJsonBuilder = await newTracker.diff()).buildJson())
+                }), (this.paths.serviceWorker && !excludeFilter.includes('serviceWorker') && {
+                    key: 'serviceWorker',
+                    path: this.paths.serviceWorker,
+                    content: new SwCompiler().buildSwCode(this.runtimeData!)
+                }), (this.paths.domJs && !excludeFilter.includes('domJs') && {
+                    key: 'domJs',
+                    path: this.paths.domJs,
+                    content: this.runtimeData!.domConfig.buildJsSource()
+                }), (updateJsonBuilder && this.paths.diffJson && !excludeFilter.includes('diffJson') && {
+                    key: 'diffJson',
+                    path: this.paths.diffJson,
+                    content: updateJsonBuilder.serialize()
+                })
+            ].filter(it => it)
+            cachePromise.resolve!(result)
+            return result
+        } catch (e) {
+            cachePromise.reject!(e)
+            throw e
+        }
     }
 
     /**
