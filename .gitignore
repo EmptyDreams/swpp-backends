@@ -5,6 +5,7 @@
 
 /dist/
 /types/
+/src/test-config.json
 
 package-lock.json
 /*.tgz
