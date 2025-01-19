@@ -2,7 +2,7 @@ import fs from 'fs'
 import {defineLazyInitConfig, SwppConfigTemplate} from './config/ConfigCluster'
 import {ConfigLoader} from './config/ConfigLoader'
 import {FilePath} from './FilePath'
-import {ResourcesScanner} from './ResourcesScanner'
+import {FileUpdateTracker, ResourcesScanner} from './ResourcesScanner'
 import {CompilationData, RuntimeData, SwCompiler} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
 
@@ -133,19 +133,18 @@ export class BasicActions {
         }
         const publicRoot = this.compilationData.compilationEnv.read('PUBLIC_PATH')
         const scanner = new ResourcesScanner(this.compilationData)
-        const newTracker = await scanner.scanLocalFile(publicRoot)
-        const updateJsonBuilder = await newTracker.diff()
-        const updateJson = await updateJsonBuilder.buildJson()
+        let newTracker: FileUpdateTracker | null = null
+        let updateJsonBuilder: any = null
         // @ts-ignore
         return [
             (!excludeFilter.includes('tracker') && {
                 key: 'tracker',
                 path: this.paths.trackerJson,
-                content: newTracker.json()
-            }), (!excludeFilter.includes('version') && {
+                content: (newTracker = await scanner.scanLocalFile(publicRoot)).json()
+            }), (newTracker && !excludeFilter.includes('version') && {
                 key: 'version',
                 path: this.paths.versionJson,
-                content: JSON.stringify(updateJson)
+                content: JSON.stringify(await (updateJsonBuilder = await newTracker.diff()).buildJson())
             }), (this.paths.serviceWorker && !excludeFilter.includes('serviceWorker') && {
                 key: 'serviceWorker',
                 path: this.paths.serviceWorker,
@@ -154,7 +153,7 @@ export class BasicActions {
                 key: 'domJs',
                 path: this.paths.domJs,
                 content: this.runtimeData!.domConfig.buildJsSource()
-            }), (this.paths.diffJson && !excludeFilter.includes('diffJson') && {
+            }), (updateJsonBuilder && this.paths.diffJson && !excludeFilter.includes('diffJson') && {
                 key: 'diffJson',
                 path: this.paths.diffJson,
                 content: updateJsonBuilder.serialize()
