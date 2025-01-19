@@ -210,14 +210,13 @@ function buildCommon($this: any) {
                     compilation: CompilationData, content: string, filePath: FilePath | URL
                 ): Promise<Set<string>> {
                     const baseUrl = compilation.compilationEnv.read('DOMAIN_HOST')
-                    let splitRoot: string
+                    let splitRoot: string = ''
                     if (filePath instanceof URL) {
                         splitRoot = filePath.href
-                    } else if (filePath.basePublic != null) {
-                        splitRoot = filePath.basePublic
-                    } else {
-                        splitRoot = ''
+                    } else if (filePath.isPublic) {
+                        splitRoot = utils.splicingUrl(baseUrl, filePath.basePublic!).href
                     }
+                    if (!splitRoot) splitRoot = baseUrl.href
                     const urls = new Set<string>()
                     /** 从指定位置开始查询注释 */
                     const findComment = (tag: string, start: number) => {

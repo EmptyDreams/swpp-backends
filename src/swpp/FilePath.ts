@@ -18,6 +18,20 @@ export class FilePath {
     ) { }
 
     /**
+     * 检查路径是否在网站范围内
+     */
+    get isPublic(): boolean {
+        return this.basePublic != null
+    }
+
+    /**
+     * 检查路径是否在项目范围内
+     */
+    get isProject(): boolean {
+        return this.baseProject != null
+    }
+
+    /**
      * 检查目录或文件是否存在
      */
     exists(): Promise<boolean> {
@@ -55,12 +69,12 @@ export class FilePath {
         const newAbsPath = nodePath.posix.join(this.absPath, subPath, ...subPaths)
         let newBaseProject: string | null = null
         let newBasePublic: string | null = null
-        if (this.baseProject) {
-            newBaseProject = nodePath.posix.join(this.baseProject, subPath, ...subPaths)
+        if (this.isProject) {
+            newBaseProject = nodePath.posix.join(this.baseProject!, subPath, ...subPaths)
             newBaseProject = nodePath.posix.normalize(newBaseProject)
         }
-        if (this.basePublic) {
-            newBasePublic = nodePath.posix.join(this.basePublic, subPath, ...subPaths)
+        if (this.isPublic) {
+            newBasePublic = nodePath.posix.join(this.basePublic!, subPath, ...subPaths)
             newBasePublic = nodePath.posix.normalize(newBasePublic)
         }
         return new FilePath(newAbsPath, newBaseProject, newBasePublic)
@@ -70,7 +84,7 @@ export class FilePath {
      * 将指定目录拼接到当前路径之后
      */
     join(subPath: string, ...subPaths: string[]): FilePath {
-        return this.append(subPath, ...subPath)
+        return this.append(subPath, ...subPaths)
     }
 
     /**
@@ -106,8 +120,8 @@ export class FilePath {
     parent(): FilePath {
         let newBaseProject = this.baseProject ? nodePath.posix.dirname(this.baseProject) : null
         let newBasePublic = this.basePublic ? nodePath.posix.dirname(this.basePublic) : null
-        if (newBaseProject === '.') newBaseProject = null
-        if (newBasePublic === '.') newBasePublic = null
+        if (newBaseProject === '.') newBaseProject = ''
+        if (newBasePublic === '.') newBasePublic = ''
         return new FilePath(nodePath.posix.dirname(this.absPath), newBaseProject, newBasePublic)
     }
 

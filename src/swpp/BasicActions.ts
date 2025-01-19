@@ -1,5 +1,4 @@
 import fs from 'fs'
-import nodePath from 'path'
 import {defineLazyInitConfig, SwppConfigTemplate} from './config/ConfigCluster'
 import {ConfigLoader} from './config/ConfigLoader'
 import {FilePath} from './FilePath'
@@ -74,7 +73,7 @@ export class BasicActions {
      * @param pathOrCodes
      */
     async loadConfigs(pathOrCodes: (string | SwppConfigTemplate)[]): Promise<void> {
-        for (let pathOrCode in pathOrCodes) {
+        for (let pathOrCode of pathOrCodes) {
             await this.loadConfig(pathOrCode)
         }
     }
@@ -118,17 +117,18 @@ export class BasicActions {
         }
         for (let key in this.paths) {
             // @ts-ignore
-            const path = this.paths[key] as string
-            if (path && fs.existsSync(path)) {
-                throw new RuntimeException(exceptionNames.fileDuplicate, `指定文件[${path}]已存在`)
+            const path = this.paths[key] as FilePath | null
+            if (path && await path.exists()) {
+                throw new RuntimeException(exceptionNames.fileDuplicate, `指定文件[${path.absPath}]已存在`)
             }
         }
         for (let key in this.paths) {
             // @ts-ignore
-            const path = this.paths[key] as string
-            const dirname = nodePath.dirname(path)
-            if (!fs.existsSync(dirname)) {
-                await fs.promises.mkdir(dirname, {recursive: true})
+            const path = this.paths[key] as FilePath | null
+            if (!path) continue
+            const dirname = path.parent()
+            if (!(await dirname.exists())) {
+                await fs.promises.mkdir(dirname.absPath, {recursive: true})
             }
         }
         const publicRoot = this.compilationData.compilationEnv.read('PUBLIC_PATH')
