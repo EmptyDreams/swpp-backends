@@ -54,20 +54,38 @@ async function checkAndInitConfig(cliConfig: SwppCliConfig) {
         !(await fs.promises.stat(cliConfig.webRoot)).isDirectory() ||
         !/([/\\])$/.test(cliConfig.webRoot)
     ) {
-        throw new RuntimeException(exceptionNames.error, 'CLI 配置文件中缺少 webRoot 配置项或传入了一个非文件夹路径', { webRoot: cliConfig.webRoot })
+        throw new RuntimeException(
+            exceptionNames.error,
+            'CLI 配置文件中缺少 webRoot 配置项或传入了一个非文件夹路径',
+            { webRoot: cliConfig.webRoot }
+        )
     }
     if (cliConfig.domJsPath && !cliConfig.domJsPath.endsWith('.js')) {
-        throw new RuntimeException(exceptionNames.invalidValue, 'CLI 配置文件中的 domJsPath 应当传入一个 `/` 开头 `.js` 结尾的字符串')
+        throw new RuntimeException(
+            exceptionNames.invalidValue,
+            'CLI 配置文件中的 domJsPath 应当传入一个 `/` 开头 `.js` 结尾的字符串'
+        )
     }
     if (!cliConfig.configFiles || cliConfig.configFiles.length === 0) {
-        throw new RuntimeException(exceptionNames.nullPoint, 'CLI 配置文件中缺少 configFiles 配置项或数组长度为 0', { configFiles: cliConfig.configFiles })
+        throw new RuntimeException(
+            exceptionNames.nullPoint,
+            'CLI 配置文件中缺少 configFiles 配置项或数组长度为 0',
+            { configFiles: cliConfig.configFiles }
+        )
     }
     if (cliConfig.diffJsonPath && !cliConfig.diffJsonPath.endsWith('.json')) {
-        throw new RuntimeException(exceptionNames.invalidValue, 'CLI 配置文件中的 diffJsonPath 应当传入一个以 `.json` 结尾的字符串')
+        throw new RuntimeException(
+            exceptionNames.invalidValue,
+            'CLI 配置文件中的 diffJsonPath 应当传入一个以 `.json` 结尾的字符串'
+        )
     }
     cliConfig.configFiles.forEach(path => {
         if (!fs.existsSync(path)) {
-            throw new RuntimeException(exceptionNames.notFound, 'CLI 配置文件的 configFiles 配置项中某项目录不存在', { path })
+            throw new RuntimeException(
+                exceptionNames.notFound,
+                'CLI 配置文件的 configFiles 配置项中某项目录不存在',
+                { path }
+            )
         }
     })
     cliConfig.serviceWorker = cliConfig.serviceWorker ?? true
@@ -78,7 +96,11 @@ async function checkAndInitConfig(cliConfig: SwppCliConfig) {
 /** 执行 build 指令 */
 async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' | 'prod') {
     if (!cliJsonPath.endsWith('.json')) {
-        throw new RuntimeException(exceptionNames.unsupportedFileType, 'CLI 配置文件仅支持 JSON 格式', { yourPath: cliJsonPath })
+        throw new RuntimeException(
+            exceptionNames.unsupportedFileType,
+            'CLI 配置文件仅支持 JSON 格式',
+            { yourPath: cliJsonPath }
+        )
     }
     const cliConfig = JSON.parse(await utils.readFileUtf8(cliJsonPath)) as SwppCliConfig
     await checkAndInitConfig(cliConfig)
@@ -96,16 +118,18 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
     const runtime = actions.runtimeData!
     const compilation = actions.compilationData!
     const regexes = cliConfig.excludes?.map?.(it => new RegExp(it)) ?? []
-    const swRegistry = cliConfig.auto_register ? `<script>(${runtime.domConfig.read('registry')})()</script>` : ''
-    const domJsScript = cliConfig.gen_dom ? `<script defer src="${cliConfig.domJsPath ?? '/sw-dom.js'}"></script>` : ''
+    const swRegistry = cliConfig.auto_register &&
+        `<script>(${runtime.domConfig.read('registry')})()</script>`
+    const domJsScript = cliConfig.gen_dom &&
+        `<script defer src="${cliConfig.domJsPath ?? '/sw-dom.js'}"></script>`
     // 修改 html
     await compilation.compilationEnv.read('PUBLIC_PATH').walkAllFile(async file => {
         if (!file.absPath.endsWith('.html') || regexes.some(regex => regex.test(file.basePublic!))) return
         const html = await readHtml(compilation, file)
         const head = html.querySelector('head')!
-        if (cliConfig.auto_register)
+        if (swRegistry)
             head.insertAdjacentHTML('afterbegin', swRegistry)
-        if (cliConfig.gen_dom)
+        if (domJsScript)
             head.insertAdjacentHTML('beforeend', domJsScript)
         await utils.writeFile(file.absPath, html.outerHTML)
     })
