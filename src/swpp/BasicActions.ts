@@ -1,6 +1,7 @@
 import {defineLazyInitConfig, SwppConfigTemplate} from './config/ConfigCluster'
 import {ConfigLoader} from './config/ConfigLoader'
 import {FilePath} from './FilePath'
+import {JsonBuilder} from './JsonBuilder'
 import {FileUpdateTracker, ResourcesScanner} from './ResourcesScanner'
 import {CompilationData, RuntimeData, SwCompiler} from './SwCompiler'
 import {exceptionNames, RuntimeException, utils} from './untils'
@@ -108,7 +109,7 @@ export class BasicActions {
         }
     }
 
-    private buildCache: Promise<BuildFileInfo[]> | null = null
+    private buildCaches: Record<string, Promise<BuildFileInfo[] | FileUpdateTracker | JsonBuilder | string>> = {}
 
     /**
      * 构建 swpp 的各项 json、js 文件
@@ -121,43 +122,70 @@ export class BasicActions {
         if (!this.compilationData || !this.runtimeData) {
             throw new RuntimeException(exceptionNames.configBuilt, '配置文件加载阶段还未结束')
         }
-        if (this.buildCache !== null) return await this.buildCache
+        const globalCacheKey = 'global:' + excludeFilter.join(',')
+        if (globalCacheKey in this.buildCaches) return (await this.buildCaches[globalCacheKey]) as BuildFileInfo[]
         const cachePromise = {
             resolve: null as ((value: BuildFileInfo[]) => void) | null,
             reject: null as ((reason?: any) => void) | null
         }
-        this.buildCache = new Promise((resolve, reject) => {
+        this.buildCaches[globalCacheKey] = new Promise((resolve, reject) => {
             cachePromise.resolve = resolve
             cachePromise.reject = reject
         })
         try {
             const publicRoot = this.compilationData.compilationEnv.read('PUBLIC_PATH')
             const scanner = new ResourcesScanner(this.compilationData)
-            let newTracker: FileUpdateTracker | null = null
-            let updateJsonBuilder: any = null
+            let newTracker = 'newTracker' in this.buildCaches ?
+                (await this.buildCaches['newTracker']) as FileUpdateTracker | null : null
+            let updateJsonBuilder = 'jsonBuilder' in this.buildCaches ?
+                (await this.buildCaches['jsonBuilder']) as JsonBuilder | null : null
+
+            const readValueCache = async (
+                key: BasicActionKey
+            ): Promise<string | undefined> => {
+                return await this.buildCaches[`value:${key}`] as string | undefined
+            }
+
             const result = [
                 (!excludeFilter.includes('tracker') && {
                     key: 'tracker',
                     path: this.paths.trackerJson,
-                    content: (newTracker = await scanner.scanLocalFile(publicRoot)).json()
+                    content: await readValueCache('tracker') || (
+                        newTracker || (
+                            newTracker = await (
+                                this.buildCaches['newTracker'] = scanner.scanLocalFile(publicRoot)
+                            )
+                        )
+                    ).json()
                 }), (newTracker && !excludeFilter.includes('version') && {
                     key: 'version',
                     path: this.paths.versionJson,
-                    content: JSON.stringify(await (updateJsonBuilder = await newTracker.diff()).buildJson())
+                    content: await readValueCache('version') || JSON.stringify(
+                        await (
+                            updateJsonBuilder || (
+                                updateJsonBuilder = await (
+                                    this.buildCaches['jsonBuilder'] = newTracker.diff()
+                                )
+                            )
+                        ).buildJson()
+                    )
                 }), (this.paths.serviceWorker && !excludeFilter.includes('serviceWorker') && {
                     key: 'serviceWorker',
                     path: this.paths.serviceWorker,
-                    content: new SwCompiler().buildSwCode(this.runtimeData!)
+                    content: await readValueCache('serviceWorker') || new SwCompiler().buildSwCode(this.runtimeData!)
                 }), (this.paths.domJs && !excludeFilter.includes('domJs') && {
                     key: 'domJs',
                     path: this.paths.domJs,
-                    content: this.runtimeData!.domConfig.buildJsSource()
+                    content: await readValueCache('domJs') || this.runtimeData!.domConfig.buildJsSource()
                 }), (updateJsonBuilder && this.paths.diffJson && !excludeFilter.includes('diffJson') && {
                     key: 'diffJson',
                     path: this.paths.diffJson,
-                    content: updateJsonBuilder.serialize()
+                    content: await readValueCache('diffJson') || updateJsonBuilder.serialize()
                 })
-            ].filter(it => it)
+            ].filter(it => it) as BuildFileInfo[]
+            for (let item of result) {
+                this.buildCaches[`value:${item.key}`] = Promise.resolve(item.content)
+            }
             cachePromise.resolve!(result)
             return result
         } catch (e) {
