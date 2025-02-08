@@ -92,6 +92,54 @@ export class BasicActions {
         this.compilationData = compilation
         this.configLoader = undefined
 
+        if (this.disableTrack) {
+            const matcher = runtime.crossDep.read('matchCacheRule')
+            const checker = (text: string): boolean => {
+                if (!text.includes('INFINITE_CACHE')) return true
+                const list = text.replaceAll('\r', '').split('\n')
+                let inStr = ''
+                let inComment = false
+                o:for (let string of list) {
+                    for (let i = 0; i < string.length; i++) {
+                        if (inStr) {
+                            if (string[i] == inStr) inStr = ''
+                        } else if (inComment) {
+                            if (string[i] == '*' && string[i + 1] === '/') {
+                                inComment = false
+                                ++i
+                            }
+                        } else {
+                            switch (string[i]) {
+                                case '"': case '`': case `"`:
+                                    inStr = string[i]
+                                    continue
+                                case '/':
+                                    if (string[i + 1] === '*') {
+                                        inComment = true
+                                    } else if (string[i + 1] === '/') {
+                                        continue o
+                                    }
+                                    break
+                                default:
+                                    if (string.startsWith('INFINITE_CACHE', i)) {
+                                        return false
+                                    }
+                                    break
+                            }
+                        }
+                    }
+                }
+                return true
+            }
+            if (!checker(matcher.runOnBrowser.toString())) {
+                throw new RuntimeException(
+                    exceptionNames.unsupportedOperate,
+                    '禁用引用链分析时禁止在 matchCacheRule 返回 INFINITE_CACHE。' +
+                    '如果您没有返回该值，可能是由于存在与该字段同名的变量或其它内容，从而导致 SWPP 误判，请您修改与 INFINITE_CACHE 重复的名称。'
+                )
+            }
+        }
+
         const compilationEnv = compilation.compilationEnv
         const publicRoot = compilationEnv.read('PUBLIC_PATH')
         const jsonInfo = compilationEnv.read('SWPP_JSON_FILE')

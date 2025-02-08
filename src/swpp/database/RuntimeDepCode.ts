@@ -11,6 +11,7 @@ declare const CACHE_NAME: string
 declare const VERSION_PATH: string
 declare const INVALID_KEY: string
 declare const STORAGE_TIMESTAMP: string
+declare const INFINITE_CACHE: symbol
 
 declare const matchFromCaches: (request: RequestInfo | URL) => Promise<Response | undefined>
 declare const writeResponseToCache: (request: RequestInfo | URL, response: Response, date?: boolean) => Promise<void>
@@ -111,14 +112,17 @@ function buildCommon() {
         },
         /** 判断指定的缓存是否是有效缓存 */
         isValidCache: {
-            default: (response: Response, rule: number) => {
+            default: (response: Response, rule: number | symbol) => {
                 const headers = response.headers
                 if (headers.has(INVALID_KEY)) return false
-                if (rule < 0) return true
+                if (rule === INFINITE_CACHE) return true
+                // @ts-ignore
+                if (rule < 0) return false
                 const storage = headers.get(STORAGE_TIMESTAMP)
                 if (!storage) return true
                 const storageDate = new Date(storage).getTime()
                 const nowTimestamp = Date.now()
+                // @ts-ignore
                 return nowTimestamp - storageDate < rule
             }
         },

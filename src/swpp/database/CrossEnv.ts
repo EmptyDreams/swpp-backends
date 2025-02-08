@@ -36,6 +36,17 @@ function buildCommon() {
     return {
         /** 缓存库名称 */
         CACHE_NAME: buildEnv({default: 'kmarBlogCache'}),
+        /** 永久缓存标记 */
+        INFINITE_CACHE: buildEnv({
+            default: Symbol(),
+            checker(value) {
+                // noinspection SuspiciousTypeOfGuard
+                if (typeof value !== 'symbol') {
+                    return {value, message: '填写的值应当为一个 Symbol'}
+                }
+                return false
+            }
+        }),
         /** 存储版本号的 URL */
         VERSION_PATH: buildEnv({
             default: 'https://id.v3/',

@@ -75,7 +75,7 @@ function buildCommon() {
         /** 缓存规则 */
         matchCacheRule: {
             default: CrossDepCode.buildBothFunction(
-                (_url: URL): undefined | null | false | number => false
+                (_url: URL): undefined | null | false | number | symbol => false
             )
         },
         /** 归一化 URL */
