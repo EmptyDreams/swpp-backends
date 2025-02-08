@@ -17,7 +17,7 @@ declare const writeResponseToCache: (request: RequestInfo | URL, response: Respo
 declare const fetchWrapper: (request: RequestInfo | URL, banCache: boolean, cors: boolean, optional?: RequestInit) => Promise<Response>
 declare const isCors: (request: Request) => boolean
 declare const getFastestRequests: (request: Request) => Request[] | undefined
-declare const getStandbyRequests: (request: Request) => {t: number, l: (() => Request[])} | undefined
+declare const getStandbyRequests: (request: Request) => {t: number, r: Request | undefined, l: (() => Request[])} | undefined
 declare const isFetchSuccessful: (response: Response) => boolean
 declare const fetchStandby: (request: Request, standbyRequests: {t: number, l: (() => Request[])}, optional?: RequestInit) => Promise<Response>
 declare const fetchFastest: (list: Request[], optional?: RequestInit) => Promise<Response>
@@ -236,7 +236,11 @@ function buildCommon() {
         },
         /** 备用 URL */
         fetchStandby: {
-            default: async (request: Request, standbyRequests: {t: number, l: () => Request[]}, optional?: RequestInit): Promise<Response> => {
+            default: async (
+                request: Request,
+                standbyRequests: {t: number, r: Request | undefined, l: () => Request[]},
+                optional?: RequestInit
+            ): Promise<Response> => {
                 const fallbackFetch = (request: Request, controller?: AbortController) => {
                     return fetchWrapper(request, true, true, {
                         ...optional,
@@ -248,7 +252,7 @@ function buildCommon() {
                 // 尝试封装 response
                 const resolveResponse = (index: number, response: Response) =>
                     isFetchSuccessful(response) ? {i: index, r: response} : Promise.reject(response)
-                const {t: time, l: listGetter} = standbyRequests
+                const {t: time, r: src, l: listGetter} = standbyRequests
                 const controllers = new Array<AbortController>(listGetter.length + 1)
                 // 尝试同时拉取 standbyRequests 中的所有 Request
                 const task = () => Promise.any(listGetter().map(
@@ -258,7 +262,7 @@ function buildCommon() {
                 )).then(obj => standbyResolve(obj))
                     .catch(() => standbyReject())
                 // 尝试拉取初始 request
-                const firstFetch = fallbackFetch(request, controllers[0] = new AbortController())
+                const firstFetch = fallbackFetch(src || request, controllers[0] = new AbortController())
                     .then(response => resolveResponse(0, response))
                     .catch(err => {
                         // 如果失败则跳过等待
