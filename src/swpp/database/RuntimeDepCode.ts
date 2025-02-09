@@ -116,8 +116,6 @@ function buildCommon() {
                 const headers = response.headers
                 if (headers.has(INVALID_KEY)) return false
                 if (rule === INFINITE_CACHE) return true
-                // @ts-ignore
-                if (rule < 0) return false
                 const storage = headers.get(STORAGE_TIMESTAMP)
                 if (!storage) return true
                 const storageDate = new Date(storage).getTime()

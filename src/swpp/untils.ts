@@ -112,7 +112,12 @@ export const utils = {
                     break
                 }
                 case "symbol":
-                    throw new RuntimeException(exceptionNames.invalidVarType, '非法的类型：symbol, key = ' + key)
+                    if (Symbol.keyFor(value)) {
+                        pushToResult(key, `Symbol.for('${Symbol.keyFor(value)}')`)
+                    } else {
+                        pushToResult(key, value.toString())
+                    }
+                    break
             }
         }
         return writeAsVar ? resultList.join(';\n') : '{\n' + resultList.join(',\n') + '\n};'
