@@ -71,7 +71,7 @@ function buildCommon() {
             })
         },
         postMessage2Sw: {
-            default: (type: string) => navigator.serviceWorker.controller!.postMessage(type)
+            default: (type: string) => navigator.serviceWorker.controller!.postMessage({type})
         },
         pjaxUpdate: {
             default: (url: string) => {
