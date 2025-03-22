@@ -124,7 +124,15 @@ function buildCommon() {
                 }
                 const newRequest = modifyRequest(request)
                 if (newRequest) request = newRequest
-                const cacheKey = new URL(normalizeUrl(request.url))
+                let cleanUrl = request.url
+                let rightBoundIndex = cleanUrl.indexOf('?')
+                if (rightBoundIndex === -1) {
+                    rightBoundIndex = cleanUrl.indexOf('#')
+                }
+                if (rightBoundIndex !== -1) {
+                    cleanUrl = cleanUrl.substring(0, rightBoundIndex)
+                }
+                const cacheKey = new URL(normalizeUrl(cleanUrl))
                 const cacheRule = matchCacheRule(cacheKey)
                 if (cacheRule) {
                     // @ts-ignore
