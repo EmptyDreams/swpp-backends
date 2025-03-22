@@ -29,9 +29,7 @@ export class DomCode extends RuntimeKeyValueDatabase<any, COMMON_TYPE_DOM_CODE> 
             if (!controller) return
             ${utils.anyToSource(map, false, 'const')};
             ${inlineCode.join(';\n')}
-            navigator.serviceWorker.addEventListener('message', event => {
-                messageEvent()
-            })
+            navigator.serviceWorker.addEventListener('message', messageEvent)
         `
     }
 
