@@ -93,7 +93,7 @@ export class JsonBuilder {
             const invalidIndex = new Array<boolean>(indexesArray.length)
             for (let i = 0; i < indexesArray.length; i++) {
                 if (invalidIndex[i]) continue
-                const parent = indexesArray[0]
+                const parent = indexesArray[i]
                 o:for (let k = 0; k < indexesArray.length; k++) {
                     if (i == k || invalidIndex[k]) continue
                     for (let item of indexesArray[k]) {
