@@ -53,7 +53,13 @@ export class BasicActions {
         private readonly domJsPath: string | undefined,
         private readonly diffJsonPath: string | undefined,
         private readonly disableTrack: boolean
-    ) {}
+    ) {
+        if (disableTrack) {
+            utils.printInfo('Track', '链接追踪（静态分析）已被关闭，缓存主动更新已自动禁用，请勿使用永久缓存')
+        } else {
+            utils.printInfo('Track', '链接追踪（静态分析）已开启，如果发现行为异常请及时反馈')
+        }
+    }
 
     /**
      * 加载一个配置文件或配置
