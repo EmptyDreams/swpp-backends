@@ -29,7 +29,7 @@
     "type": "git",
     "url": "git+ssh://git@github.com/EmptyDreams/swpp-backends.git"
   },
-  "homepage": "https://github.com/EmptyDreams/swpp-backends",
+  "homepage": "https://swpp.kmar.top/",
   "keywords": [
     "ServiceWorker",
     "sw"
