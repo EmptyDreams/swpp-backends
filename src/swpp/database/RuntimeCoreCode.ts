@@ -80,23 +80,25 @@ function buildCommon() {
                     return oldVersion ? 1 : -1
                 }
                 // 已是最新版本时跳过剩余步骤
-                if (oldVersion.global === global && oldVersion.local === newVersion.local) return
+                if (oldVersion.global === global && oldVersion.local === newVersion.local) {
+                    await writeVersion(oldVersion)
+                    return
+                }
                 // 按版本顺序更新缓存，直到找到当前版本
                 const expressionList: ((url: string) => boolean | null | undefined)[] = []
                 for (let infoElement of info) {
                     if (infoElement.version === oldVersion.local) {
                         const urlList: string[] = []
-                        await caches.open(CACHE_NAME)
-                            .then(cache => cache.keys())
-                            .then(async keys => {
-                                for (let request of keys) {
-                                    const url = request.url
-                                    if (url !== VERSION_PATH && expressionList.find(it => it(url))) {
-                                        await markCacheInvalid(request)
-                                        urlList.push(url)
-                                    }
-                                }
-                            })
+                        const cache = await caches.open(CACHE_NAME)
+                        const keys = await cache.keys()
+                        for (let request of keys) {
+                            const url = request.url
+                            if (url !== VERSION_PATH && expressionList.find(it => it(url))) {
+                                await markCacheInvalid(request)
+                                urlList.push(url)
+                            }
+                        }
+                        await writeVersion(newVersion)
                         return urlList
                     }
                     const changeList = infoElement.change
@@ -108,7 +110,7 @@ function buildCommon() {
                 }
                 // 运行到这里说明版本号丢失
                 await caches.delete(CACHE_NAME)
-                    .then(() => writeVersion(newVersion))
+                await writeVersion(newVersion)
                 return 2
             }
         },

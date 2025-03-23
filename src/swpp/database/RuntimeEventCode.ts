@@ -5,7 +5,7 @@ import {RuntimeKeyValueDatabase} from './RuntimeKeyValueDatabase'
 declare const ESCAPE: number
 
 declare const handleFetchEvent: (event: Event) => void
-declare const handleUpdate: (oldVersion: BrowserVersion | undefined, force?: boolean) => Promise<1 | -1 | 2 | undefined | null | void | string[]>
+declare const handleUpdate: (oldVersion: BrowserVersion | undefined | null, force?: boolean) => Promise<1 | -1 | 2 | undefined | null | void | string[]>
 declare const postMessage: (type: string, data: any, ...goals: any) => Promise<void>
 declare const readVersion: () => Promise<BrowserVersion | undefined>
 declare const handleEscape: () => Promise<void>
@@ -57,7 +57,7 @@ function buildCommon() {
                 // @ts-ignore
                 if (event.tag === 'update') {
                     // @ts-ignore
-                    event.waitUntil(handleUpdate(true))
+                    event.waitUntil(handleUpdate(null, true))
                 }
             }
         },
