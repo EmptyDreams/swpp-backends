@@ -62,7 +62,7 @@ export class JsonBuilder {
 
         // 压缩第一个版本的内容
         const indexes = (() => {
-            const change = json.info[0].change
+            const change = json.info[0]?.change
             if (!change) return new Set<number>()
             let htmlCount = 0
             const indexes = new Set<number>()
@@ -138,7 +138,7 @@ export class JsonBuilder {
             const changes = json.info[i].change
             if (!changes) continue
             for (let k = changes.length - 1; k >= 0; k--) {
-                const change = json.info[i].change![k]
+                const change = changes[k]
                 const values = change.value ? (Array.isArray(change.value) ? change.value : [change.value]) : []
                 const tmpChange: UpdateChangeExp = {
                     flag: change.flag,
@@ -152,9 +152,12 @@ export class JsonBuilder {
                         values.splice(j, 1)
                     }
                 }
-                if (values.length == 0) delete json.info[i].change
+                if (values.length == 0) changes.splice(k, 1)
                 else if (values.length == 1) change.value = values[0]
                 else change.value = values
+            }
+            if (changes.length === 0) {
+                delete json.info[i]['change']
             }
         }
     }
