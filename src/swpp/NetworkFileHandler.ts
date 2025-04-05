@@ -203,13 +203,13 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                             .catch(err => reject(err))
                     } else {
                         const lastIndex = url.lastIndexOf('/')
-                        let base;
+                        let locationUrl;
                         if (lastIndex < 8) {
-                            base = url + '/' + location;
+                            locationUrl = url + '/' + location;
                         } else {
-                            base = url.substring(0, lastIndex + 1) + location;
+                            locationUrl = url.substring(0, lastIndex + 1) + location;
                         }
-                        this.request(base, onTimeout)
+                        this.request(new URL(locationUrl).href, onTimeout)
                             .then(response => resolve(response))
                             .catch(err => reject(err))
                     }
