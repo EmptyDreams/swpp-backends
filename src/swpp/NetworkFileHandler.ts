@@ -12,6 +12,8 @@ export interface NetworkFileHandler {
 
     /** 最大并发量 */
     limit: number
+    /** 最大重定向次数 */ 
+    redirectLimit: number
     /** 超时时间（毫秒） */
     timeout: number
     /** 拉取文件时使用的 referer */
@@ -58,6 +60,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
 
     limit = 100
     timeout = 5000
+    redirectLimit = 10
     referer = 'https://swpp.example.com'
     userAgent = 'swpp-backends'
     headers = {}
@@ -194,9 +197,8 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                     } else {
                         try {
                             // 设置最大重定向次数
-                            const MAX_REDIRECT_COUNT = 20
-                            if (redirectCount > MAX_REDIRECT_COUNT) {
-                                reject(new Error(`GET ${url} Error: 重定向次数过多，超过 ${MAX_REDIRECT_COUNT} 次`))
+                            if (redirectCount > this.redirectLimit) {
+                                reject(new Error(`GET ${url} Error: 重定向次数过多，超过 ${this.redirectLimit} 次`))
                                 return
                             }
 
