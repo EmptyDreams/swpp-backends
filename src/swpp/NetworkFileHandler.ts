@@ -191,8 +191,25 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                     const location = response.headers.location
                     if (!location) {
                         reject(new Error(`GET ${url} Error: 返回了 ${response.statusCode} 但没有包含 Location 字段`))
-                    } else {
+                    } else if (location.startsWith('/')) {
+                        const rightIndex = location.indexOf('/', 8)
+                        const host = rightIndex < 0 ? url : location.substring(0, rightIndex)
+                        this.request(host + location, onTimeout)
+                            .then(response => resolve(response))
+                            .catch(err => reject(err))
+                    } else if (/^https?:\/\//.test(location)) {
                         this.request(location, onTimeout)
+                            .then(response => resolve(response))
+                            .catch(err => reject(err))
+                    } else {
+                        const lastIndex = url.lastIndexOf('/')
+                        let base;
+                        if (lastIndex < 8) {
+                            base = url + '/' + location;
+                        } else {
+                            base = url.substring(0, lastIndex + 1) + location;
+                        }
+                        this.request(base, onTimeout)
                             .then(response => resolve(response))
                             .catch(err => reject(err))
                     }
