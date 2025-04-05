@@ -191,27 +191,20 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                     const location = response.headers.location
                     if (!location) {
                         reject(new Error(`GET ${url} Error: 返回了 ${response.statusCode} 但没有包含 Location 字段`))
-                    } else if (location.startsWith('/')) {
-                        const rightIndex = url.indexOf('/', 8)
-                        const host = rightIndex < 0 ? url : url.substring(0, rightIndex)
-                        this.request(host + location, onTimeout)
-                            .then(response => resolve(response))
-                            .catch(err => reject(err))
-                    } else if (/^https?:\/\//.test(location)) {
-                        this.request(location, onTimeout)
-                            .then(response => resolve(response))
-                            .catch(err => reject(err))
                     } else {
-                        const lastIndex = url.lastIndexOf('/')
-                        let locationUrl;
-                        if (lastIndex < 8) {
-                            locationUrl = url + '/' + location;
-                        } else {
-                            locationUrl = url.substring(0, lastIndex + 1) + location;
+                        try {
+                            // 使用 URL 构造器处理所有跳转路径（包括相对路径）
+                            const base = new URL(url);
+                            const new_location = new URL(location, base).toString();
+
+                            // 进行请求
+                            this.request(new_location, onTimeout)
+                                .then(response => resolve(response))
+                                .catch(err => reject(err));
+                        
+                        } catch (err) {
+                            reject(new Error(`GET ${url} Error: 构建重定向地址失败 - ${err}`));
                         }
-                        this.request(new URL(locationUrl).href, onTimeout)
-                            .then(response => resolve(response))
-                            .catch(err => reject(err))
                     }
                 } else {
                     const bufferArray: Buffer[] = []
