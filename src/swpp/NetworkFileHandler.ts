@@ -169,7 +169,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
         return [url]
     }
 
-    private request(url: string, onTimeout?: () => void): Promise<Response> {
+    private request(url: string, onTimeout?: () => void, redirectCount: number = 0): Promise<Response> {
         if (!/^(https?):\/\/([^!@#$%^&*?.\s-]([^!@#$%^&*?.\s]{0,63}[^!@#$%^&*?.\s])?\.)+[a-z]{2,6}\/?/.test(url)) {
             throw new RuntimeException(exceptionNames.invalidValue, '传入了一个非法的 URL', {url})
         }
@@ -193,12 +193,19 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                         reject(new Error(`GET ${url} Error: 返回了 ${response.statusCode} 但没有包含 Location 字段`))
                     } else {
                         try {
+                            // 设置最大重定向次数
+                            const MAX_REDIRECT_COUNT = 20
+                            if (redirectCount > MAX_REDIRECT_COUNT) {
+                                reject(new Error(`GET ${url} Error: 重定向次数过多，超过 ${MAX_REDIRECT_COUNT} 次`))
+                                return
+                            }
+
                             // 使用 URL 构造器处理所有跳转路径（包括相对路径）
                             const base = new URL(url);
                             const new_location = new URL(location, base).toString();
 
                             // 进行请求
-                            this.request(new_location, onTimeout)
+                            this.request(new_location, onTimeout, redirectCount + 1)
                                 .then(response => resolve(response))
                                 .catch(err => reject(err));
                         
@@ -230,7 +237,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
             }
         })
         responsePromise.finally(() => {
-            utils.printInfo('FETCHER', `GET ${url}: ${(Date.now() - startTime) / 1000}s`)
+            utils.printInfo('FETCHER', `GET ${url} : ${(Date.now() - startTime) / 1000}s`)
         })
         return responsePromise
     }
