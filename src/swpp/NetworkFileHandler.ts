@@ -191,25 +191,18 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                     const location = response.headers.location
                     if (!location) {
                         reject(new Error(`GET ${url} Error: 返回了 ${response.statusCode} 但没有包含 Location 字段`))
-                    } else if (location.startsWith('/')) {
-                        const rightIndex = location.indexOf('/', 8)
-                        const host = rightIndex < 0 ? url : location.substring(0, rightIndex)
-                        this.request(host + location, onTimeout)
-                            .then(response => resolve(response))
-                            .catch(err => reject(err))
-                    } else if (/^https?:\/\//.test(location)) {
-                        this.request(location, onTimeout)
-                            .then(response => resolve(response))
-                            .catch(err => reject(err))
                     } else {
-                        const lastIndex = url.lastIndexOf('/')
-                        let base;
-                        if (lastIndex < 8) {
-                            base = url + '/' + location;
-                        } else {
-                            base = url.substring(0, lastIndex + 1) + location;
+                        // 判断是绝对路径还是相对路径
+                        const isAbsolutePath = location.startsWith('http://') || location.startsWith('https://') || location.startsWith('//')
+                        let new_location = location
+                        if (!isAbsolutePath) {
+                            // 从 URL 中获取协议和主机名
+                            const protocol = url.split('://')[0] || 'https'
+                            const host = url.split('/')[2]
+                            // 拼接新的 URL
+                            new_location = `${protocol}://${host}${location}`
                         }
-                        this.request(base, onTimeout)
+                        this.request(new_location, onTimeout)
                             .then(response => resolve(response))
                             .catch(err => reject(err))
                     }
