@@ -12,6 +12,8 @@ export interface NetworkFileHandler {
 
     /** 最大并发量 */
     limit: number
+    /** 最大重定向次数 */ 
+    redirectLimit: number
     /** 超时时间（毫秒） */
     timeout: number
     /** 拉取文件时使用的 referer */
@@ -58,6 +60,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
 
     limit = 100
     timeout = 5000
+    redirectLimit = 10
     referer = 'https://swpp.example.com'
     userAgent = 'swpp-backends'
     headers = {}
@@ -169,7 +172,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
         return [url]
     }
 
-    private request(url: string, onTimeout?: () => void): Promise<Response> {
+    private request(url: string, onTimeout?: () => void, redirectCount: number = 0): Promise<Response> {
         if (!/^(https?):\/\/([^!@#$%^&*?.\s-]([^!@#$%^&*?.\s]{0,63}[^!@#$%^&*?.\s])?\.)+[a-z]{2,6}\/?/.test(url)) {
             throw new RuntimeException(exceptionNames.invalidValue, '传入了一个非法的 URL', {url})
         }
@@ -191,27 +194,26 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
                     const location = response.headers.location
                     if (!location) {
                         reject(new Error(`GET ${url} Error: 返回了 ${response.statusCode} 但没有包含 Location 字段`))
-                    } else if (location.startsWith('/')) {
-                        const rightIndex = url.indexOf('/', 8)
-                        const host = rightIndex < 0 ? url : url.substring(0, rightIndex)
-                        this.request(host + location, onTimeout)
-                            .then(response => resolve(response))
-                            .catch(err => reject(err))
-                    } else if (/^https?:\/\//.test(location)) {
-                        this.request(location, onTimeout)
-                            .then(response => resolve(response))
-                            .catch(err => reject(err))
                     } else {
-                        const lastIndex = url.lastIndexOf('/')
-                        let locationUrl;
-                        if (lastIndex < 8) {
-                            locationUrl = url + '/' + location;
-                        } else {
-                            locationUrl = url.substring(0, lastIndex + 1) + location;
+                        try {
+                            // 设置最大重定向次数
+                            if (redirectCount > this.redirectLimit) {
+                                reject(new Error(`GET ${url} Error: 重定向次数过多，超过 ${this.redirectLimit} 次`))
+                                return
+                            }
+
+                            // 使用 URL 构造器处理所有跳转路径（包括相对路径）
+                            const base = new URL(url);
+                            const new_location = new URL(location, base).toString();
+
+                            // 进行请求
+                            this.request(new_location, onTimeout, redirectCount + 1)
+                                .then(response => resolve(response))
+                                .catch(err => reject(err));
+                        
+                        } catch (err) {
+                            reject(new Error(`GET ${url} Error: 构建重定向地址失败 - ${err}`));
                         }
-                        this.request(new URL(locationUrl).href, onTimeout)
-                            .then(response => resolve(response))
-                            .catch(err => reject(err))
                     }
                 } else {
                     const bufferArray: Buffer[] = []
@@ -237,7 +239,7 @@ export class FiniteConcurrencyFetcher implements NetworkFileHandler {
             }
         })
         responsePromise.finally(() => {
-            utils.printInfo('FETCHER', `GET ${url}: ${(Date.now() - startTime) / 1000}s`)
+            utils.printInfo('FETCHER', `GET ${url} : ${(Date.now() - startTime) / 1000}s`)
         })
         return responsePromise
     }
