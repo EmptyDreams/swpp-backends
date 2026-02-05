@@ -36,69 +36,6 @@ export class CompilationFileParser extends KeyValueDatabase<FileParser<crypto.Bi
         }
     }
 
-    /** 解析网络文件 */
-    async parserNetworkFile(
-        response: Response,
-        callback?: (content: crypto.BinaryLike) => Promise<void> | void
-    ): Promise<Set<string>> {
-        const url = response.url
-        const fileHandler = this.compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
-        const contentType = fileHandler.getUrlContentType(url, response)
-        if (this.hasKey(contentType)) {
-            const parser = this.read(contentType)
-            const content = await parser.readFromNetwork(this.compilation, response)
-            if (callback) await callback(content)
-            return await parser.extractUrls(this.compilation, content, new URL(url))
-        } else {
-            if (callback) {
-                const buffer = await response.arrayBuffer()
-                const array = new Uint8Array(buffer)
-                callback(array)
-            }
-            return new Set<string>()
-        }
-    }
-
-    /**
-     * 解析指定的 URL
-     * @param url 链接
-     * @param isCached 该链接指向的资源是否需要缓存
-     */
-    async parserUrlFile(url: string, isCached: boolean): Promise<FileMark> {
-        const fileHandler = this.compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
-        const contentType = fileHandler.getUrlContentType(url)
-        if (!contentType && !isCached) return { file: url, mark: '', urls: new Set<string>() }
-        const parser = this.hasKey(contentType) ? this.read(contentType) : undefined
-        if (!parser && !isCached) return { file: url, mark: '', urls: new Set<string>() }
-        if (parser?.calcUrl) {
-            const result = await parser.calcUrl(url)
-            if (result) return {
-                file: url,
-                ...result
-            }
-        }
-        const fetcher = this.compilation.compilationEnv.read('NETWORK_FILE_FETCHER')
-        const urls = new Set<string>()
-        let mark = ''
-        await fetcher.fetch(url)
-            .then(response => this.parserNetworkFile(response, isCached ? content => {
-                mark = utils.calcHash(content)
-            } : undefined))
-            .then(urls => urls.forEach(it => urls.add(it)))
-            .catch(err => new Response(JSON.stringify({
-                type: err.type,
-                message: err.message,
-                stack: err.stack,
-                addition: err
-            }), {
-                status: 599,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            }))
-        return { file: url, mark, urls }
-    }
-
     /**
      * 解析指定类型的文件内容
      * @param type 文件类型

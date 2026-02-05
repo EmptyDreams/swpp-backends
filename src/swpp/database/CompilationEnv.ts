@@ -1,6 +1,5 @@
 import {FilePath} from '../FilePath'
 import {UpdateJson} from '../JsonBuilder'
-import {FiniteConcurrencyFetcher} from '../NetworkFileHandler'
 import {FileUpdateTracker} from '../ResourcesScanner'
 import {CompilationData} from '../SwCompiler'
 import {exceptionNames, RuntimeException, utils} from '../untils'
@@ -118,7 +117,7 @@ function buildCommon() {
                     try {
                         const swppPath = readThisValue(this, 'swppPath')
                         const versionPath = readThisValue(this, 'versionPath')
-                        const response = await fetcher.fetch(utils.splicingUrl(baseUrl, swppPath, versionPath))
+                        const response = await fetcher(utils.splicingUrl(baseUrl, swppPath, versionPath))
                         if (!isNotFound.response(response)) {
                             if (isFetchSuccessful(response)) {
                                 const json = await response.json().catch(err => {
@@ -162,7 +161,7 @@ function buildCommon() {
          * 拉取网络文件
          */
         NETWORK_FILE_FETCHER: buildEnv({
-            default: new FiniteConcurrencyFetcher()
+            default: (url: string | URL) => fetch(url)
         }),
         /**
          * 判断文件是否是 404
@@ -189,11 +188,5 @@ function buildCommon() {
                 }
             }
         }),
-        /**
-         * 检查一个链接是否是稳定的（也就是 URL 不变其返回的结果永远不变）
-         */
-        isStable: buildEnv({
-            default: (_url: URL): boolean => false
-        })
     } as const
 }

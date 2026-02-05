@@ -9,7 +9,6 @@ export {utils, RuntimeException} from './swpp/untils'
 export {ResourcesScanner, FileUpdateTracker,} from './swpp/ResourcesScanner'
 export {JsonBuilder, UpdateJson, UpdateChangeExp, TrackerHeaderDiff} from './swpp/JsonBuilder'
 export {SwCompiler, CompilationData, RuntimeData, BrowserVersion} from './swpp/SwCompiler'
-export {NetworkFileHandler, FiniteConcurrencyFetcher} from './swpp/NetworkFileHandler'
 
 export {KeyValueDatabase, readThisValue} from './swpp/database/KeyValueDatabase'
 export {RuntimeKeyValueDatabase} from './swpp/database/RuntimeKeyValueDatabase'

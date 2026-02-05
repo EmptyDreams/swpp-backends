@@ -12,6 +12,7 @@ declare const VERSION_PATH: string
 declare const INVALID_KEY: string
 declare const STORAGE_TIMESTAMP: string
 declare const INFINITE_CACHE: symbol
+declare const BASE_URL: string
 
 declare const matchFromCaches: (request: RequestInfo | URL) => Promise<Response | undefined>
 declare const writeResponseToCache: (request: RequestInfo | URL, response: Response, date?: boolean) => Promise<void>
@@ -115,7 +116,14 @@ function buildCommon() {
             default: (response: Response, rule: number | symbol) => {
                 const headers = response.headers
                 if (headers.has(INVALID_KEY)) return false
-                if (rule === INFINITE_CACHE) return true
+                // 只有本站资源允许永久缓存
+                if (rule === INFINITE_CACHE) {
+                    const url = response.url
+                    const baseLength = BASE_URL.length
+                    if (url.startsWith(BASE_URL) && (url.length === baseLength || url[baseLength] === '/')) {
+                        return true
+                    }
+                }
                 const storage = headers.get(STORAGE_TIMESTAMP)
                 if (!storage) return true
                 const storageDate = new Date(storage).getTime()

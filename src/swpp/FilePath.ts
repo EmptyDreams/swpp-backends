@@ -1,7 +1,6 @@
 import fs from 'fs'
 import {Stats} from 'node:fs'
 import nodePath from 'path'
-import {CompilationData} from './SwCompiler'
 
 export class FilePath {
 
@@ -54,15 +53,6 @@ export class FilePath {
     }
 
     /**
-     * 检查路径是否指向一个文件
-     */
-    async isFile(): Promise<boolean> {
-        if (!this.statCache)
-            this.statCache = await fs.promises.stat(this.absPath)
-        return this.statCache.isFile()
-    }
-
-    /**
      * 将指定目录拼接到当前路径之后
      */
     append(subPath: string, ...subPaths: string[]): FilePath {
@@ -108,13 +98,6 @@ export class FilePath {
     }
 
     /**
-     * 获取文件名
-     */
-    fileName(): string {
-        return nodePath.posix.basename(this.absPath)
-    }
-
-    /**
      * 获取上一级目录
      */
     parent(): FilePath {
@@ -142,24 +125,6 @@ export class FilePath {
 
     /** 空目录 */
     static EMPTY = new FilePath('', null, null)
-
-    /**
-     * 从绝对路径获取 FilePath
-     * @param absPath 绝对路径
-     * @param compilation 编译期数据
-     */
-    static fromAbsPath(absPath: string, compilation: CompilationData): FilePath {
-        absPath = nodePath.posix.normalize(absPath)
-        const projectRoot = compilation.compilationEnv.read('PROJECT_PATH')
-        const publicRoot = compilation.compilationEnv.read('PUBLIC_PATH')
-        if (projectRoot.absPath.startsWith(absPath)) {
-            return projectRoot.join(absPath.substring(projectRoot.absPath.length))
-        } else if (publicRoot.absPath.startsWith(absPath)) {
-            return publicRoot.join(absPath.substring(publicRoot.absPath.length))
-        } else {
-            return new FilePath(absPath, null, null)
-        }
-    }
 
     /**
      * 构建网站根目录的 FilePath

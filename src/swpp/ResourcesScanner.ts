@@ -47,45 +47,7 @@ export class ResourcesScanner {
             }, isCached)
             set.forEach(it => urls.add(it))
         })
-        await this.scanNetworkFile(tracker, urls)
         return tracker
-    }
-
-    /** 扫描网络文件 */
-    private async scanNetworkFile(tracker: FileUpdateTracker, urls: Set<string>, record: Set<string> = new Set()) {
-        const matchCacheRule = this.compilation.crossDep.read('matchCacheRule')
-        const registry = this.compilation.fileParser
-        const isStable = this.compilation.compilationEnv.read('isStable')
-        const appendedUrls = new Set<string>()
-        const taskList = new Array<Promise<void>>(urls.size)
-        let i = 0
-        for (let url of urls) {
-            const normalizeUri = tracker.normalizeUri(url)
-            if (record.has(normalizeUri.href)) continue
-            record.add(normalizeUri.href)
-            const isCached = matchCacheRule.runOnNode(normalizeUri)
-            if (isCached) {
-                tracker.addUrl(normalizeUri.href)
-            }
-            if (isStable(normalizeUri)) {
-                const oldValue = this.oldTracker?.get?.(normalizeUri.href)
-                if (Array.isArray(oldValue)) {
-                    const list = tracker.syncStable(normalizeUri, oldValue, this.oldTracker!)
-                    list.forEach(it => appendedUrls.add(it))
-                    continue
-                }
-            }
-            taskList[i++] = registry.parserUrlFile(normalizeUri.href, !!isCached)
-                .then(value => {
-                    if (isCached) {
-                        tracker.update(value.file, value.mark)
-                    }
-                    value.urls.forEach(it => appendedUrls.add(it))
-                }).catch(err => utils.printError('SCAN NETWORK FILE', err))
-        }
-        await Promise.all(taskList)
-        if (appendedUrls.size !== 0)
-            await this.scanNetworkFile(tracker, appendedUrls, record)
     }
 
 }
@@ -114,31 +76,6 @@ export class FileUpdateTracker {
         } else {
             this.map.set(uri, JSON.stringify(Array.from(value)))
         }
-    }
-
-    /**
-     * 同步指定的稳定资源（同步时会连同同步其连接的稳定资源）
-     * @return 直接或间接连接的一些需要扫描的资源
-     */
-    syncStable(uri: URL, value: string[], oldTracker: FileUpdateTracker): string[] {
-        const isStable = this.compilation.compilationEnv.read('isStable')
-        this.update(uri.href, value)
-        this.addUrl(uri.href)
-        const result = []
-        for (let item of value) {
-            this.addUrl(item)
-            const itemUrl = new URL(item)
-            if (isStable(itemUrl)) {
-                const oldValue = oldTracker.get(item)
-                if (Array.isArray(oldValue)) {
-                    const son = this.syncStable(itemUrl, oldValue, oldTracker)
-                    result.push(...son)
-                    continue
-                }
-            }
-            result.push(item)
-        }
-        return result
     }
 
     /** 读取一个文件的标识符 */
@@ -264,7 +201,7 @@ export class FileUpdateTracker {
         let error: RuntimeException
         const result = await (async () => {
             try {
-                const response = await fetcher.fetch(url)
+                const response = await fetcher(url)
                 if (isNotFound.response(response)) {
                     if (notFoundLevel == AllowNotFoundEnum.REJECT_ALL) {
                         error = new RuntimeException(exceptionNames.notFound, `拉取 ${url} 时出现 404 错误`)

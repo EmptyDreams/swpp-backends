@@ -36,6 +36,17 @@ function buildCommon() {
     return {
         /** 缓存库名称 */
         CACHE_NAME: buildEnv({default: 'kmarBlogCache'}),
+        /** 网站的基准域名 */
+        BASE_URL: buildEnv({
+            default: defineLazyInitConfig((_, compilation) => {
+                const url = compilation.compilationEnv.read('DOMAIN_HOST')
+                return url.href
+            }),
+            checker(value) {
+                if (this.manual) return {value, message: '不应当手动设置该项！'}
+                return false
+            },
+        }),
         /** 永久缓存标记 */
         INFINITE_CACHE: buildEnv({
             default: Symbol(),
