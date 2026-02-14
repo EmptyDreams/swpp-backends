@@ -19,7 +19,6 @@ export class BasicActions {
             optional.isServiceWorker,
             optional.domJsPath,
             optional.diffJsonPath,
-            optional.trackLink !== true
         )
         await actions.configLoader!.loadFromCode({
             compilationEnv: {
@@ -52,14 +51,7 @@ export class BasicActions {
         private readonly isBuildServiceWorker: boolean,
         private readonly domJsPath: string | undefined,
         private readonly diffJsonPath: string | undefined,
-        private readonly disableTrack: boolean
-    ) {
-        if (disableTrack) {
-            utils.printInfo('Track', '链接追踪（静态分析）已被关闭，缓存主动更新已自动禁用，请勿使用永久缓存')
-        } else {
-            utils.printInfo('Track', '链接追踪（静态分析）已开启，如果发现行为异常请及时反馈')
-        }
-    }
+    ) { }
 
     /**
      * 加载一个配置文件或配置
@@ -97,54 +89,6 @@ export class BasicActions {
         this.runtimeData = runtime
         this.compilationData = compilation
         this.configLoader = undefined
-
-        if (this.disableTrack) {
-            const matcher = runtime.crossDep.read('matchCacheRule')
-            const checker = (text: string): boolean => {
-                if (!text.includes('INFINITE_CACHE')) return true
-                const list = text.replaceAll('\r', '').split('\n')
-                let inStr = ''
-                let inComment = false
-                o:for (let string of list) {
-                    for (let i = 0; i < string.length; i++) {
-                        if (inStr) {
-                            if (string[i] == inStr) inStr = ''
-                        } else if (inComment) {
-                            if (string[i] == '*' && string[i + 1] === '/') {
-                                inComment = false
-                                ++i
-                            }
-                        } else {
-                            switch (string[i]) {
-                                case '"': case '`': case `"`:
-                                    inStr = string[i]
-                                    continue
-                                case '/':
-                                    if (string[i + 1] === '*') {
-                                        inComment = true
-                                    } else if (string[i + 1] === '/') {
-                                        continue o
-                                    }
-                                    break
-                                default:
-                                    if (string.startsWith('INFINITE_CACHE', i)) {
-                                        return false
-                                    }
-                                    break
-                            }
-                        }
-                    }
-                }
-                return true
-            }
-            if (!checker(matcher.runOnBrowser.toString())) {
-                throw new RuntimeException(
-                    exceptionNames.unsupportedOperate,
-                    '禁用引用链分析时禁止在 matchCacheRule 返回 INFINITE_CACHE。' +
-                    '如果您没有返回该值，可能是由于存在与该字段同名的变量或其它内容，从而导致 SWPP 误判，请您修改与 INFINITE_CACHE 重复的名称。'
-                )
-            }
-        }
 
         const compilationEnv = compilation.compilationEnv
         const publicRoot = compilationEnv.read('PUBLIC_PATH')
@@ -253,17 +197,6 @@ export class BasicActions {
      * @param excludeFilter 需排除的文件
      */
     async saveFiles(excludeFilter: BasicActionKey[] = []): Promise<void> {
-        if (this.disableTrack) {
-            if (!excludeFilter.includes('tracker')) {
-                excludeFilter.push('tracker')
-            }
-            if (!excludeFilter.includes('version')) {
-                excludeFilter.push('version')
-            }
-            if (!excludeFilter.includes('diffJson')) {
-                excludeFilter.push('diffJson')
-            }
-        }
         const fileList = await this.buildFiles(excludeFilter)
         for (let item of fileList) {
             if (await item.path.exists()) {
@@ -295,8 +228,6 @@ export interface BasicActionOptions {
     domJsPath?: string
     /** diff.json 文件路径（相对于网站根目录，留空表示不生成） */
     diffJsonPath?: string
-    /** 是否进行引用的静态分析，留空表示不进行（禁用静态分析后不能使用无限期缓存） */
-    trackLink?: boolean
 
 }
 
