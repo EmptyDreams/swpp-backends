@@ -72,10 +72,16 @@ function buildCommon() {
                 (response: Response) => [200, 301, 302, 307, 308].includes(response.status)
             )
         },
-        /** 缓存规则 */
+        /**
+         * 缓存规则
+         *
+         * + 返回转换为 false 的值表示不缓存；
+         * + 返回正数表示缓存指定毫秒数；
+         * + 返回负数表示永久缓存（仅对本站资源有效，非本站资源返回负数等价于 24h）
+         */
         matchCacheRule: {
             default: CrossDepCode.buildBothFunction(
-                (_url: URL): undefined | null | false | number | symbol => false
+                (_url: URL): undefined | null | false | number => false
             )
         },
         /** 归一化 URL */

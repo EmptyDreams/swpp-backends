@@ -11,7 +11,6 @@ declare const CACHE_NAME: string
 declare const VERSION_PATH: string
 declare const INVALID_KEY: string
 declare const STORAGE_TIMESTAMP: string
-declare const INFINITE_CACHE: symbol
 declare const BASE_URL: string
 
 declare const matchFromCaches: (request: RequestInfo | URL) => Promise<Response | undefined>
@@ -113,16 +112,18 @@ function buildCommon() {
         },
         /** 判断指定的缓存是否是有效缓存 */
         isValidCache: {
-            default: (response: Response, rule: number | symbol) => {
+            default: (response: Response, rule: number) => {
                 const headers = response.headers
                 if (headers.has(INVALID_KEY)) return false
                 // 只有本站资源允许永久缓存
-                if (rule === INFINITE_CACHE) {
+                if (rule < 0) {
                     const url = response.url
                     const baseLength = BASE_URL.length
                     if (url.startsWith(BASE_URL) && (url.length === baseLength || url[baseLength] === '/')) {
                         return true
                     }
+                    // 将rule设置为一天（24小时）
+                    rule = 24 * 60 * 60 * 1000
                 }
                 const storage = headers.get(STORAGE_TIMESTAMP)
                 if (!storage) return true
