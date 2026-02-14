@@ -98,6 +98,13 @@ export class FilePath {
     }
 
     /**
+     * 获取文件名
+     */
+    fileName(): string {
+        return nodePath.posix.basename(this.absPath)
+    }
+
+    /**
      * 获取上一级目录
      */
     parent(): FilePath {
