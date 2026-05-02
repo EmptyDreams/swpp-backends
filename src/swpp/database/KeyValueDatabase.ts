@@ -52,12 +52,12 @@ export class KeyValueDatabase<T, CONTAINER extends Record<string, DatabaseValue<
         let value: any = item.manual ?? item.default
         let isNoCache = false
         if (SpecialConfig.isRuntimeSpecialConfig(value)) {
-            this.runtime.debugCallChain.push(this.namespace, key)
-            value = value.get(this.runtime, this.compilation)
-            this.runtime.debugCallChain.pop(this.namespace, key)
             if (SpecialConfig.isNoCacheConfig(value)) {
                 isNoCache = true
             }
+            this.runtime.debugCallChain.push(this.namespace, key)
+            value = value.get(this.runtime, this.compilation)
+            this.runtime.debugCallChain.pop(this.namespace, key)
         }
         // 进行类型预检
         if (!(item.default === null || item.default === undefined || value === null || value === undefined) && typeof value != typeof item.default) {
