@@ -204,10 +204,9 @@ export class BasicActions {
             }
         }
         await Promise.all(
-            fileList.map(it => {
-                it.path.mkdirs().then(
-                    () => utils.writeFile(it.path.absPath, it.content)
-                )
+            fileList.map(async it => {
+                await it.path.mkdirs()
+                await utils.writeFile(it.path.absPath, it.content)
             })
         )
     }
