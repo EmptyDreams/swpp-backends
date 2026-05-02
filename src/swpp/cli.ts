@@ -108,7 +108,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         context,
         publicPath: cliConfig.webRoot,
         isServiceWorker: cliConfig.serviceWorker ?? true,
-        domJsPath: cliConfig.gen_dom ? undefined : cliConfig.domJsPath,
+        domJsPath: cliConfig.gen_dom ? cliConfig.domJsPath : undefined,
         diffJsonPath: cliConfig.diffJsonPath
     })
     await actions.loadConfigs(Array.isArray(cliConfig.configFiles) ? cliConfig.configFiles : [cliConfig.configFiles])
