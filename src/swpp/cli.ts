@@ -138,9 +138,21 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
         `<script defer src="${cliConfig.domJsPath ?? '/sw-dom.js'}"></script>`
     // 修改 html
     await compilation.compilationEnv.read('PUBLIC_PATH').walkAllFile(async file => {
-        if (!file.absPath.endsWith('.html') || regexes.some(regex => regex.test(file.basePublic!))) return
+        if (
+            !file.basePublic ||
+            !file.absPath.endsWith('.html') ||
+            regexes.some(regex => regex.test(file.basePublic!))
+        ) return
         const html = await readHtml(compilation, file)
-        const head = html.querySelector('head')!
+        const head = html.querySelector('head')
+        if (!head) {
+            utils.printError('跳过 HTML 文件', {
+                file: file.basePublic,
+                reason: '没有包含 <head> 标签',
+                suggestion: '如果该文件无需插入脚本，应通过 excludes 排除；否则至少应包含一个空 <head> 标签'
+            })
+            return
+        }
         if (swRegistry)
             head.insertAdjacentHTML('afterbegin', swRegistry)
         if (domJsScript)
