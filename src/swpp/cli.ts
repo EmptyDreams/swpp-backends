@@ -10,7 +10,7 @@ import * as HTMLParser from 'node-html-parser'
 
 export interface SwppCliConfig {
 
-    /** 网站根目录，可以是绝对路径也可以是相对路径，swpp 根据系统规则进行判断 */
+    /** 网站根目录，可以是绝对路径也可以是相对路径（相对于 swpp.cli.json 所在目录） */
     webRoot: string
     /** 配置文件所在的相对路径（相对于 swpp.cli.json 所在目录，越靠前优先级越高） */
     configFiles: string[] | string
@@ -37,6 +37,10 @@ function resolveCliConfigFiles(configFiles: string[] | string, cliJsonPath: stri
     const cliDir = path.dirname(cliJsonPath)
     const resolveItem = (item: string) => path.isAbsolute(item) ? item : path.resolve(cliDir, item)
     return typeof configFiles === 'string' ? resolveItem(configFiles) : configFiles.map(resolveItem)
+}
+
+function resolveCliConfigDirPath(filePath: string, cliJsonPath: string): string {
+    return path.isAbsolute(filePath) ? filePath : path.resolve(path.dirname(cliJsonPath), filePath)
 }
 
 export async function initCommand() {
@@ -111,6 +115,7 @@ async function runBuild(cliJsonPath: string = './swpp.cli.json', context: 'dev' 
     }
     cliJsonPath = path.resolve(cliJsonPath)
     const cliConfig = JSON.parse(await utils.readFileUtf8(cliJsonPath)) as SwppCliConfig
+    cliConfig.webRoot = resolveCliConfigDirPath(cliConfig.webRoot, cliJsonPath)
     cliConfig.configFiles = resolveCliConfigFiles(cliConfig.configFiles, cliJsonPath)
     await checkAndInitConfig(cliConfig)
     const actions = await BasicActions.build({
